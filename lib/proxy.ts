@@ -28,8 +28,9 @@ export class ProxyError extends Error {
 }
 
 export async function callProxy(payload: ProxyPayload): Promise<ProxyResponse> {
-  const proxyUrl = process.env.PROXY_URL!;
-  const proxySecret = process.env.PROXY_SECRET!;
+  const proxyUrl = process.env.PROXY_URL;
+  const proxySecret = process.env.PROXY_SECRET;
+  if (!proxyUrl || !proxySecret) throw new Error("Missing PROXY_URL or PROXY_SECRET");
 
   const res = await fetch(`${proxyUrl}/pay`, {
     method: "POST",
@@ -41,7 +42,7 @@ export async function callProxy(payload: ProxyPayload): Promise<ProxyResponse> {
     signal: AbortSignal.timeout(10000),
   });
 
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
     const message = data?.details?.message || data?.error || `Proxy error: ${res.status}`;
