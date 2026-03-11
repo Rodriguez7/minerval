@@ -33,7 +33,7 @@ export default async function PayPage({
   const student = {
     student_id: data.external_id,
     name: data.name,
-    school_name: (data.schools as { name: string } | null)?.name ?? "Unknown School",
+    school_name: (data.schools as unknown as { name: string } | null)?.name ?? "Unknown School",
     amount_due: data.amount_due,
   };
 
