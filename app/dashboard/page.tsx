@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabase } from "@/lib/supabase";
 import { TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
