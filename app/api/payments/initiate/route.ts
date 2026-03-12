@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getAdminClient } from "@/lib/supabase";
 import { callProxy, ProxyError } from "@/lib/proxy";
 import type { Telecom } from "@/lib/types";
 
 const VALID_TELECOMS: Telecom[] = ["AM", "OM", "MP", "AF"];
-const CALLBACK_URL = "https://www.minerval.org/api/serdipay/callback";
 
 export async function POST(req: NextRequest) {
   let body: { student_id?: string; phone?: string; telecom?: string };
@@ -30,10 +29,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 1. Look up student
-  const { data: student, error: studentErr } = await supabase
+  const admin = getAdminClient();
+
+  const { data: student, error: studentErr } = await admin
     .from("students")
-    .select("id, school_id, name, amount_due, external_id")
+    .select("id, school_id, full_name, amount_due, external_id")
     .eq("external_id", student_id)
     .single();
 
@@ -45,8 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No fees outstanding for this student" }, { status: 400 });
   }
 
-  // 2. Create pending payment_request
-  const { data: paymentRequest, error: insertErr } = await supabase
+  const { data: paymentRequest, error: insertErr } = await admin
     .from("payment_requests")
     .insert({
       student_id: student.id,
@@ -63,26 +62,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create payment record" }, { status: 500 });
   }
 
-  // 3. Call proxy
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/serdipay/callback`;
+
   try {
     await callProxy({
       amount: student.amount_due,
       phone,
       reference: paymentRequest.id,
       telecom: telecom as Telecom,
-      callback_url: CALLBACK_URL,
+      callback_url: callbackUrl,
+    });
+
+    await admin.from("payment_events").insert({
+      payment_request_id: paymentRequest.id,
+      event_type: "initiated",
+      payload: { phone, telecom, amount: student.amount_due },
     });
 
     return NextResponse.json({ payment_request_id: paymentRequest.id, status: "pending" });
   } catch (err) {
-    // Mark as failed
-    await supabase
+    await admin
       .from("payment_requests")
       .update({ status: "failed" })
       .eq("id", paymentRequest.id);
 
     if (err instanceof ProxyError) {
-      // Pass 409 duplicate transaction through to the client
       if (err.status === 409) {
         return NextResponse.json({ error: err.message }, { status: 409 });
       }
