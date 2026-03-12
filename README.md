@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Minerval
 
-## Getting Started
+School fee payment platform for Congo. Parents pay school fees via mobile money (Airtel, Orange, Vodacom-Mpesa, Afrimoney) using SerdiPay.
 
-First, run the development server:
+## Architecture
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Browser → Railway (Next.js) → Hetzner proxy (proxy.minerval.org) → SerdiPay
+                    ↕
+              Supabase (Postgres)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Main app**: Next.js 16 on Railway (`www.minerval.org`)
+- **Proxy**: Node.js on Hetzner with a fixed IP whitelisted by SerdiPay. Handles token auth and forwards payment requests.
+- **Database**: Supabase Postgres (server-side only, service key)
+- **Auth**: Supabase Auth with cookie-based sessions (`@supabase/ssr`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Two Supabase clients
+- `getAdminClient()` — service key, bypasses RLS, used for all data operations
+- `createSSRClient()` — anon key + cookies, used only for session management
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Local Setup
 
-## Learn More
+```bash
+git clone https://github.com/Rodriguez7/minerval.git
+cd minerval
+npm install
+cp .env.local.example .env.local  # fill in values
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Description |
+|---|---|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Supabase service role key (server-side only) |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key (for auth sessions) |
+| `NEXT_PUBLIC_APP_URL` | App base URL (e.g. `https://www.minerval.org`) |
+| `PROXY_URL` | Hetzner proxy URL (e.g. `https://proxy.minerval.org`) |
+| `PROXY_SECRET` | Shared secret for main app → proxy auth |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Get keys from: **Supabase Dashboard → Settings → API**
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Push to `main` → Railway auto-deploys via GitHub integration.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Railway env vars to set:**
+- All 6 variables above
+- `NIXPACKS_NODE_VERSION=20`
+
+## How Payments Work
+
+1. School generates payment URL: `https://www.minerval.org/pay/[school-code]`
+2. Parent visits URL, enters student ID → sees student info + payment form
+3. Parent enters phone + selects mobile money provider → submits
+4. App calls proxy (`POST /pay`) which initiates SerdiPay C2B push
+5. Parent receives USSD prompt on phone → confirms payment
+6. SerdiPay calls `POST /api/serdipay/callback` → app records success, decrements `amount_due`
+7. Parent is redirected to receipt page
+
+## Database Schema
+
+```sql
+schools         — id, name, code (unique), admin_email
+students        — id, school_id, external_id, full_name, class_name, amount_due
+fees            — id, school_id, title, type (recurring/special), amount, active
+payment_requests — id, student_id, school_id, amount, phone, telecom, status, serdipay_ref, settled_at
+payment_events  — id, payment_request_id, event_type, payload (audit log)
+```
+
+## Running Tests
+
+```bash
+npm test
+```
+
+## Current Limitations (Phase 1)
+
+- No multi-school data isolation (all schools share the same RLS-less DB)
+- No email receipts
+- No refunds
+- No automated reconciliation (stale payments resolved manually in dashboard)
+- Single admin per school
+- No Excel import (CSV only)
