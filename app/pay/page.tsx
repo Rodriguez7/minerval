@@ -18,7 +18,7 @@ export default async function PayPage({
 
   const { data, error } = await supabase
     .from("students")
-    .select("external_id, name, amount_due, schools(name)")
+    .select("external_id, full_name, amount_due, schools(name, code)")
     .eq("external_id", studentId)
     .single();
 
@@ -30,10 +30,12 @@ export default async function PayPage({
     );
   }
 
+  const schoolData = data.schools as unknown as { name: string; code: string } | null;
   const student = {
     student_id: data.external_id,
-    name: data.name,
-    school_name: (data.schools as unknown as { name: string } | null)?.name ?? "Unknown School",
+    full_name: data.full_name,
+    school_name: schoolData?.name ?? "Unknown School",
+    school_code: schoolData?.code ?? "",
     amount_due: data.amount_due,
   };
 
@@ -43,7 +45,7 @@ export default async function PayPage({
       <p className="text-gray-500 mb-6">{student.school_name}</p>
 
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <p className="font-medium">{student.name}</p>
+        <p className="font-medium">{student.full_name}</p>
         <p className="text-sm text-gray-500">ID: {studentId}</p>
         <p className="text-xl font-bold mt-2">{student.amount_due.toLocaleString()} FC</p>
       </div>
