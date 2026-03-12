@@ -1,60 +1,13 @@
-import { supabase } from "@/lib/supabase";
-import { PayForm } from "./PayForm";
-
-export default async function PayPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ student?: string }>;
-}) {
-  const { student: studentId } = await searchParams;
-
-  if (!studentId) {
-    return (
-      <main className="p-8 max-w-md mx-auto">
-        <p className="text-red-600">No student ID provided.</p>
-      </main>
-    );
-  }
-
-  const { data, error } = await supabase
-    .from("students")
-    .select("external_id, full_name, amount_due, schools(name, code)")
-    .eq("external_id", studentId)
-    .single();
-
-  if (error || !data) {
-    return (
-      <main className="p-8 max-w-md mx-auto">
-        <p className="text-red-600">Student not found.</p>
-      </main>
-    );
-  }
-
-  const schoolData = data.schools as unknown as { name: string; code: string } | null;
-  const student = {
-    student_id: data.external_id,
-    full_name: data.full_name,
-    school_name: schoolData?.name ?? "Unknown School",
-    school_code: schoolData?.code ?? "",
-    amount_due: data.amount_due,
-  };
-
+export default function PayIndex() {
   return (
-    <main className="p-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-1">School Fee Payment</h1>
-      <p className="text-gray-500 mb-6">{student.school_name}</p>
-
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <p className="font-medium">{student.full_name}</p>
-        <p className="text-sm text-gray-500">ID: {studentId}</p>
-        <p className="text-xl font-bold mt-2">{student.amount_due.toLocaleString()} FC</p>
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
+      <div className="text-center max-w-sm">
+        <h1 className="text-2xl font-bold mb-2">Minerval</h1>
+        <p className="text-gray-500">
+          Please use the payment link provided by your school,
+          e.g. <code className="text-sm bg-gray-100 px-1 py-0.5 rounded">/pay/school-code</code>
+        </p>
       </div>
-
-      {student.amount_due === 0 ? (
-        <p className="text-green-600 font-medium">No fees outstanding.</p>
-      ) : (
-        <PayForm student={student} />
-      )}
     </main>
   );
 }
