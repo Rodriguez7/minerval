@@ -470,7 +470,7 @@ export default function SignupPage() {
                 <div className="step-fields" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
                   <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Admin email</label>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Your email</label>
                     <input
                       name="email"
                       type="email"
