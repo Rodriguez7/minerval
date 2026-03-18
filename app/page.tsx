@@ -249,6 +249,7 @@ export default function HomePage() {
         <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
           <a href="#how-it-works" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>How it works</a>
           <a href="#features" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>For schools</a>
+          <Link href="/login" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>Log in</Link>
           <Link href="/signup" className="btn-primary" style={{ padding: "9px 20px", fontSize: 14, borderRadius: 8 }}>Get started free</Link>
         </div>
       </nav>
