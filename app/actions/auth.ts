@@ -1,20 +1,11 @@
 "use server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSSRClient, getAdminClient } from "@/lib/supabase";
+import { createSSRClient } from "@/lib/supabase";
 
 const LoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-});
-
-const SignupSchema = z.object({
-  schoolName: z.string().min(2).max(200),
-  schoolCode: z.string().regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only").min(2).max(30),
-  studentIdPrefix: z.string().regex(/^[A-Z0-9]{2,6}$/, "2–6 uppercase letters/numbers (e.g. ESM)"),
-  currency: z.enum(["FC", "USD"]),
-  email: z.string().email(),
-  password: z.string().min(8),
 });
 
 export async function login(_: unknown, formData: FormData) {
@@ -52,11 +43,10 @@ export async function logout() {
 }
 
 export async function signup(_: unknown, formData: FormData) {
-  const parsed = SignupSchema.safeParse({
-    schoolName: formData.get("schoolName"),
-    schoolCode: formData.get("schoolCode"),
-    studentIdPrefix: formData.get("studentIdPrefix"),
-    currency: formData.get("currency"),
+  const parsed = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+  }).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -65,52 +55,10 @@ export async function signup(_: unknown, formData: FormData) {
     return { error: msg };
   }
 
-  const { schoolName, schoolCode, studentIdPrefix, currency, email, password } = parsed.data;
-
-  const { data: existing } = await getAdminClient()
-    .from("schools").select("id").eq("code", schoolCode).single();
-  if (existing) return { error: "School code already taken." };
-
+  const { email, password } = parsed.data;
   const supabase = await createSSRClient();
   const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
   if (authError || !authData.user) return { error: authError?.message ?? "Signup failed." };
 
-  const admin = getAdminClient();
-
-  const { data: newSchool, error: schoolError } = await admin
-    .from("schools")
-    .insert({
-      name: schoolName,
-      code: schoolCode,
-      admin_email: email,
-      student_id_prefix: studentIdPrefix,
-      currency,
-    })
-    .select("id")
-    .single();
-
-  if (schoolError || !newSchool) return { error: "Failed to create school." };
-
-  await admin.from("school_memberships").insert({
-    user_id: authData.user.id,
-    school_id: newSchool.id,
-    role: "owner",
-    status: "active",
-  });
-
-  await admin.from("school_subscriptions").insert({
-    school_id: newSchool.id,
-    plan_code: "starter_free",
-    status: "active",
-    billing_exempt: false,
-  });
-
-  await admin.from("school_pricing_policies").insert({
-    school_id: newSchool.id,
-    parent_fee_bps: 275,
-    fee_display_mode: "visible_line_item",
-    active: true,
-  });
-
-  redirect("/dashboard");
+  redirect("/onboarding/school");
 }
