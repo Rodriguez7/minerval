@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS school_memberships (
 
 CREATE INDEX IF NOT EXISTS idx_school_memberships_user_id  ON school_memberships(user_id);
 CREATE INDEX IF NOT EXISTS idx_school_memberships_school_id ON school_memberships(school_id);
+CREATE INDEX IF NOT EXISTS idx_school_memberships_user_school_status
+  ON school_memberships(user_id, school_id, status);
 
 -- ── 4. School subscriptions ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS school_subscriptions (
@@ -69,6 +71,7 @@ CREATE TABLE IF NOT EXISTS school_subscriptions (
   UNIQUE (school_id)
 );
 
+DROP TRIGGER IF EXISTS trg_school_subscriptions_updated_at ON school_subscriptions;
 CREATE TRIGGER trg_school_subscriptions_updated_at
   BEFORE UPDATE ON school_subscriptions
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -106,6 +109,7 @@ CREATE TABLE IF NOT EXISTS school_pricing_policies (
   UNIQUE (school_id)
 );
 
+DROP TRIGGER IF EXISTS trg_school_pricing_policies_updated_at ON school_pricing_policies;
 CREATE TRIGGER trg_school_pricing_policies_updated_at
   BEFORE UPDATE ON school_pricing_policies
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
