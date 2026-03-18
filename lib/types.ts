@@ -59,6 +59,11 @@ export interface School {
   student_id_seq: number;
   currency: Currency;
   created_at: string;
+  // Added by migration 006
+  billing_email: string | null;
+  billing_contact: string | null;
+  timezone: string;
+  support_tier: string;
 }
 
 export interface Student {
@@ -87,4 +92,46 @@ export interface PaymentEvent {
   event_type: string;
   payload: Record<string, unknown> | null;
   created_at: string;
+}
+
+// ── SaaS / multi-tenant types ──────────────────────────────────────────────
+
+export type MembershipRole = "owner" | "admin" | "finance" | "viewer";
+export type SubscriptionStatus = "active" | "trialing" | "past_due" | "canceled";
+
+export interface Plan {
+  code: string;
+  name: string;
+  monthly_price_usd: number;
+  can_branded_receipts: boolean;
+  can_rich_reports: boolean;
+  can_bulk_ops: boolean;
+  can_accounting_export: boolean;
+  can_advanced_analytics: boolean;
+  max_students: number | null;
+}
+
+export interface Membership {
+  id: string;
+  user_id: string;
+  school_id: string;
+  role: MembershipRole;
+  status: "active" | "inactive";
+  created_at: string;
+}
+
+export interface Subscription {
+  plan_code: string;
+  status: SubscriptionStatus;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+  billing_exempt: boolean;
+}
+
+export interface TenantContext {
+  user: { id: string; email: string };
+  school: School;
+  membership: Pick<Membership, "id" | "role" | "status">;
+  plan: Plan;
+  subscription: Subscription;
 }
