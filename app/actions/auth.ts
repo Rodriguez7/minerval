@@ -31,6 +31,20 @@ export async function login(_: unknown, formData: FormData) {
   redirect("/dashboard");
 }
 
+export async function resetPassword(_: unknown, formData: FormData) {
+  const email = formData.get("email");
+  const parsed = z.string().email().safeParse(email);
+  if (!parsed.success) return { error: "Please enter a valid email address." };
+
+  const supabase = await createSSRClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+  });
+
+  if (error) return { error: "Failed to send reset email. Please try again." };
+  return { success: true };
+}
+
 export async function logout() {
   const supabase = await createSSRClient();
   await supabase.auth.signOut();

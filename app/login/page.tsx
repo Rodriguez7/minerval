@@ -180,7 +180,7 @@ export default function LoginPage() {
               <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
-                  <span style={{ fontSize: 12, color: "#1d4ed8", cursor: "pointer" }}>Forgot password?</span>
+                  <Link href="/forgot-password" style={{ fontSize: 12, color: "#1d4ed8", textDecoration: "none" }}>Forgot password?</Link>
                 </div>
                 <input
                   name="password"
