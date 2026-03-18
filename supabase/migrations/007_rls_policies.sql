@@ -157,3 +157,14 @@ ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
 -- Plans table is public read (needed for billing page, plan comparison)
 CREATE POLICY "public_select_active_plans" ON plans
   FOR SELECT USING (active = true);
+
+-- Members can always read the plan their school is subscribed to,
+-- even if the plan is inactive (e.g. legacy_grandfathered).
+CREATE POLICY "members_select_subscribed_plan" ON plans
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM school_subscriptions ss
+      WHERE ss.plan_code = plans.code
+        AND is_school_member(ss.school_id)
+    )
+  );

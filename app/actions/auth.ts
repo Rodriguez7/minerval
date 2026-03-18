@@ -75,12 +75,41 @@ export async function signup(_: unknown, formData: FormData) {
   const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
   if (authError || !authData.user) return { error: authError?.message ?? "Signup failed." };
 
-  await getAdminClient().from("schools").insert({
-    name: schoolName,
-    code: schoolCode,
-    admin_email: email,
-    student_id_prefix: studentIdPrefix,
-    currency,
+  const admin = getAdminClient();
+
+  const { data: newSchool, error: schoolError } = await admin
+    .from("schools")
+    .insert({
+      name: schoolName,
+      code: schoolCode,
+      admin_email: email,
+      student_id_prefix: studentIdPrefix,
+      currency,
+    })
+    .select("id")
+    .single();
+
+  if (schoolError || !newSchool) return { error: "Failed to create school." };
+
+  await admin.from("school_memberships").insert({
+    user_id: authData.user.id,
+    school_id: newSchool.id,
+    role: "owner",
+    status: "active",
+  });
+
+  await admin.from("school_subscriptions").insert({
+    school_id: newSchool.id,
+    plan_code: "starter_free",
+    status: "active",
+    billing_exempt: false,
+  });
+
+  await admin.from("school_pricing_policies").insert({
+    school_id: newSchool.id,
+    parent_fee_bps: 275,
+    fee_display_mode: "visible_line_item",
+    active: true,
   });
 
   redirect("/dashboard");
