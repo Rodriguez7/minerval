@@ -131,12 +131,12 @@ export function CsvImportForm() {
       </ol>
 
       {/* Drop zone */}
-      <div
-        onClick={() => fileInputRef.current?.click()}
+      <label
+        htmlFor="csv-upload"
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-xl px-6 py-8 text-center cursor-pointer transition-colors ${
+        className={`block border-2 border-dashed rounded-xl px-6 py-8 text-center cursor-pointer transition-colors ${
           dragging
             ? "border-blue-400 bg-blue-50"
             : fileName
@@ -164,9 +164,10 @@ export function CsvImportForm() {
             </>
           )}
         </div>
-      </div>
+      </label>
 
       <input
+        id="csv-upload"
         ref={fileInputRef}
         type="file"
         accept=".csv"
