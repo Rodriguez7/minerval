@@ -43,7 +43,8 @@ export async function getTenantContext(): Promise<TenantContext> {
     } | null;
   }) | null;
 
-  if (!data || !school || !school.school_subscriptions || !school.school_subscriptions.plans) redirect("/login");
+  if (!data || !school) redirect("/onboarding/school");
+  if (!school.school_subscriptions || !school.school_subscriptions.plans) redirect("/login");
 
   const sub = school.school_subscriptions;
 

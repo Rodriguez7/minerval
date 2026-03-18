@@ -91,9 +91,18 @@ describe("getTenantContext", () => {
     expect(redirect).toHaveBeenCalledWith("/login");
   });
 
-  it("redirects to /login when no active membership exists", async () => {
-    mockSupabaseClient({ user: mockUser, membershipData: null });
-    await expect(getTenantContext()).rejects.toThrow("REDIRECT:/login");
+  it("redirects to /onboarding/school when authenticated but no membership", async () => {
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "uid1", email: "a@b.com" } } }) },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    } as never);
+
+    await expect(getTenantContext()).rejects.toThrow();
+    expect(redirect).toHaveBeenCalledWith("/onboarding/school");
   });
 
   it("returns fully-shaped TenantContext on success", async () => {
@@ -107,6 +116,19 @@ describe("getTenantContext", () => {
     expect(ctx.plan.code).toBe("starter_free");
     expect(ctx.plan.can_branded_receipts).toBe(false);
     expect(ctx.subscription.billing_exempt).toBe(false);
+  });
+
+  it("redirects to /login when membership exists but subscription is missing", async () => {
+    const membershipWithNoSubscription = {
+      ...mockMembershipRow,
+      schools: {
+        ...mockMembershipRow.schools,
+        school_subscriptions: null,
+      },
+    };
+    mockSupabaseClient({ user: mockUser, membershipData: membershipWithNoSubscription });
+    await expect(getTenantContext()).rejects.toThrow("REDIRECT:/login");
+    expect(redirect).toHaveBeenCalledWith("/login");
   });
 
   it("queries memberships with user_id and status=active filter", async () => {
