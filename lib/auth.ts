@@ -1,18 +1,12 @@
-import { redirect } from "next/navigation";
-import { createSSRClient, getAdminClient } from "./supabase";
+// minerval/lib/auth.ts
+import { getTenantContext } from "./tenant";
 import type { School } from "./types";
 
+/**
+ * Backward-compat shim. Returns the authenticated user's school.
+ * For new code, prefer getTenantContext() to get membership + plan too.
+ */
 export async function getAuthenticatedSchool(): Promise<School> {
-  const supabase = await createSSRClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: school } = await getAdminClient()
-    .from("schools")
-    .select("*")
-    .eq("admin_email", user.email!)
-    .single();
-
-  if (!school) redirect("/login");
-  return school as School;
+  const { school } = await getTenantContext();
+  return school;
 }
