@@ -7,10 +7,10 @@ import { TELECOM_LABELS } from "@/lib/types";
 interface Props {
   studentId: string;
   amountDue: number;
-  schoolCode: string;
+  paymentToken: string;
 }
 
-export function PayForm({ studentId, amountDue, schoolCode }: Props) {
+export function PayForm({ studentId, amountDue, paymentToken }: Props) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [telecom, setTelecom] = useState<Telecom | "">("");
@@ -26,15 +26,22 @@ export function PayForm({ studentId, amountDue, schoolCode }: Props) {
       const res = await fetch("/api/payments/initiate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ student_id: studentId, phone, telecom }),
+        body: JSON.stringify({
+          student_id: studentId,
+          phone,
+          telecom,
+          payment_token: paymentToken,
+        }),
       });
       const data = await res.json();
       if (res.status === 409) {
         setError("A payment is already in progress. Please wait 2 minutes and try again.");
+      } else if (res.status === 429) {
+        setError(data.error || "Too many attempts. Please try again later.");
       } else if (!res.ok) {
         setError(data.error || "Payment failed. Please try again.");
       } else {
-        router.push(`/pay/${schoolCode}/receipt?ref=${data.payment_request_id}`);
+        router.push(`/pay/receipt?ref=${data.payment_request_id}`);
       }
     } catch {
       setError("Network error. Please try again.");

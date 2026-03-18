@@ -1,4 +1,9 @@
 export type PaymentStatus = "pending" | "success" | "failed";
+export type ReconciliationStatus =
+  | "pending_review"
+  | "reconciled"
+  | "needs_review"
+  | "manual_override";
 export type Telecom = "AM" | "OM" | "MP" | "AF";
 
 export const TELECOM_LABELS: Record<Telecom, string> = {
@@ -6,6 +11,13 @@ export const TELECOM_LABELS: Record<Telecom, string> = {
   OM: "Orange Money",
   MP: "Vodacom-Mpesa",
   AF: "Afrimoney",
+};
+
+export const RECONCILIATION_LABELS: Record<ReconciliationStatus, string> = {
+  pending_review: "Pending review",
+  reconciled: "Reconciled",
+  needs_review: "Needs review",
+  manual_override: "Manual override",
 };
 
 export interface StudentInfo {
@@ -24,6 +36,10 @@ export interface PaymentRequest {
   phone: string;
   telecom: Telecom;
   status: PaymentStatus;
+  reconciliation_status: ReconciliationStatus;
+  reconciliation_note: string | null;
+  reconciliation_updated_at: string | null;
+  reconciliation_updated_by: string | null;
   serdipay_ref: string | null;
   serdipay_transaction_id: string | null;
   created_at: string;
@@ -36,6 +52,9 @@ export interface School {
   name: string;
   code: string;
   admin_email: string;
+  payment_access_token: string;
+  student_id_prefix: string;
+  student_id_seq: number;
   created_at: string;
 }
 

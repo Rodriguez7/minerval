@@ -1,23 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { callProxy, ProxyError } from "@/lib/proxy";
+import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
+import { getClientIp } from "@/lib/request";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import type { Telecom } from "@/lib/types";
 
 const VALID_TELECOMS: Telecom[] = ["AM", "OM", "MP", "AF"];
 
 export async function POST(req: NextRequest) {
-  let body: { student_id?: string; phone?: string; telecom?: string };
+  let body: {
+    student_id?: string;
+    phone?: string;
+    telecom?: string;
+    payment_token?: string;
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { student_id, phone, telecom } = body;
+  const { student_id, phone, telecom, payment_token } = body;
 
-  if (!student_id || !phone || !telecom) {
+  if (!student_id || !phone || !telecom || !payment_token) {
     return NextResponse.json(
-      { error: "student_id, phone, and telecom are required" },
+      { error: "student_id, phone, telecom, and payment_token are required" },
       { status: 400 }
     );
   }
@@ -29,11 +37,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const school = await getSchoolByPaymentAccessToken(payment_token);
+  if (!school) {
+    return NextResponse.json({ error: "Payment link not found" }, { status: 404 });
+  }
+
+  const rateLimit = consumeRateLimit({
+    key: `payment-initiate:${school.id}:${getClientIp(req.headers)}`,
+    limit: 5,
+    windowMs: 300_000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: `Too many payment attempts. Please wait ${rateLimit.retryAfterSeconds} seconds and try again.`,
+      },
+      { status: 429 }
+    );
+  }
+
   const admin = getAdminClient();
 
   const { data: student, error: studentErr } = await admin
     .from("students")
     .select("id, school_id, full_name, amount_due, external_id")
+    .eq("school_id", school.id)
     .eq("external_id", student_id)
     .single();
 
@@ -49,11 +77,14 @@ export async function POST(req: NextRequest) {
     .from("payment_requests")
     .insert({
       student_id: student.id,
-      school_id: student.school_id,
+      school_id: school.id,
       amount: student.amount_due,
       phone,
       telecom,
       status: "pending",
+      reconciliation_status: "pending_review",
+      reconciliation_updated_at: new Date().toISOString(),
+      reconciliation_updated_by: "system",
     })
     .select()
     .single();

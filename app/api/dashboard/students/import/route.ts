@@ -3,7 +3,6 @@ import { z } from "zod";
 import { getAdminClient, createSSRClient } from "@/lib/supabase";
 
 const RowSchema = z.object({
-  external_id: z.string().min(1).max(50),
   full_name: z.string().min(1).max(200),
   class_name: z.string().max(100).optional(),
   amount_due: z.coerce.number().min(0),
@@ -43,12 +42,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const rows = parsed.data.rows.map((r) => ({ ...r, school_id: school.id }));
+  const count = parsed.data.rows.length;
 
-  const { data, error } = await admin
-    .from("students")
-    .upsert(rows, { onConflict: "school_id,external_id" })
-    .select("id");
+  // Atomically reserve `count` sequential IDs for this school
+  const { data: seq, error: seqError } = await admin
+    .rpc("increment_student_seq", { p_school_id: school.id, p_count: count })
+    .single() as { data: { prefix: string; new_seq: number } | null; error: unknown };
+
+  if (seqError || !seq) {
+    return NextResponse.json({ error: "Failed to generate student IDs." }, { status: 500 });
+  }
+
+  const startSeq = seq.new_seq - count + 1;
+  const rows = parsed.data.rows.map((r, i) => ({
+    ...r,
+    school_id: school.id,
+    external_id: `${seq.prefix}-${String(startSeq + i).padStart(3, "0")}`,
+  }));
+
+  const { data, error } = await admin.from("students").insert(rows).select("id");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

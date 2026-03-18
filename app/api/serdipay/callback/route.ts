@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
     .from("payment_requests")
     .update({
       status: isSuccess ? "success" : "failed",
+      reconciliation_status: "reconciled",
+      reconciliation_updated_at: new Date().toISOString(),
+      reconciliation_updated_by: "serdipay_callback",
       updated_at: new Date().toISOString(),
       serdipay_transaction_id: transactionId ?? null,
       ...(isSuccess ? { settled_at: new Date().toISOString() } : {}),

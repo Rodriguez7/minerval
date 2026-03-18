@@ -8,12 +8,18 @@ import { POST } from "../app/api/serdipay/callback/route";
 import { NextRequest } from "next/server";
 import { getAdminClient } from "../lib/supabase";
 
+type AdminClient = ReturnType<typeof getAdminClient>;
+
 function makeRequest(body: object) {
   return new NextRequest("http://localhost/api/serdipay/callback", {
     method: "POST",
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
   });
+}
+
+function asAdminClient(client: { from: unknown }) {
+  return client as unknown as AdminClient;
 }
 
 const mockPendingPayment = {
@@ -40,7 +46,7 @@ describe("POST /api/serdipay/callback", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 400 if message or payment is missing", async () => {
-    vi.mocked(getAdminClient).mockReturnValue({ from: vi.fn() } as any);
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: vi.fn() }));
     const res = await POST(makeRequest({ status: 200 }));
     expect(res.status).toBe(400);
   });
@@ -54,7 +60,7 @@ describe("POST /api/serdipay/callback", () => {
         error: null,
       }),
     });
-    vi.mocked(getAdminClient).mockReturnValue({ from: mockFrom } as any);
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
 
     const res = await POST(makeRequest(successCallback));
     expect(res.status).toBe(200);
@@ -81,7 +87,7 @@ describe("POST /api/serdipay/callback", () => {
         eq: vi.fn().mockResolvedValue({ error: null }),
       });
 
-    vi.mocked(getAdminClient).mockReturnValue({ from: mockFrom } as any);
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
 
     const res = await POST(makeRequest(successCallback));
     expect(res.status).toBe(200);
@@ -117,7 +123,7 @@ describe("POST /api/serdipay/callback", () => {
         insert: vi.fn().mockResolvedValue({ error: null }),
       });
 
-    vi.mocked(getAdminClient).mockReturnValue({ from: mockFrom } as any);
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
 
     const res = await POST(makeRequest(failedCallback));
     expect(res.status).toBe(200);

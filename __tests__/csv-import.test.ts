@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
 
 vi.mock("../lib/supabase", () => ({
   getAdminClient: vi.fn(),
@@ -26,22 +27,33 @@ const mockSchoolFrom = vi.fn(() => ({ select: mockSchoolSelect }));
 
 import { getAdminClient, createSSRClient } from "../lib/supabase";
 
+type AdminClient = ReturnType<typeof getAdminClient>;
+type SSRClient = Awaited<ReturnType<typeof createSSRClient>>;
+
+function asAdminClient(client: { from: unknown }) {
+  return client as unknown as AdminClient;
+}
+
+function asSSRClient(client: { auth: unknown }) {
+  return client as unknown as SSRClient;
+}
+
 describe("POST /api/dashboard/students/import", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (createSSRClient as any).mockResolvedValue({
+    vi.mocked(createSSRClient).mockResolvedValue(asSSRClient({
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { email: "admin@test.com" } },
         }),
       },
-    });
-    (getAdminClient as any).mockReturnValue({
+    }));
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({
       from: vi.fn((table: string) => {
         if (table === "schools") return mockSchoolFrom();
         return mockStudentFrom();
       }),
-    });
+    }));
   });
 
   it("imports valid rows and returns count", async () => {
@@ -66,7 +78,7 @@ describe("POST /api/dashboard/students/import", () => {
         }),
       }
     );
-    const res = await POST(req as any);
+    const res = await POST(req as unknown as NextRequest);
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.imported).toBe(2);
@@ -86,7 +98,7 @@ describe("POST /api/dashboard/students/import", () => {
         }),
       }
     );
-    const res = await POST(req as any);
+    const res = await POST(req as unknown as NextRequest);
     expect(res.status).toBe(400);
   });
 });

@@ -23,6 +23,14 @@ export default function SignupPage() {
             <p className="text-xs text-gray-400 mt-1">Lowercase letters, numbers, hyphens. Used in payment URLs.</p>
           </div>
           <div>
+            <label className="block text-sm font-medium mb-1">Student ID Prefix</label>
+            <input name="studentIdPrefix" type="text" required placeholder="e.g. ESM"
+              maxLength={6} style={{ textTransform: "uppercase" }}
+              onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
+              className="w-full border rounded-lg px-3 py-2" />
+            <p className="text-xs text-gray-400 mt-1">2–6 uppercase letters. Students will be ESM-001, ESM-002…</p>
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-1">Admin Email</label>
             <input name="email" type="email" required
               className="w-full border rounded-lg px-3 py-2" />

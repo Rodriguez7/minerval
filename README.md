@@ -42,18 +42,30 @@ npm run dev
 
 Get keys from: **Supabase Dashboard → Settings → API**
 
+An example app env file now exists in [`.env.local.example`](/Users/rod/20%20Apps/Minerval/minerval/.env.local.example).
+
 ## Deployment
 
 Push to `main` → Railway auto-deploys via GitHub integration.
+
+Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/minerval/railway.toml). The configured healthcheck is `GET /api/health`.
 
 **Railway env vars to set:**
 - All 6 variables above
 - `NIXPACKS_NODE_VERSION=20`
 
+### Fixed-IP Proxy
+
+The fixed-IP SerdiPay proxy now lives in [`proxy/`](/Users/rod/20%20Apps/Minerval/minerval/proxy). It includes:
+
+- a deployable Express service
+- PM2 config for Hetzner
+- a dedicated env example in [`proxy/.env.example`](/Users/rod/20%20Apps/Minerval/minerval/proxy/.env.example)
+
 ## How Payments Work
 
-1. School generates payment URL: `https://www.minerval.org/pay/[school-code]`
-2. Parent visits URL, enters student ID → sees student info + payment form
+1. School shares its active QR code or revocable payment URL: `https://www.minerval.org/pay/access/[token]`
+2. Parent opens the link, enters student ID → sees student info + payment form
 3. Parent enters phone + selects mobile money provider → submits
 4. App calls proxy (`POST /pay`) which initiates SerdiPay C2B push
 5. Parent receives USSD prompt on phone → confirms payment
@@ -64,23 +76,34 @@ Push to `main` → Railway auto-deploys via GitHub integration.
 
 ```sql
 schools         — id, name, code (unique), admin_email
+                — payment_access_token (unique, revocable public payment token)
 students        — id, school_id, external_id, full_name, class_name, amount_due
 fees            — id, school_id, title, type (recurring/special), amount, active
 payment_requests — id, student_id, school_id, amount, phone, telecom, status, serdipay_ref, settled_at
+                — reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by
 payment_events  — id, payment_request_id, event_type, payload (audit log)
 ```
+
+## Admin Operations
+
+- Reconciliation queue with stale pending detection, manual review, and override actions
+- Reports dashboard with date filters, daily rollups, reconciliation breakdown, and CSV export
+- Audit trail entries written to `payment_events` for reconciliation updates
 
 ## Running Tests
 
 ```bash
 npm test
+npm run test:e2e
 ```
+
+The committed Playwright suite seeds its own school, student, and payment rows through Supabase service-role access, then verifies login, dashboard, reconciliation, reports, CSV export, and the public payment lookup flow.
 
 ## Current Limitations (Phase 1)
 
 - No multi-school data isolation (all schools share the same RLS-less DB)
 - No email receipts
 - No refunds
-- No automated reconciliation (stale payments resolved manually in dashboard)
+- No provider-side settlement import yet (reconciliation is still managed from the dashboard)
 - Single admin per school
 - No Excel import (CSV only)

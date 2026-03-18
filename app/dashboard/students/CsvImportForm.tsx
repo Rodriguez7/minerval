@@ -5,7 +5,6 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 
 const RowSchema = z.object({
-  external_id: z.string().min(1),
   full_name: z.string().min(1),
   class_name: z.string().optional(),
   amount_due: z.coerce.number().min(0),
@@ -74,11 +73,11 @@ export function CsvImportForm() {
       <h2 className="font-semibold mb-1">Import from CSV</h2>
       <p className="text-sm text-gray-500 mb-4">
         Required columns:{" "}
-        <code className="bg-gray-100 px-1 rounded text-xs">external_id</code>,{" "}
         <code className="bg-gray-100 px-1 rounded text-xs">full_name</code>,{" "}
         <code className="bg-gray-100 px-1 rounded text-xs">amount_due</code>.
         Optional:{" "}
         <code className="bg-gray-100 px-1 rounded text-xs">class_name</code>.
+        Student IDs are auto-generated.
       </p>
 
       <input
