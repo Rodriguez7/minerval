@@ -7,6 +7,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
+SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM school_memberships
@@ -21,6 +22,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
+SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM school_memberships
@@ -38,7 +40,9 @@ CREATE POLICY "members_select_school" ON schools
   FOR SELECT USING (is_school_member(id));
 
 CREATE POLICY "owners_update_school" ON schools
-  FOR UPDATE USING (is_school_member_with_role(id, ARRAY['owner','admin']));
+  FOR UPDATE
+  USING (is_school_member_with_role(id, ARRAY['owner','admin']))
+  WITH CHECK (is_school_member_with_role(id, ARRAY['owner','admin']));
 
 -- ── students ───────────────────────────────────────────────────────────────
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
@@ -50,7 +54,9 @@ CREATE POLICY "members_insert_students" ON students
   FOR INSERT WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin']));
 
 CREATE POLICY "members_update_students" ON students
-  FOR UPDATE USING (is_school_member_with_role(school_id, ARRAY['owner','admin']));
+  FOR UPDATE
+  USING (is_school_member_with_role(school_id, ARRAY['owner','admin']))
+  WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin']));
 
 CREATE POLICY "members_delete_students" ON students
   FOR DELETE USING (is_school_member_with_role(school_id, ARRAY['owner','admin']));
@@ -65,7 +71,13 @@ CREATE POLICY "members_insert_fees" ON fees
   FOR INSERT WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin']));
 
 CREATE POLICY "members_update_fees" ON fees
-  FOR UPDATE USING (is_school_member_with_role(school_id, ARRAY['owner','admin']));
+  FOR UPDATE
+  USING (is_school_member_with_role(school_id, ARRAY['owner','admin']))
+  WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin']));
+
+-- Fee deletion is intentionally blocked via RLS.
+-- Fees should be deactivated (active=false) rather than deleted.
+-- No DELETE policy is provided.
 
 -- ── payment_requests ───────────────────────────────────────────────────────
 ALTER TABLE payment_requests ENABLE ROW LEVEL SECURITY;
@@ -74,7 +86,9 @@ CREATE POLICY "members_select_payments" ON payment_requests
   FOR SELECT USING (is_school_member(school_id));
 
 CREATE POLICY "members_update_payments" ON payment_requests
-  FOR UPDATE USING (is_school_member_with_role(school_id, ARRAY['owner','admin','finance']));
+  FOR UPDATE
+  USING (is_school_member_with_role(school_id, ARRAY['owner','admin','finance']))
+  WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin','finance']));
 
 -- Public insert is handled by service-role (payment initiation API).
 -- No INSERT policy needed for dashboard users.
@@ -105,7 +119,13 @@ CREATE POLICY "owners_insert_memberships" ON school_memberships
   FOR INSERT WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin']));
 
 CREATE POLICY "owners_update_memberships" ON school_memberships
-  FOR UPDATE USING (is_school_member_with_role(school_id, ARRAY['owner','admin']));
+  FOR UPDATE
+  USING (is_school_member_with_role(school_id, ARRAY['owner','admin']))
+  WITH CHECK (is_school_member_with_role(school_id, ARRAY['owner','admin']));
+
+-- Membership deletion is intentionally blocked via RLS.
+-- Members should be deactivated (status='inactive') rather than deleted.
+-- No DELETE policy is provided.
 
 -- ── school_subscriptions ───────────────────────────────────────────────────
 ALTER TABLE school_subscriptions ENABLE ROW LEVEL SECURITY;
