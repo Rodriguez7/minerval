@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
-import { createSchool } from "@/app/actions/onboarding";
+import { createSchool, updateBillingContact } from "@/app/actions/onboarding";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 
@@ -97,5 +97,61 @@ describe("createSchool action", () => {
     vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
 
     await expect(createSchool(null, makeFormData(validSchoolData))).rejects.toThrow("REDIRECT:/login");
+  });
+});
+
+describe("updateBillingContact action", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects invalid billing email", async () => {
+    mockAuth();
+    const result = await updateBillingContact(
+      null,
+      makeFormData({ billingEmail: "not-an-email", billingContact: "Admin", timezone: "UTC" })
+    );
+    expect(result?.error).toBeTruthy();
+  });
+
+  it("redirects to /login if not authenticated", async () => {
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    } as never);
+    vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
+
+    await expect(
+      updateBillingContact(null, makeFormData({ billingEmail: "a@b.com", billingContact: "Admin", timezone: "UTC" }))
+    ).rejects.toThrow("REDIRECT:/login");
+  });
+
+  it("updates school billing fields and redirects to /onboarding/import", async () => {
+    mockAuth("uid1", "admin@school.com");
+
+    const updateChain = {
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const updateMock = vi.fn().mockReturnValue(updateChain);
+    const membershipChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { school_id: "school1" }, error: null }),
+    };
+
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "uid1", email: "admin@school.com" } } }) },
+      from: vi.fn()
+        .mockReturnValueOnce(membershipChain)
+        .mockReturnValueOnce({ update: updateMock }),
+    } as never);
+    vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
+
+    await expect(
+      updateBillingContact(null, makeFormData({ billingEmail: "billing@school.com", billingContact: "Jean Kabila", timezone: "Africa/Kinshasa" }))
+    ).rejects.toThrow("REDIRECT:/onboarding/import");
+
+    expect(updateMock).toHaveBeenCalledWith({
+      billing_email: "billing@school.com",
+      billing_contact: "Jean Kabila",
+      timezone: "Africa/Kinshasa",
+    });
   });
 });

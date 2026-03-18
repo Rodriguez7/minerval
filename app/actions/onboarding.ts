@@ -81,3 +81,47 @@ export async function createSchool(_: unknown, formData: FormData) {
 
   redirect("/onboarding/billing-contact");
 }
+
+const BillingContactSchema = z.object({
+  billingEmail: z.string().email(),
+  billingContact: z.string().min(2).max(200),
+  timezone: z.string().min(1),
+});
+
+export async function updateBillingContact(_: unknown, formData: FormData) {
+  const parsed = BillingContactSchema.safeParse({
+    billingEmail: formData.get("billingEmail"),
+    billingContact: formData.get("billingContact"),
+    timezone: formData.get("timezone"),
+  });
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? "Validation error";
+    return { error: msg };
+  }
+
+  const supabase = await createSSRClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // Get the user's school via membership (SSR client — RLS enforced)
+  const { data: membership } = await supabase
+    .from("school_memberships")
+    .select("school_id")
+    .eq("status", "active")
+    .single();
+
+  if (!membership) redirect("/onboarding/school");
+
+  const { error } = await supabase
+    .from("schools")
+    .update({
+      billing_email: parsed.data.billingEmail,
+      billing_contact: parsed.data.billingContact,
+      timezone: parsed.data.timezone,
+    })
+    .eq("id", membership.school_id);
+
+  if (error) return { error: "Failed to update billing contact." };
+
+  redirect("/onboarding/import");
+}
