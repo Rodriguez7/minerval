@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Papa from "papaparse";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
@@ -14,15 +14,18 @@ type ValidRow = z.infer<typeof RowSchema>;
 
 export function CsvImportForm() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<ValidRow[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [dragging, setDragging] = useState(false);
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function parseFile(file: File) {
+    setFileName(file.name);
     setErrors([]);
     setPreview(null);
+    setStatus("idle");
     Papa.parse<Record<string, unknown>>(file, {
       header: true,
       skipEmptyLines: true,
@@ -43,6 +46,18 @@ export function CsvImportForm() {
     });
   }
 
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) parseFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) parseFile(file);
+  }
+
   async function handleImport() {
     if (!preview?.length) return;
     setStatus("loading");
@@ -56,6 +71,8 @@ export function CsvImportForm() {
       if (res.ok) {
         setPreview(null);
         setErrors([]);
+        setFileName(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         router.refresh();
         alert(`Successfully imported ${data.imported} students.`);
       } else {
@@ -80,11 +97,42 @@ export function CsvImportForm() {
         Student IDs are auto-generated.
       </p>
 
+      {/* Drop zone */}
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        className={`border-2 border-dashed rounded-xl px-6 py-8 text-center cursor-pointer transition-colors ${
+          dragging
+            ? "border-blue-400 bg-blue-50"
+            : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+        }`}
+      >
+        <div className="flex flex-col items-center gap-2">
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          {fileName ? (
+            <p className="text-sm font-medium text-blue-600">{fileName}</p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-gray-700">
+                Click to upload or drag and drop
+              </p>
+              <p className="text-xs text-gray-400">CSV file (.csv)</p>
+            </>
+          )}
+        </div>
+      </div>
+
       <input
+        ref={fileInputRef}
         type="file"
         accept=".csv"
-        onChange={handleFile}
-        className="text-sm mb-3"
+        onChange={handleFileInput}
+        className="hidden"
       />
 
       {errors.length > 0 && (
@@ -98,9 +146,9 @@ export function CsvImportForm() {
       )}
 
       {preview && preview.length > 0 && (
-        <div className="mt-3">
-          <p className="text-sm text-gray-600 mb-2">
-            {preview.length} valid row(s) ready to import.
+        <div className="mt-4 flex items-center gap-4">
+          <p className="text-sm text-gray-600">
+            <span className="font-semibold text-green-700">{preview.length}</span> valid row(s) ready to import
           </p>
           <button
             onClick={handleImport}
