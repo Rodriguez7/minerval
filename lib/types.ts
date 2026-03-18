@@ -47,6 +47,8 @@ export interface PaymentRequest {
   settled_at: string | null;
 }
 
+export type Currency = "FC" | "USD";
+
 export interface School {
   id: string;
   name: string;
@@ -55,6 +57,7 @@ export interface School {
   payment_access_token: string;
   student_id_prefix: string;
   student_id_seq: number;
+  currency: Currency;
   created_at: string;
 }
 

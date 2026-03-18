@@ -122,8 +122,8 @@ export function escapeCsv(value: string | number | null | undefined) {
   return `"${escaped}"`;
 }
 
-export function formatAmount(value: number) {
-  return `${Number(value).toLocaleString()} FC`;
+export function formatAmount(value: number, currency = "FC") {
+  return `${Number(value).toLocaleString()} ${currency}`;
 }
 
 export function normalizeTelecom(value: Telecom | string) {

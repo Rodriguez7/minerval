@@ -31,6 +31,14 @@ export default function SignupPage() {
             <p className="text-xs text-gray-400 mt-1">2–6 uppercase letters. Students will be ESM-001, ESM-002…</p>
           </div>
           <div>
+            <label className="block text-sm font-medium mb-1">Fee Currency</label>
+            <select name="currency" required className="w-full border rounded-lg px-3 py-2 bg-white">
+              <option value="FC">FC — Franc Congolais</option>
+              <option value="USD">USD — US Dollar</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">The currency used for all fees at your school.</p>
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-1">Admin Email</label>
             <input name="email" type="email" required
               className="w-full border rounded-lg px-3 py-2" />

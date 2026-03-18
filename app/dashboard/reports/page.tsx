@@ -168,10 +168,10 @@ export default async function ReportsPage({
       </form>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <MetricCard label="Initiated" value={`${totals.initiated.toLocaleString()} FC`} />
-        <MetricCard label="Collected" value={`${totals.collected.toLocaleString()} FC`} />
-        <MetricCard label="Pending" value={`${totals.pending.toLocaleString()} FC`} />
-        <MetricCard label="Failed" value={`${totals.failed.toLocaleString()} FC`} />
+        <MetricCard label="Initiated" value={`${totals.initiated.toLocaleString()} ${school.currency}`} />
+        <MetricCard label="Collected" value={`${totals.collected.toLocaleString()} ${school.currency}`} />
+        <MetricCard label="Pending" value={`${totals.pending.toLocaleString()} ${school.currency}`} />
+        <MetricCard label="Failed" value={`${totals.failed.toLocaleString()} ${school.currency}`} />
         <MetricCard label="Exceptions" value={String(totals.exceptions)} />
       </div>
 
@@ -201,8 +201,8 @@ export default async function ReportsPage({
                   <tr key={row.date}>
                     <td className="px-4 py-3">{new Date(`${row.date}T00:00:00Z`).toLocaleDateString()}</td>
                     <td className="px-4 py-3">{row.count}</td>
-                    <td className="px-4 py-3">{row.amount.toLocaleString()} FC</td>
-                    <td className="px-4 py-3">{row.collected.toLocaleString()} FC</td>
+                    <td className="px-4 py-3">{row.amount.toLocaleString()} {school.currency}</td>
+                    <td className="px-4 py-3">{row.collected.toLocaleString()} {school.currency}</td>
                   </tr>
                 ))}
               </tbody>
@@ -264,7 +264,7 @@ export default async function ReportsPage({
                           {student?.external_id ?? "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-3">{Number(row.amount).toLocaleString()} FC</td>
+                      <td className="px-4 py-3">{Number(row.amount).toLocaleString()} {school.currency}</td>
                       <td className="px-4 py-3">
                         {TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom}
                       </td>

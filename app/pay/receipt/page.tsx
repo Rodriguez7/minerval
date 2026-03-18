@@ -11,7 +11,7 @@ type ReceiptPayment = Pick<
   "id" | "amount" | "phone" | "telecom" | "status" | "created_at" | "settled_at"
 > & {
   students: MaybeJoined<Pick<Student, "full_name" | "external_id">>;
-  schools: MaybeJoined<Pick<School, "name" | "payment_access_token">>;
+  schools: MaybeJoined<Pick<School, "name" | "payment_access_token" | "currency">>;
 };
 
 export default async function ReceiptPage({
@@ -32,7 +32,7 @@ export default async function ReceiptPage({
   const { data: payment } = await getAdminClient()
     .from("payment_requests")
     .select(
-      "id, amount, phone, telecom, status, created_at, settled_at, students(full_name, external_id), schools(name, payment_access_token)"
+      "id, amount, phone, telecom, status, created_at, settled_at, students(full_name, external_id), schools(name, payment_access_token, currency)"
     )
     .eq("id", ref)
     .single();
@@ -67,7 +67,7 @@ export default async function ReceiptPage({
     ["School", school?.name ?? "—"],
     ["Student", student?.full_name ?? "—"],
     ["Student ID", student?.external_id ?? "—"],
-    ["Amount", `${Number(typedPayment.amount).toLocaleString()} FC`],
+    ["Amount", `${Number(typedPayment.amount).toLocaleString()} ${school?.currency ?? "FC"}`],
     ["Phone", maskedPhone],
     [
       "Provider",

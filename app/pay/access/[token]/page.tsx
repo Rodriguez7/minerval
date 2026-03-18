@@ -74,7 +74,7 @@ export default async function PayAccessPage({
               )}
               <p className="text-sm text-gray-400 mt-1">ID: {student.external_id}</p>
               <p className="text-3xl font-bold mt-4">
-                {student.amount_due.toLocaleString()} FC
+                {student.amount_due.toLocaleString()} {school.currency ?? "FC"}
               </p>
             </div>
 
@@ -85,6 +85,7 @@ export default async function PayAccessPage({
                 studentId={student.external_id}
                 amountDue={student.amount_due}
                 paymentToken={token}
+                currency={school.currency ?? "FC"}
               />
             )}
           </>

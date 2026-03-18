@@ -12,6 +12,7 @@ const SignupSchema = z.object({
   schoolName: z.string().min(2).max(200),
   schoolCode: z.string().regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only").min(2).max(30),
   studentIdPrefix: z.string().regex(/^[A-Z0-9]{2,6}$/, "2–6 uppercase letters/numbers (e.g. ESM)"),
+  currency: z.enum(["FC", "USD"]),
   email: z.string().email(),
   password: z.string().min(8),
 });
@@ -41,6 +42,7 @@ export async function signup(_: unknown, formData: FormData) {
     schoolName: formData.get("schoolName"),
     schoolCode: formData.get("schoolCode"),
     studentIdPrefix: formData.get("studentIdPrefix"),
+    currency: formData.get("currency"),
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -49,7 +51,7 @@ export async function signup(_: unknown, formData: FormData) {
     return { error: msg };
   }
 
-  const { schoolName, schoolCode, studentIdPrefix, email, password } = parsed.data;
+  const { schoolName, schoolCode, studentIdPrefix, currency, email, password } = parsed.data;
 
   const { data: existing } = await getAdminClient()
     .from("schools").select("id").eq("code", schoolCode).single();
@@ -64,6 +66,7 @@ export async function signup(_: unknown, formData: FormData) {
     code: schoolCode,
     admin_email: email,
     student_id_prefix: studentIdPrefix,
+    currency,
   });
 
   redirect("/dashboard");

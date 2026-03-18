@@ -87,7 +87,7 @@ export default async function FeesPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  {Number(f.amount).toLocaleString()} FC
+                  {Number(f.amount).toLocaleString()} {school.currency}
                 </td>
                 <td className="px-4 py-3">
                   <span className={f.active ? "text-green-600" : "text-gray-400"}>

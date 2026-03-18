@@ -131,25 +131,25 @@ export default async function ReconciliationPage({
           label="Stale Pending"
           value={summary.stalePending.length}
           tone="yellow"
-          sub={`${summary.stalePending.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} FC`}
+          sub={`${summary.stalePending.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
         />
         <SummaryCard
           label="Needs Review"
           value={summary.needsReview.length}
           tone="red"
-          sub={`${summary.needsReview.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} FC`}
+          sub={`${summary.needsReview.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
         />
         <SummaryCard
           label="Manual Override"
           value={summary.overrides.length}
           tone="amber"
-          sub={`${summary.overrides.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} FC`}
+          sub={`${summary.overrides.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
         />
         <SummaryCard
           label="Reconciled"
           value={summary.reconciled.length}
           tone="green"
-          sub={`${summary.reconciled.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} FC`}
+          sub={`${summary.reconciled.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
         />
       </div>
 
@@ -175,7 +175,7 @@ export default async function ReconciliationPage({
                     <div>
                       <p className="font-medium">{student?.full_name ?? "Unknown student"}</p>
                       <p className="text-sm text-gray-500">
-                        {student?.external_id ?? "—"} · {Number(row.amount).toLocaleString()} FC ·{" "}
+                        {student?.external_id ?? "—"} · {Number(row.amount).toLocaleString()} {school.currency} ·{" "}
                         {TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">

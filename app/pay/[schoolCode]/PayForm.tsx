@@ -8,9 +8,10 @@ interface Props {
   studentId: string;
   amountDue: number;
   paymentToken: string;
+  currency?: string;
 }
 
-export function PayForm({ studentId, amountDue, paymentToken }: Props) {
+export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }: Props) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [telecom, setTelecom] = useState<Telecom | "">("");
@@ -83,7 +84,7 @@ export function PayForm({ studentId, amountDue, paymentToken }: Props) {
         disabled={loading || !telecom}
         className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
       >
-        {loading ? "Processing…" : `Pay ${amountDue.toLocaleString()} FC`}
+        {loading ? "Processing…" : `Pay ${amountDue.toLocaleString()} ${currency}`}
       </button>
     </form>
   );

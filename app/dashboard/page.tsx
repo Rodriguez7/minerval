@@ -61,12 +61,12 @@ async function loadDashboardData() {
     {
       label: "Pending",
       value: pending.length,
-      sub: `${pending.reduce((s, p) => s + p.amount, 0).toLocaleString()} FC`,
+      sub: `${pending.reduce((s, p) => s + p.amount, 0).toLocaleString()} ${school.currency}`,
     },
     {
       label: "Confirmed",
       value: successful.length,
-      sub: `${successful.reduce((s, p) => s + p.amount, 0).toLocaleString()} FC`,
+      sub: `${successful.reduce((s, p) => s + p.amount, 0).toLocaleString()} ${school.currency}`,
     },
     { label: "With Dues", value: studentsWithDues.length },
   ];
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
                         ({student?.external_id})
                       </span>
                     </td>
-                    <td className="px-4 py-3">{Number(p.amount).toLocaleString()} FC</td>
+                    <td className="px-4 py-3">{Number(p.amount).toLocaleString()} {school.currency}</td>
                     <td className="px-4 py-3">{p.phone}</td>
                     <td className="px-4 py-3">
                       {TELECOM_LABELS[p.telecom as Telecom] ?? p.telecom}
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
                   <td className="px-4 py-3 text-gray-500">{s.external_id}</td>
                   <td className="px-4 py-3 text-gray-500">{s.class_name ?? "—"}</td>
                   <td className="px-4 py-3 font-medium">
-                    {Number(s.amount_due).toLocaleString()} FC
+                    {Number(s.amount_due).toLocaleString()} {school.currency}
                   </td>
                 </tr>
               ))}

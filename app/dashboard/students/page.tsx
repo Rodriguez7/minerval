@@ -95,7 +95,7 @@ export default async function StudentsPage() {
                         s.amount_due > 0 ? "font-semibold" : "text-gray-400"
                       }
                     >
-                      {Number(s.amount_due).toLocaleString()} FC
+                      {Number(s.amount_due).toLocaleString()} {school.currency}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-400">
