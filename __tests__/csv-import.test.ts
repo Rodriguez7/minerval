@@ -10,12 +10,12 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ getAll: () => [], set: vi.fn() }),
 }));
 
-const mockUpsertSelect = vi.fn().mockResolvedValue({
+const mockInsertSelect = vi.fn().mockResolvedValue({
   data: [{ id: "1" }, { id: "2" }],
   error: null,
 });
-const mockUpsert = vi.fn(() => ({ select: mockUpsertSelect }));
-const mockStudentFrom = vi.fn(() => ({ upsert: mockUpsert }));
+const mockInsert = vi.fn(() => ({ select: mockInsertSelect }));
+const mockStudentFrom = vi.fn(() => ({ insert: mockInsert }));
 
 const mockSchoolSingle = vi.fn().mockResolvedValue({
   data: { id: "school-id", admin_email: "admin@test.com" },
@@ -25,12 +25,18 @@ const mockSchoolEq = vi.fn(() => ({ single: mockSchoolSingle }));
 const mockSchoolSelect = vi.fn(() => ({ eq: mockSchoolEq }));
 const mockSchoolFrom = vi.fn(() => ({ select: mockSchoolSelect }));
 
+const mockRpcSingle = vi.fn().mockResolvedValue({
+  data: { prefix: "STU", new_seq: 2 },
+  error: null,
+});
+const mockRpc = vi.fn(() => ({ single: mockRpcSingle }));
+
 import { getAdminClient, createSSRClient } from "../lib/supabase";
 
 type AdminClient = ReturnType<typeof getAdminClient>;
 type SSRClient = Awaited<ReturnType<typeof createSSRClient>>;
 
-function asAdminClient(client: { from: unknown }) {
+function asAdminClient(client: { from: unknown; rpc?: unknown }) {
   return client as unknown as AdminClient;
 }
 
@@ -53,6 +59,7 @@ describe("POST /api/dashboard/students/import", () => {
         if (table === "schools") return mockSchoolFrom();
         return mockStudentFrom();
       }),
+      rpc: mockRpc,
     }));
   });
 

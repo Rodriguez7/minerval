@@ -27,6 +27,7 @@ describe("GET /api/students/[id]", () => {
       name: "École Test",
       code: "ecole-test",
       payment_access_token: "school-token",
+      currency: "FC" as const,
     });
   });
 
