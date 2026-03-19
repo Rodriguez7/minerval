@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSSRClient, getAdminClient } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
+import { getAdminClient } from "@/lib/supabase";
 import {
   buildReportQuery,
   escapeCsv,
@@ -11,25 +12,8 @@ import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
 
 export async function GET(req: Request) {
-  const ssrClient = await createSSRClient();
-  const {
-    data: { user },
-  } = await ssrClient.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const { school } = await getTenantContext();
   const admin = getAdminClient();
-  const { data: school } = await admin
-    .from("schools")
-    .select("id, code")
-    .eq("admin_email", user.email!)
-    .single();
-
-  if (!school) {
-    return NextResponse.json({ error: "School not found" }, { status: 403 });
-  }
 
   const url = new URL(req.url);
   const filters = parseReportFilters(url.searchParams);
