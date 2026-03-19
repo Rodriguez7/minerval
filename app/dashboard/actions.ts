@@ -2,8 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { generatePaymentAccessToken } from "@/lib/payment-access";
-import { getAdminClient } from "@/lib/supabase";
-import { getAuthenticatedSchool } from "@/lib/auth";
+import { createSSRClient } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
 import type { ReconciliationStatus } from "@/lib/types";
 
 const ReconciliationUpdateSchema = z.object({
@@ -18,9 +18,9 @@ async function applyReconciliationUpdate(options: {
   note?: string;
   actor: string;
 }) {
-  const admin = getAdminClient();
+  const supabase = await createSSRClient();
 
-  const { data: payment } = await admin
+  const { data: payment } = await supabase
     .from("payment_requests")
     .select("id, status, reconciliation_status")
     .eq("id", options.paymentId)
@@ -54,12 +54,12 @@ async function applyReconciliationUpdate(options: {
     update.status = "failed";
   }
 
-  await admin
+  await supabase
     .from("payment_requests")
     .update(update)
     .eq("id", options.paymentId);
 
-  await admin.from("payment_events").insert({
+  await supabase.from("payment_events").insert({
     payment_request_id: options.paymentId,
     event_type: "reconciliation_updated",
     payload: {
@@ -73,10 +73,10 @@ async function applyReconciliationUpdate(options: {
 }
 
 export async function markPaymentFailed(paymentId: string) {
-  const school = await getAuthenticatedSchool();
-  const admin = getAdminClient();
+  const { school } = await getTenantContext();
+  const supabase = await createSSRClient();
 
-  const { data: payment } = await admin
+  const { data: payment } = await supabase
     .from("payment_requests")
     .select("id, school_id, status")
     .eq("id", paymentId)
@@ -99,7 +99,7 @@ export async function markPaymentFailed(paymentId: string) {
 }
 
 export async function createFee(_: unknown, formData: FormData) {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
   const schema = z.object({
     title: z.string().min(1),
     type: z.enum(["recurring", "special"]),
@@ -112,25 +112,27 @@ export async function createFee(_: unknown, formData: FormData) {
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-  await getAdminClient().from("fees").insert({ ...parsed.data, school_id: school.id });
+  const supabase = await createSSRClient();
+  await supabase.from("fees").insert({ ...parsed.data, school_id: school.id });
   revalidatePath("/dashboard/fees");
   return { success: true };
 }
 
 export async function toggleFeeActive(feeId: string, active: boolean) {
-  const school = await getAuthenticatedSchool();
-  const { data: fee } = await getAdminClient()
+  const { school } = await getTenantContext();
+  const supabase = await createSSRClient();
+  const { data: fee } = await supabase
     .from("fees")
     .select("school_id")
     .eq("id", feeId)
     .single();
   if (!fee || fee.school_id !== school.id) return;
-  await getAdminClient().from("fees").update({ active }).eq("id", feeId);
+  await supabase.from("fees").update({ active }).eq("id", feeId);
   revalidatePath("/dashboard/fees");
 }
 
 export async function addStudent(_: unknown, formData: FormData) {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
   const schema = z.object({
     full_name: z.string().min(1).max(200),
     class_name: z.string().max(100).optional(),
@@ -143,8 +145,8 @@ export async function addStudent(_: unknown, formData: FormData) {
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-  const admin = getAdminClient();
-  const { data: seq, error: seqError } = await admin
+  const supabase = await createSSRClient();
+  const { data: seq, error: seqError } = await supabase
     .rpc("increment_student_seq", { p_school_id: school.id, p_count: 1 })
     .single() as { data: { prefix: string; new_seq: number } | null; error: unknown };
 
@@ -152,7 +154,7 @@ export async function addStudent(_: unknown, formData: FormData) {
 
   const external_id = `${seq.prefix}-${String(seq.new_seq).padStart(3, "0")}`;
 
-  const { error } = await admin.from("students").insert({
+  const { error } = await supabase.from("students").insert({
     ...parsed.data,
     school_id: school.id,
     external_id,
@@ -165,10 +167,10 @@ export async function addStudent(_: unknown, formData: FormData) {
 }
 
 export async function regeneratePaymentAccessToken() {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
   const paymentAccessToken = generatePaymentAccessToken();
 
-  await getAdminClient()
+  await (await createSSRClient())
     .from("schools")
     .update({ payment_access_token: paymentAccessToken })
     .eq("id", school.id);
@@ -177,7 +179,7 @@ export async function regeneratePaymentAccessToken() {
 }
 
 export async function updateReconciliationStatus(formData: FormData) {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
   const parsed = ReconciliationUpdateSchema.safeParse({
     paymentId: formData.get("paymentId"),
     nextStatus: formData.get("nextStatus"),
@@ -186,8 +188,8 @@ export async function updateReconciliationStatus(formData: FormData) {
 
   if (!parsed.success) return;
 
-  const admin = getAdminClient();
-  const { data: payment } = await admin
+  const supabase = await createSSRClient();
+  const { data: payment } = await supabase
     .from("payment_requests")
     .select("id, school_id, status")
     .eq("id", parsed.data.paymentId)

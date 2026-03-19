@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { getAuthenticatedSchool } from "@/lib/auth";
 import { getSchoolPaymentUrl } from "@/lib/payment-access";
-import { getAdminClient } from "@/lib/supabase";
+import { createSSRClient } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
 import { takeJoined, type MaybeJoined } from "@/lib/supabase-joins";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,15 +24,15 @@ type StudentDueRow = Pick<
 >;
 
 async function loadDashboardData() {
-  const school = await getAuthenticatedSchool();
-  const admin = getAdminClient();
+  const { school } = await getTenantContext();
+  const supabase = await createSSRClient();
 
   const [studentCountResult, paymentsResult, studentsWithDuesResult] = await Promise.all([
-    admin
+    supabase
       .from("students")
       .select("id", { count: "exact", head: true })
       .eq("school_id", school.id),
-    admin
+    supabase
       .from("payment_requests")
       .select(
         "id, amount, phone, telecom, status, created_at, settled_at, students(full_name, external_id)"
@@ -40,7 +40,7 @@ async function loadDashboardData() {
       .eq("school_id", school.id)
       .order("created_at", { ascending: false })
       .limit(50),
-    admin
+    supabase
       .from("students")
       .select("id, external_id, full_name, class_name, amount_due")
       .eq("school_id", school.id)
