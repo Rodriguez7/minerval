@@ -1,4 +1,5 @@
 import { getTenantContext } from "@/lib/tenant";
+import { createCheckoutSession, createPortalSession } from "@/app/actions/billing";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,16 @@ export default async function BillingPage() {
     { label: "Accounting export", enabled: plan.can_accounting_export },
     { label: "Advanced analytics", enabled: plan.can_advanced_analytics },
   ];
+
+  const isOnFreePlan = plan.monthly_price_usd === 0 && !subscription.billing_exempt;
+  const hasStripeCustomer = !!subscription.stripe_customer_id;
+  const isTrialing = subscription.status === "trialing";
+
+  let trialDaysRemaining: number | null = null;
+  if (isTrialing && subscription.trial_ends_at) {
+    const ms = new Date(subscription.trial_ends_at).getTime() - Date.now();
+    trialDaysRemaining = Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -69,6 +80,30 @@ export default async function BillingPage() {
         </div>
       </div>
 
+      {/* Trial banner */}
+      {isTrialing && trialDaysRemaining !== null && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="font-medium text-blue-900">
+              {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} left in your trial
+            </p>
+            <p className="text-sm text-blue-700 mt-0.5">
+              Add a payment method to continue after the trial ends.
+            </p>
+          </div>
+          {hasStripeCustomer && (
+            <form action={createPortalSession}>
+              <button
+                type="submit"
+                className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                Add payment method
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+
       {/* Entitlements */}
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="font-semibold mb-4">Features</h2>
@@ -95,16 +130,88 @@ export default async function BillingPage() {
         </ul>
       </div>
 
-      {/* Upgrade CTA — static skeleton */}
-      {plan.monthly_price_usd === 0 && !subscription.billing_exempt && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center space-y-2">
-          <p className="font-semibold text-blue-900">Unlock more features</p>
-          <p className="text-sm text-blue-700">
-            Upgrade to Growth or Pro to get branded receipts, rich reports, and
-            more.
-          </p>
-          <p className="text-xs text-blue-500 mt-2">
-            Plan upgrades coming soon.
+      {/* Manage billing (for paying customers not in trial) */}
+      {hasStripeCustomer && !isTrialing && (
+        <div className="bg-white rounded-xl shadow p-6 flex items-center justify-between">
+          <div>
+            <p className="font-medium">Manage your subscription</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Update payment method, download invoices, or cancel.
+            </p>
+          </div>
+          <form action={createPortalSession}>
+            <button
+              type="submit"
+              className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+            >
+              Billing portal →
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Upgrade CTA — only for free plan without existing Stripe customer */}
+      {isOnFreePlan && !hasStripeCustomer && (
+        <div className="space-y-4">
+          <h2 className="font-semibold text-lg">Upgrade your plan</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Growth */}
+            <div className="bg-white rounded-xl shadow p-6 space-y-4">
+              <div>
+                <p className="font-bold text-xl">Growth</p>
+                <p className="text-gray-500 text-sm">$29 / month</p>
+                <p className="text-xs text-blue-600 font-medium mt-1">14-day free trial</p>
+              </div>
+              <ul className="text-sm space-y-1 text-gray-700">
+                <li>✓ Branded receipts</li>
+                <li>✓ Rich reports</li>
+                <li>✓ Unlimited students</li>
+              </ul>
+              <form action={createCheckoutSession.bind(null, "growth_monthly")}>
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Start 14-day trial
+                </button>
+              </form>
+            </div>
+
+            {/* Pro */}
+            <div className="bg-white rounded-xl shadow border-2 border-blue-500 p-6 space-y-4">
+              <div>
+                <p className="font-bold text-xl">Pro</p>
+                <p className="text-gray-500 text-sm">$99 / month</p>
+                <p className="text-xs text-blue-600 font-medium mt-1">14-day free trial</p>
+              </div>
+              <ul className="text-sm space-y-1 text-gray-700">
+                <li>✓ Everything in Growth</li>
+                <li>✓ Bulk operations</li>
+                <li>✓ Accounting export</li>
+                <li>✓ Advanced analytics</li>
+              </ul>
+              <form action={createCheckoutSession.bind(null, "pro_monthly")}>
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Start 14-day trial
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legacy plan — can't self-serve upgrade */}
+      {subscription.billing_exempt && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+          <p className="text-gray-600 text-sm">
+            You&apos;re on a legacy plan. Contact{" "}
+            <a href="mailto:support@minerval.app" className="text-blue-600 hover:underline">
+              support@minerval.app
+            </a>{" "}
+            to discuss upgrade options.
           </p>
         </div>
       )}
