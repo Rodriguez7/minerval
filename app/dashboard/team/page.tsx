@@ -2,6 +2,7 @@ import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { deactivateMember } from "./actions";
 import { RoleSelect } from "./RoleSelect";
+import { InviteForm } from "./InviteForm";
 import type { MembershipRole } from "@/lib/types";
 
 async function loadTeamData() {
@@ -17,8 +18,10 @@ async function loadTeamData() {
   // NOTE: listUsers() defaults to perPage:50 and caps at 1,000. For Phase 1b (small teams)
   // this is fine, but will silently show "(unknown)" for emails beyond page 1 at scale.
   // Phase 1b-SSR plan should track adding pagination or a per-user lookup.
-  const { data: { users } } = await admin.auth.admin.listUsers();
-  const emailMap = new Map(users.map((u) => [u.id, u.email ?? ""]));
+  const { data: listData } = await admin.auth.admin.listUsers();
+  const emailMap = new Map(
+    (listData?.users ?? []).map((u) => [u.id, u.email ?? ""])
+  );
 
   return {
     school,
@@ -45,6 +48,13 @@ export default async function TeamPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Team</h1>
+
+      {canManage && (
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="font-semibold mb-4">Invite team member</h2>
+          <InviteForm />
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <table className="w-full text-sm">
