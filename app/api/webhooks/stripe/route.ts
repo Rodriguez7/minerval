@@ -60,18 +60,24 @@ export async function POST(request: Request) {
       payload: event.data.object,
     });
 
+    if (insertError && insertError.code !== "23505") {
+      console.error("[stripe-webhook] billing_events insert failed", event.id, insertError.message);
+      return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
     if (insertError?.code === "23505") {
-      // Already processed this event (duplicate delivery from Stripe)
       return NextResponse.json({ received: true });
     }
 
-    await admin
+    const { error: updateError1 } = await admin
       .from("school_subscriptions")
       .update({
         stripe_customer_id: session.customer,
         stripe_subscription_id: session.subscription,
       })
       .eq("school_id", schoolId);
+    if (updateError1) {
+      console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError1.message);
+    }
 
     return NextResponse.json({ received: true });
   }
@@ -101,8 +107,11 @@ export async function POST(request: Request) {
     payload: event.data.object,
   });
 
+  if (insertError && insertError.code !== "23505") {
+    console.error("[stripe-webhook] billing_events insert failed", event.id, insertError.message);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
   if (insertError?.code === "23505") {
-    // Already processed this event (duplicate delivery from Stripe)
     return NextResponse.json({ received: true });
   }
 
@@ -115,9 +124,13 @@ export async function POST(request: Request) {
       items: { data: Array<{ price: { id: string } }> };
     };
     const priceId = sub.items.data[0]?.price.id ?? "";
-    const planCode = priceIdToPlanCode(priceId) ?? "starter_free";
+    const planCode = priceIdToPlanCode(priceId);
+    if (!planCode) {
+      console.warn("[stripe-webhook] Unknown price ID, skipping plan update", priceId, event.id);
+      return NextResponse.json({ received: true });
+    }
 
-    await admin
+    const { error: updateError2 } = await admin
       .from("school_subscriptions")
       .update({
         status: sub.status,
@@ -130,18 +143,24 @@ export async function POST(request: Request) {
           : null,
       })
       .eq("school_id", schoolId);
+    if (updateError2) {
+      console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError2.message);
+    }
   }
 
   if (event.type === "customer.subscription.deleted") {
-    await admin
+    const { error: updateError3 } = await admin
       .from("school_subscriptions")
       .update({ status: "canceled" })
       .eq("school_id", schoolId);
+    if (updateError3) {
+      console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError3.message);
+    }
   }
 
   if (event.type === "invoice.paid") {
     const invoice = event.data.object as { period_end: number };
-    await admin
+    const { error: updateError4 } = await admin
       .from("school_subscriptions")
       .update({
         status: "active",
@@ -150,13 +169,19 @@ export async function POST(request: Request) {
           : null,
       })
       .eq("school_id", schoolId);
+    if (updateError4) {
+      console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError4.message);
+    }
   }
 
   if (event.type === "invoice.payment_failed") {
-    await admin
+    const { error: updateError5 } = await admin
       .from("school_subscriptions")
       .update({ status: "past_due" })
       .eq("school_id", schoolId);
+    if (updateError5) {
+      console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError5.message);
+    }
   }
 
   return NextResponse.json({ received: true });

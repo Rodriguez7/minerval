@@ -176,6 +176,45 @@ describe("POST /api/webhooks/stripe", () => {
     expect(res.status).toBe(200);
   });
 
+  it("returns 200 without update for duplicate non-checkout event", async () => {
+    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(SUBSCRIPTION_UPDATED_EVENT as never);
+
+    const fromMock = vi.fn()
+      .mockReturnValueOnce({ // school lookup (1st)
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { school_id: "school1" }, error: null }),
+      })
+      .mockReturnValueOnce({ // billing_events insert returns duplicate (2nd)
+        insert: vi.fn().mockResolvedValue({ error: { code: "23505" } }),
+      });
+    vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
+
+    const req = makeRequest(JSON.stringify(SUBSCRIPTION_UPDATED_EVENT));
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(fromMock).toHaveBeenCalledTimes(2); // lookup + insert, no update
+  });
+
+  it("returns 200 without processing when school not found for non-checkout event", async () => {
+    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(SUBSCRIPTION_UPDATED_EVENT as never);
+
+    const fromMock = vi.fn()
+      .mockReturnValueOnce({ // school lookup returns no data
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      });
+    vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
+
+    const req = makeRequest(JSON.stringify(SUBSCRIPTION_UPDATED_EVENT));
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(fromMock).toHaveBeenCalledTimes(1); // only the lookup — no insert, no update
+  });
+
   it("returns 200 without processing for duplicate stripe_event_id", async () => {
     // Use checkout.session.completed — school_id comes from metadata (no prior DB lookup),
     // so fromMock is called exactly once (the billing_events insert) before early return.
