@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const schoolId = session.metadata?.school_id ?? null;
 
     if (!schoolId) {
-      console.warn("[stripe-webhook] Could not resolve school_id for event", event.id);
+      console.warn("[stripe-webhook] checkout.session.completed missing school_id metadata", event.id);
       return NextResponse.json({ received: true });
     }
 
@@ -76,13 +76,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  // For all other event types: insert billing_events first, then look up school_id, then process
-
-  // Insert billing event for idempotency (school_id resolved after for non-checkout events)
+  // For all other event types: look up school_id first, then insert billing_events, then process
   const obj = event.data.object as { customer: string };
 
+  // Look up school_id by stripe_customer_id (1st DB call)
+  const { data: subData } = await admin
+    .from("school_subscriptions")
+    .select("school_id")
+    .eq("stripe_customer_id", obj.customer)
+    .single();
+
+  const schoolId = subData?.school_id ?? null;
+
+  if (!schoolId) {
+    console.warn("[stripe-webhook] Could not resolve school_id for event", event.id);
+    return NextResponse.json({ received: true });
+  }
+
+  // Insert billing event for idempotency (2nd DB call)
   const { error: insertError } = await admin.from("billing_events").insert({
-    stripe_customer_id: obj.customer,
+    school_id: schoolId,
     stripe_event_id: event.id,
     event_type: billingEventType,
     payload: event.data.object,
@@ -90,20 +103,6 @@ export async function POST(request: Request) {
 
   if (insertError?.code === "23505") {
     // Already processed this event (duplicate delivery from Stripe)
-    return NextResponse.json({ received: true });
-  }
-
-  // Look up school_id by stripe_customer_id
-  const { data } = await admin
-    .from("school_subscriptions")
-    .select("school_id")
-    .eq("stripe_customer_id", obj.customer)
-    .single();
-
-  const schoolId = data?.school_id ?? null;
-
-  if (!schoolId) {
-    console.warn("[stripe-webhook] Could not resolve school_id for event", event.id);
     return NextResponse.json({ received: true });
   }
 

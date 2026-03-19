@@ -106,13 +106,13 @@ describe("POST /api/webhooks/stripe", () => {
     vi.mocked(priceIdToPlanCode).mockReturnValue("growth_monthly");
 
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events
-      .mockReturnValueOnce({ // lookup school by customer
+      .mockReturnValueOnce({ // lookup school by customer (1st)
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { school_id: "school1" }, error: null }),
       })
-      .mockReturnValueOnce({ // school_subscriptions update
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events (2nd)
+      .mockReturnValueOnce({ // school_subscriptions update (3rd)
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
@@ -129,13 +129,13 @@ describe("POST /api/webhooks/stripe", () => {
     vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(INVOICE_PAYMENT_FAILED_EVENT as never);
 
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events
-      .mockReturnValueOnce({ // lookup school by customer
+      .mockReturnValueOnce({ // lookup school by customer (1st)
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { school_id: "school1" }, error: null }),
       })
-      .mockReturnValueOnce({ // school_subscriptions update
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events (2nd)
+      .mockReturnValueOnce({ // school_subscriptions update (3rd)
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
@@ -157,13 +157,13 @@ describe("POST /api/webhooks/stripe", () => {
     vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(deletedEvent as never);
 
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events
-      .mockReturnValueOnce({ // lookup school by customer
+      .mockReturnValueOnce({ // lookup school by customer (1st)
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { school_id: "school1" }, error: null }),
       })
-      .mockReturnValueOnce({ // school_subscriptions update
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events (2nd)
+      .mockReturnValueOnce({ // school_subscriptions update (3rd)
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
