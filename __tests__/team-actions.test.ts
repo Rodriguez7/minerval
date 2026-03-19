@@ -125,3 +125,90 @@ describe("deactivateMember", () => {
     expect(result?.error).toBeUndefined();
   });
 });
+
+import { sendInvite } from "@/app/dashboard/team/actions";
+
+// The sendInvite action calls from() in this order:
+//   1. school_invites.insert().select().single() — always
+//   2. school_memberships.upsert()               — only when invite fails (existing user)
+function makeAdminWithInvite({
+  inviteError = null as null | { message: string },
+  existingAuthUser = null as null | { id: string; email: string },
+} = {}) {
+  const fromMock = vi.fn()
+    .mockReturnValueOnce({ // (1) school_invites insert
+      insert: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { token: "test-token-123" },
+            error: null,
+          }),
+        }),
+      }),
+    });
+
+  if (inviteError && existingAuthUser) {
+    fromMock.mockReturnValueOnce({ // (2) school_memberships upsert (existing-user path)
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+    });
+  }
+
+  vi.mocked(getAdminClient).mockReturnValue({
+    from: fromMock,
+    auth: {
+      admin: {
+        inviteUserByEmail: vi.fn().mockResolvedValue(
+          inviteError
+            ? { data: null, error: inviteError }
+            : { data: { user: { id: "new-uid" } }, error: null }
+        ),
+        listUsers: vi.fn().mockResolvedValue({
+          data: {
+            users: existingAuthUser ? [existingAuthUser] : [],
+          },
+          error: null,
+        }),
+      },
+    },
+  } as never);
+
+  return fromMock;
+}
+
+describe("sendInvite", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns Unauthorized for viewer role", async () => {
+    mockTenant("viewer");
+    const result = await sendInvite("new@school.com", "admin");
+    expect(result?.error).toBe("Unauthorized");
+  });
+
+  it("returns error for invalid role (owner not allowed)", async () => {
+    mockTenant("owner");
+    // Validation fails before any DB call — no fromMock needed
+    vi.mocked(getAdminClient).mockReturnValue({ from: vi.fn() } as never);
+    const result = await sendInvite("new@school.com", "owner");
+    expect(result?.error).toBeTruthy();
+  });
+
+  it("sends invite and returns invite link for new user", async () => {
+    mockTenant("owner");
+    const fromMock = makeAdminWithInvite();
+    const result = await sendInvite("new@school.com", "admin");
+    expect(result?.error).toBeUndefined();
+    expect(result?.inviteLink).toContain("test-token-123");
+    expect(fromMock).toHaveBeenCalledTimes(1); // only school_invites insert, no upsert
+  });
+
+  it("creates membership directly for existing auth user", async () => {
+    mockTenant("admin");
+    const fromMock = makeAdminWithInvite({
+      inviteError: { message: "A user with this email address has already been registered" },
+      existingAuthUser: { id: "existing-uid", email: "existing@school.com" },
+    });
+    const result = await sendInvite("existing@school.com", "finance");
+    expect(result?.error).toBeUndefined();
+    expect(fromMock).toHaveBeenCalledTimes(2); // insert + upsert
+  });
+});
