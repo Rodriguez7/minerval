@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getAuthenticatedSchool } from "@/lib/auth";
+import { getTenantContext } from "@/lib/tenant";
 import {
   buildReportQuery,
   getStalePendingCutoff,
@@ -8,7 +8,7 @@ import {
   type PaymentReportRow,
 } from "@/lib/reporting";
 import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
-import { getAdminClient } from "@/lib/supabase";
+import { createSSRClient } from "@/lib/supabase";
 import { takeJoined } from "@/lib/supabase-joins";
 import Link from "next/link";
 import { updateReconciliationStatus } from "../actions";
@@ -21,12 +21,12 @@ export default async function ReconciliationPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
   const filters = parseReportFilters(await searchParams);
-  const admin = getAdminClient();
+  const supabase = await createSSRClient();
   const staleCutoff = getStalePendingCutoff();
 
-  const baseQuery = admin
+  const baseQuery = supabase
     .from("payment_requests")
     .select(
       "id, amount, phone, telecom, status, created_at, settled_at, reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by, serdipay_transaction_id, students(full_name, external_id)"
