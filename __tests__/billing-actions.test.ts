@@ -56,6 +56,22 @@ describe("createCheckoutSession", () => {
     expect(result?.error).toBe("Unauthorized");
   });
 
+  it("returns error for starter_free plan", async () => {
+    mockTenant();
+    const result = await createCheckoutSession("starter_free");
+    expect(result?.error).toBeTruthy();
+  });
+
+  it("returns error when session.url is missing", async () => {
+    mockTenant();
+    vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({
+      url: null,
+    } as never);
+
+    const result = await createCheckoutSession("growth_monthly");
+    expect(result?.error).toBeTruthy();
+  });
+
   it("creates Stripe Checkout session for growth_monthly and redirects", async () => {
     mockTenant();
     vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({
@@ -85,6 +101,12 @@ describe("createCheckoutSession", () => {
 
 describe("createPortalSession", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("returns Unauthorized for non-owner/admin role", async () => {
+    mockTenant({ membership: { id: "mem1", role: "viewer", status: "active" } });
+    const result = await createPortalSession();
+    expect(result?.error).toBe("Unauthorized");
+  });
 
   it("returns error if no stripe_customer_id", async () => {
     mockTenant({
@@ -121,6 +143,13 @@ describe("createPortalSession", () => {
 
     await expect(createPortalSession()).rejects.toThrow(
       "REDIRECT:https://billing.stripe.com/session/bps_123"
+    );
+
+    expect(stripe.billingPortal.sessions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_123",
+        return_url: expect.stringContaining("/dashboard/billing"),
+      })
     );
   });
 });
