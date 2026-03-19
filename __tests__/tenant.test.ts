@@ -43,6 +43,7 @@ const mockMembershipRow = {
       trial_ends_at: null,
       current_period_end: null,
       billing_exempt: false,
+      stripe_customer_id: null,
       plans: {
         code: "starter_free",
         name: "Starter",

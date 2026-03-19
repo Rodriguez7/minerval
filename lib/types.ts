@@ -126,6 +126,7 @@ export interface Subscription {
   trial_ends_at: string | null;
   current_period_end: string | null;
   billing_exempt: boolean;
+  stripe_customer_id: string | null;
 }
 
 export interface TenantContext {

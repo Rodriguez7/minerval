@@ -19,7 +19,7 @@ export async function getTenantContext(): Promise<TenantContext> {
          student_id_prefix, student_id_seq, currency, created_at,
          billing_email, billing_contact, timezone, support_tier,
          school_subscriptions (
-           plan_code, status, trial_ends_at, current_period_end, billing_exempt,
+           plan_code, status, trial_ends_at, current_period_end, billing_exempt, stripe_customer_id,
            plans (
              code, name, monthly_price_usd,
              can_branded_receipts, can_rich_reports, can_bulk_ops,
@@ -39,6 +39,7 @@ export async function getTenantContext(): Promise<TenantContext> {
       trial_ends_at: string | null;
       current_period_end: string | null;
       billing_exempt: boolean;
+      stripe_customer_id: string | null;
       plans: TenantContext["plan"];
     } | null;
   }) | null;
@@ -63,6 +64,7 @@ export async function getTenantContext(): Promise<TenantContext> {
       trial_ends_at: sub.trial_ends_at,
       current_period_end: sub.current_period_end,
       billing_exempt: sub.billing_exempt,
+      stripe_customer_id: sub.stripe_customer_id,
     },
   };
 }
