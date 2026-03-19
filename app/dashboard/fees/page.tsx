@@ -1,13 +1,14 @@
 export const dynamic = "force-dynamic";
 
-import { getAuthenticatedSchool } from "@/lib/auth";
-import { getAdminClient } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
+import { createSSRClient } from "@/lib/supabase";
 import { createFee, toggleFeeActive } from "../actions";
 
 export default async function FeesPage() {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
+  const supabase = await createSSRClient();
 
-  const { data: fees } = await getAdminClient()
+  const { data: fees } = await supabase
     .from("fees")
     .select("id, title, type, amount, active, created_at")
     .eq("school_id", school.id)
