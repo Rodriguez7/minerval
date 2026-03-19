@@ -43,6 +43,9 @@ export default async function DashboardLayout({
           <Link href="/dashboard/billing" className="text-sm text-gray-600 hover:text-gray-900">
             Billing
           </Link>
+          <Link href="/dashboard/settings" className="text-sm text-gray-600 hover:text-gray-900">
+            Settings
+          </Link>
         </div>
         <form action={logout}>
           <button type="submit" className="text-sm text-gray-500 hover:text-gray-700">
