@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { NextRequest } from "next/server";
 
 vi.mock("../lib/supabase", () => ({
-  getAdminClient: vi.fn(),
   createSSRClient: vi.fn(),
 }));
 
@@ -17,13 +16,13 @@ const mockInsertSelect = vi.fn().mockResolvedValue({
 const mockInsert = vi.fn(() => ({ select: mockInsertSelect }));
 const mockStudentFrom = vi.fn(() => ({ insert: mockInsert }));
 
-const mockSchoolSingle = vi.fn().mockResolvedValue({
-  data: { id: "school-id", admin_email: "admin@test.com" },
+const mockMembershipSingle = vi.fn().mockResolvedValue({
+  data: { school_id: "school-id" },
   error: null,
 });
-const mockSchoolEq = vi.fn(() => ({ single: mockSchoolSingle }));
-const mockSchoolSelect = vi.fn(() => ({ eq: mockSchoolEq }));
-const mockSchoolFrom = vi.fn(() => ({ select: mockSchoolSelect }));
+const mockMembershipEq = vi.fn(() => ({ single: mockMembershipSingle }));
+const mockMembershipSelect = vi.fn(() => ({ eq: mockMembershipEq }));
+const mockMembershipFrom = vi.fn(() => ({ select: mockMembershipSelect }));
 
 const mockRpcSingle = vi.fn().mockResolvedValue({
   data: { prefix: "STU", new_seq: 2 },
@@ -31,16 +30,11 @@ const mockRpcSingle = vi.fn().mockResolvedValue({
 });
 const mockRpc = vi.fn(() => ({ single: mockRpcSingle }));
 
-import { getAdminClient, createSSRClient } from "../lib/supabase";
+import { createSSRClient } from "../lib/supabase";
 
-type AdminClient = ReturnType<typeof getAdminClient>;
 type SSRClient = Awaited<ReturnType<typeof createSSRClient>>;
 
-function asAdminClient(client: { from: unknown; rpc?: unknown }) {
-  return client as unknown as AdminClient;
-}
-
-function asSSRClient(client: { auth: unknown }) {
+function asSSRClient(client: { auth: unknown; from: unknown; rpc: unknown }) {
   return client as unknown as SSRClient;
 }
 
@@ -53,10 +47,8 @@ describe("POST /api/dashboard/students/import", () => {
           data: { user: { email: "admin@test.com" } },
         }),
       },
-    }));
-    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({
       from: vi.fn((table: string) => {
-        if (table === "schools") return mockSchoolFrom();
+        if (table === "school_memberships") return mockMembershipFrom();
         return mockStudentFrom();
       }),
       rpc: mockRpc,
