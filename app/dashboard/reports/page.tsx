@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getAuthenticatedSchool } from "@/lib/auth";
+import { getTenantContext } from "@/lib/tenant";
 import {
   buildReportQuery,
   getStalePendingCutoff,
@@ -20,7 +20,7 @@ export default async function ReportsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
   const filters = parseReportFilters(await searchParams);
   const admin = getAdminClient();
   const staleCutoff = getStalePendingCutoff();
