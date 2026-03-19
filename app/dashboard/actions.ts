@@ -131,41 +131,6 @@ export async function toggleFeeActive(feeId: string, active: boolean) {
   revalidatePath("/dashboard/fees");
 }
 
-export async function addStudent(_: unknown, formData: FormData) {
-  const { school } = await getTenantContext();
-  const schema = z.object({
-    full_name: z.string().min(1).max(200),
-    class_name: z.string().max(100).optional(),
-    amount_due: z.coerce.number().min(0),
-  });
-  const parsed = schema.safeParse({
-    full_name: formData.get("full_name"),
-    class_name: formData.get("class_name") || undefined,
-    amount_due: formData.get("amount_due"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
-
-  const supabase = await createSSRClient();
-  const { data: seq, error: seqError } = await supabase
-    .rpc("increment_student_seq", { p_school_id: school.id, p_count: 1 })
-    .single() as { data: { prefix: string; new_seq: number } | null; error: unknown };
-
-  if (seqError || !seq) return { error: "Failed to generate student ID." };
-
-  const external_id = `${seq.prefix}-${String(seq.new_seq).padStart(3, "0")}`;
-
-  const { error } = await supabase.from("students").insert({
-    ...parsed.data,
-    school_id: school.id,
-    external_id,
-  });
-
-  if (error) return { error: "Failed to add student." };
-
-  revalidatePath("/dashboard/students");
-  return { success: true };
-}
-
 export async function regeneratePaymentAccessToken() {
   const { school } = await getTenantContext();
   const paymentAccessToken = generatePaymentAccessToken();

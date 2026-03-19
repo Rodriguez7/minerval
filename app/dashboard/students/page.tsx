@@ -1,14 +1,15 @@
 export const dynamic = "force-dynamic";
 
-import { getAuthenticatedSchool } from "@/lib/auth";
-import { getAdminClient } from "@/lib/supabase";
-import { addStudent } from "../actions";
+import { getTenantContext } from "@/lib/tenant";
+import { createSSRClient } from "@/lib/supabase";
+import { addStudent } from "./actions";
 import { CsvImportForm } from "./CsvImportForm";
 
 export default async function StudentsPage() {
-  const school = await getAuthenticatedSchool();
+  const { school } = await getTenantContext();
 
-  const { data: students } = await getAdminClient()
+  const supabase = await createSSRClient();
+  const { data: students } = await supabase
     .from("students")
     .select("id, external_id, full_name, class_name, amount_due, created_at")
     .eq("school_id", school.id)
