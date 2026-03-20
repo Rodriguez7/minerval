@@ -55,6 +55,7 @@ describe("POST /api/payments/initiate", () => {
       code: "ecole-test",
       payment_access_token: "school-token",
       currency: "FC" as const,
+      logo_url: null,
     });
   });
 

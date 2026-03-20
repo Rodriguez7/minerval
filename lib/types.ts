@@ -64,6 +64,8 @@ export interface School {
   billing_contact: string | null;
   timezone: string;
   support_tier: string;
+  // Added by migration 010
+  logo_url: string | null;
 }
 
 export interface Student {

@@ -17,7 +17,7 @@ export async function getTenantContext(): Promise<TenantContext> {
        schools (
          id, name, code, admin_email, payment_access_token,
          student_id_prefix, student_id_seq, currency, created_at,
-         billing_email, billing_contact, timezone, support_tier,
+         billing_email, billing_contact, timezone, support_tier, logo_url,
          school_subscriptions (
            plan_code, status, trial_ends_at, current_period_end, billing_exempt, stripe_customer_id,
            plans (

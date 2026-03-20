@@ -2,7 +2,7 @@ import { randomBytes } from "crypto";
 import { getAdminClient } from "./supabase";
 import type { School } from "./types";
 
-type PaymentAccessSchool = Pick<School, "id" | "name" | "code" | "payment_access_token" | "currency">;
+type PaymentAccessSchool = Pick<School, "id" | "name" | "code" | "payment_access_token" | "currency" | "logo_url">;
 
 export function generatePaymentAccessToken() {
   return randomBytes(20).toString("hex");
@@ -20,7 +20,7 @@ export async function getSchoolByPaymentAccessToken(
 ): Promise<PaymentAccessSchool | null> {
   const { data } = await getAdminClient()
     .from("schools")
-    .select("id, name, code, payment_access_token, currency")
+    .select("id, name, code, payment_access_token, currency, logo_url")
     .eq("payment_access_token", paymentAccessToken)
     .single();
 
