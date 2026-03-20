@@ -234,6 +234,7 @@ test.describe.serial("Minerval smoke", () => {
     await page.goto("/dashboard/settings");
     await expect(page.getByText("Payout discount")).toBeVisible();
     await expect(page.getByText("0.50%")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "School Logo" })).toBeVisible();
 
     await page.goto(`/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
     await expect(page.getByText("Playwright Student")).toBeVisible();
