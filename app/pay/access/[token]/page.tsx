@@ -76,6 +76,13 @@ export default async function PayAccessPage({
     <main className="min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8">
+          {school.logo_url && (
+            <img
+              src={school.logo_url}
+              alt={`${school.name} logo`}
+              className="h-12 w-auto mb-3 object-contain"
+            />
+          )}
           <h1 className="text-2xl font-bold">{school.name}</h1>
           <p className="text-gray-500 text-sm">School Fee Payment</p>
         </div>

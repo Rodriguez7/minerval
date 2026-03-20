@@ -23,7 +23,7 @@ export default async function ReceiptPage({
        serdipay_transaction_id,
        students(full_name, external_id, class_name),
        schools!inner(
-         name, currency,
+         name, currency, logo_url,
          school_subscriptions!inner(
            plans!inner(can_branded_receipts)
          )
@@ -37,7 +37,7 @@ export default async function ReceiptPage({
   type StudentRow = { full_name: string; external_id: string; class_name: string | null } | null;
   type PlanRow = { can_branded_receipts: boolean };
   type SubRow = { plans: PlanRow | PlanRow[] };
-  type SchoolRow = { name: string; currency: string; school_subscriptions: SubRow | SubRow[] };
+  type SchoolRow = { name: string; currency: string; logo_url: string | null; school_subscriptions: SubRow | SubRow[] };
 
   const student = payment.students as StudentRow;
   const school = payment.schools as unknown as SchoolRow;
@@ -59,6 +59,13 @@ export default async function ReceiptPage({
         <div className="mb-8 text-center">
           {canBrandedReceipts ? (
             <>
+              {school.logo_url && (
+                <img
+                  src={school.logo_url}
+                  alt={`${school.name} logo`}
+                  className="h-12 w-auto mx-auto mb-3 object-contain"
+                />
+              )}
               <h1 className="text-2xl font-bold">{school.name}</h1>
               <p className="text-gray-500 text-sm mt-1">Payment Receipt</p>
             </>
