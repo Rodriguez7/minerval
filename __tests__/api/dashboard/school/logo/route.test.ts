@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "@/app/api/dashboard/school/logo/route";
 import { NextRequest } from "next/server";
+import { getTenantContext } from "@/lib/tenant";
 
-// Mock getTenantContext
+// Mock getTenantContext — default: owner role
 vi.mock("@/lib/tenant", () => ({
   getTenantContext: vi.fn().mockResolvedValue({
     school: { id: "school-123" },
+    membership: { role: "owner" },
   }),
 }));
 
@@ -38,6 +40,21 @@ function makeRequest(body: FormData) {
 describe("POST /api/dashboard/school/logo", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("returns 403 for non-manager roles (viewer, finance)", async () => {
+    vi.mocked(getTenantContext).mockResolvedValueOnce({
+      school: { id: "school-123" },
+      membership: { role: "viewer" },
+    } as never);
+    const formData = new FormData();
+    const file = new File(["img"], "logo.png", { type: "image/png" });
+    formData.append("logo", file);
+    const req = makeRequest(formData);
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.error).toMatch(/unauthorized/i);
   });
 
   it("returns 400 when no file is provided", async () => {

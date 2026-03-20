@@ -6,7 +6,12 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 
 export async function POST(req: NextRequest) {
-  const { school } = await getTenantContext();
+  const { school, membership } = await getTenantContext();
+
+  if (!["owner", "admin"].includes(membership.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   const admin = getAdminClient();
 
   let formData: FormData;

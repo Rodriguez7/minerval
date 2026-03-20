@@ -4,9 +4,10 @@ import { useState } from "react";
 
 interface Props {
   currentLogoUrl: string | null;
+  canManage: boolean;
 }
 
-export function LogoUploadForm({ currentLogoUrl }: Props) {
+export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,22 +54,26 @@ export function LogoUploadForm({ currentLogoUrl }: Props) {
         />
       )}
 
-      <label
-        className={`inline-block cursor-pointer bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium ${
-          uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-700"
-        }`}
-      >
-        {uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          className="hidden"
-          onChange={handleChange}
-          disabled={uploading}
-        />
-      </label>
+      {canManage && (
+        <>
+          <label
+            className={`inline-block cursor-pointer bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium ${
+              uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-700"
+            }`}
+          >
+            {uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleChange}
+              disabled={uploading}
+            />
+          </label>
 
-      <p className="text-gray-400 text-xs mt-2">PNG, JPEG, WebP or GIF — max 2 MB</p>
+          <p className="text-gray-400 text-xs mt-2">PNG, JPEG, WebP or GIF — max 2 MB</p>
+        </>
+      )}
 
       {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
     </div>

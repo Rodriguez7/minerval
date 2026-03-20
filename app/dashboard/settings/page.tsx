@@ -107,7 +107,7 @@ export default async function SettingsPage() {
         </div>
       )}
 
-      <LogoUploadForm currentLogoUrl={school.logo_url} />
+      <LogoUploadForm currentLogoUrl={school.logo_url} canManage={canManage} />
     </div>
   );
 }
