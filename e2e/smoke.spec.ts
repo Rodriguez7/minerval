@@ -11,6 +11,8 @@ type SeedContext = {
   studentId: string;
   userId: string;
   paymentToken: string;
+  paymentRequestId: string;
+  schoolName: string;
 };
 
 function getRequiredEnv(name: string) {
@@ -112,37 +114,40 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
   const staleTimestamp = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const settledTimestamp = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  const { error: paymentsError } = await admin.from("payment_requests").insert([
-    {
-      student_id: student.id,
-      school_id: school.id,
-      amount: 1500,
-      phone: "243812345678",
-      telecom: "AM",
-      status: "pending",
-      reconciliation_status: "needs_review",
-      reconciliation_note: "Seeded exception for Playwright smoke test.",
-      reconciliation_updated_at: staleTimestamp,
-      reconciliation_updated_by: "e2e",
-      created_at: staleTimestamp,
-      updated_at: staleTimestamp,
-    },
-    {
-      student_id: student.id,
-      school_id: school.id,
-      amount: 1500,
-      phone: "243812345678",
-      telecom: "OM",
-      status: "success",
-      reconciliation_status: "reconciled",
-      reconciliation_updated_at: settledTimestamp,
-      reconciliation_updated_by: "e2e",
-      created_at: settledTimestamp,
-      updated_at: settledTimestamp,
-      settled_at: settledTimestamp,
-      serdipay_transaction_id: `E2E-${suffix.toUpperCase()}`,
-    },
-  ]);
+  const { data: paymentRows, error: paymentsError } = await admin
+    .from("payment_requests")
+    .insert([
+      {
+        student_id: student.id,
+        school_id: school.id,
+        amount: 1500,
+        phone: "243812345678",
+        telecom: "AM",
+        status: "pending",
+        reconciliation_status: "needs_review",
+        reconciliation_note: "Seeded exception for Playwright smoke test.",
+        reconciliation_updated_at: staleTimestamp,
+        reconciliation_updated_by: "e2e",
+        created_at: staleTimestamp,
+        updated_at: staleTimestamp,
+      },
+      {
+        student_id: student.id,
+        school_id: school.id,
+        amount: 1500,
+        phone: "243812345678",
+        telecom: "OM",
+        status: "success",
+        reconciliation_status: "reconciled",
+        reconciliation_updated_at: settledTimestamp,
+        reconciliation_updated_by: "e2e",
+        created_at: settledTimestamp,
+        updated_at: settledTimestamp,
+        settled_at: settledTimestamp,
+        serdipay_transaction_id: `E2E-${suffix.toUpperCase()}`,
+      },
+    ])
+    .select("id, status");
 
   if (paymentsError) {
     await admin.from("students").delete().eq("id", student.id);
@@ -150,6 +155,9 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
     await admin.auth.admin.deleteUser(user.id);
     throw new Error(paymentsError.message);
   }
+
+  const successPaymentId = paymentRows?.find((p) => p.status === "success")?.id ?? "";
+  const schoolName = `E2E School ${suffix}`;
 
   return {
     email,
@@ -160,6 +168,8 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
     studentId: student.id,
     userId: user.id,
     paymentToken: school.payment_access_token,
+    paymentRequestId: successPaymentId,
+    schoolName,
   };
 }
 
@@ -220,8 +230,20 @@ test.describe.serial("Minerval smoke", () => {
     await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
     await expect(page.getByText("Payment success rate")).toBeVisible();
 
+    // Settings page — payout discount (pro_monthly has 50 bps = 0.50% discount)
+    await page.goto("/dashboard/settings");
+    await expect(page.getByText("Payout discount")).toBeVisible();
+    await expect(page.getByText("0.50%")).toBeVisible();
+
     await page.goto(`/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("button", { name: /Pay 1,500 FC/ })).toBeVisible();
+
+    // Receipt page — publicly accessible, branded (pro_monthly has can_branded_receipts)
+    await page.context().clearCookies();
+    await page.goto(`/pay/receipt?ref=${seed.paymentRequestId}`);
+    await expect(page.getByText("Payment confirmed")).toBeVisible();
+    await expect(page.getByText("Playwright Student")).toBeVisible();
+    await expect(page.getByRole("heading", { name: seed.schoolName })).toBeVisible();
   });
 });
