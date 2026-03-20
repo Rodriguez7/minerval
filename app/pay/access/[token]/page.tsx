@@ -7,6 +7,7 @@ import { PayForm } from "../../[schoolCode]/PayForm";
 import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
+import { computeFee } from "@/lib/fee";
 
 export default async function PayAccessPage({
   params,
@@ -23,6 +24,9 @@ export default async function PayAccessPage({
 
   let student = null;
   let studentError = "";
+  let feeAmount = 0;
+  let totalAmount = 0;
+  let feeDisplayMode: "visible_line_item" | "hidden" = "hidden";
 
   if (studentExternalId) {
     const rateLimit = consumeRateLimit({
@@ -45,9 +49,28 @@ export default async function PayAccessPage({
         studentError = "Student not found. Check your ID and try again.";
       } else {
         student = data;
+
+        // Fetch pricing policy to compute parent fee
+        const { data: policy } = await getAdminClient()
+          .from("school_pricing_policies")
+          .select("parent_fee_bps, fee_display_mode")
+          .eq("school_id", school.id)
+          .single();
+
+        const computed = computeFee(
+          student.amount_due,
+          policy?.parent_fee_bps ?? 275
+        );
+        feeAmount = computed.feeAmount;
+        totalAmount = computed.totalAmount;
+        feeDisplayMode =
+          (policy?.fee_display_mode as "visible_line_item" | "hidden") ??
+          "hidden";
       }
     }
   }
+
+  const currency = school.currency ?? "FC";
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
@@ -73,9 +96,27 @@ export default async function PayAccessPage({
                 <p className="text-gray-500 text-sm">{student.class_name}</p>
               )}
               <p className="text-sm text-gray-400 mt-1">ID: {student.external_id}</p>
-              <p className="text-3xl font-bold mt-4">
-                {student.amount_due.toLocaleString()} {school.currency ?? "FC"}
-              </p>
+
+              {feeDisplayMode === "visible_line_item" && feeAmount > 0 ? (
+                <div className="mt-4 space-y-1 text-sm text-gray-600 border rounded-lg p-3 bg-gray-50">
+                  <div className="flex justify-between">
+                    <span>School fee</span>
+                    <span>{student.amount_due.toLocaleString()} {currency}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Transaction fee</span>
+                    <span>{feeAmount.toLocaleString()} {currency}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-base border-t pt-2 mt-1">
+                    <span>Total</span>
+                    <span>{totalAmount.toLocaleString()} {currency}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-3xl font-bold mt-4">
+                  {totalAmount.toLocaleString()} {currency}
+                </p>
+              )}
             </div>
 
             {student.amount_due <= 0 ? (
@@ -83,9 +124,9 @@ export default async function PayAccessPage({
             ) : (
               <PayForm
                 studentId={student.external_id}
-                amountDue={student.amount_due}
+                amountDue={totalAmount}
                 paymentToken={token}
-                currency={school.currency ?? "FC"}
+                currency={currency}
               />
             )}
           </>
