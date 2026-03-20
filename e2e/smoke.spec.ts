@@ -210,6 +210,16 @@ test.describe.serial("Minerval smoke", () => {
     expect(exportResponse.headers()["content-type"]).toContain("text/csv");
     expect(await exportResponse.text()).toContain(seed.studentExternalId);
 
+    // Payouts page
+    await page.goto("/dashboard/payouts");
+    await expect(page.getByRole("heading", { name: "Payouts" })).toBeVisible();
+    await expect(page.getByText("Net school payout")).toBeVisible();
+
+    // Analytics page (pro_monthly has can_advanced_analytics)
+    await page.goto("/dashboard/analytics");
+    await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
+    await expect(page.getByText("Payment success rate")).toBeVisible();
+
     await page.goto(`/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("button", { name: /Pay 1,500 FC/ })).toBeVisible();

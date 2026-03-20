@@ -37,6 +37,12 @@ export default async function DashboardLayout({
           >
             Reports
           </Link>
+          <Link href="/dashboard/payouts" className="text-sm text-gray-600 hover:text-gray-900">
+            Payouts
+          </Link>
+          <Link href="/dashboard/analytics" className="text-sm text-gray-600 hover:text-gray-900">
+            Analytics
+          </Link>
           <Link href="/dashboard/team" className="text-sm text-gray-600 hover:text-gray-900">
             Team
           </Link>
