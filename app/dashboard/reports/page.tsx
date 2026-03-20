@@ -20,7 +20,27 @@ export default async function ReportsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { school } = await getTenantContext();
+  const { school, plan } = await getTenantContext();
+
+  if (!plan.can_rich_reports) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <h1 className="text-2xl font-bold">Reports</h1>
+        <div className="bg-white rounded-xl shadow p-8 text-center space-y-4">
+          <p className="text-gray-500">
+            Rich reports are available on Growth and Pro plans.
+          </p>
+          <a
+            href="/dashboard/billing"
+            className="inline-block bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium"
+          >
+            View plans
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const filters = parseReportFilters(await searchParams);
   const admin = getAdminClient();
   const staleCutoff = getStalePendingCutoff();

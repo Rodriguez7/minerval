@@ -12,7 +12,15 @@ import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
 
 export async function GET(req: Request) {
-  const { school } = await getTenantContext();
+  const { school, plan } = await getTenantContext();
+
+  if (!plan.can_accounting_export) {
+    return NextResponse.json(
+      { error: "CSV export is not available on your current plan." },
+      { status: 403 }
+    );
+  }
+
   const admin = getAdminClient();
 
   const url = new URL(req.url);
