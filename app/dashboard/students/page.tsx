@@ -4,6 +4,7 @@ import { getTenantContext } from "@/lib/tenant";
 import { createSSRClient } from "@/lib/supabase";
 import { addStudent } from "./actions";
 import { CsvImportForm } from "./CsvImportForm";
+import { BulkFeeForm } from "./BulkFeeForm";
 
 export default async function StudentsPage() {
   const { school } = await getTenantContext();
@@ -60,6 +61,9 @@ export default async function StudentsPage() {
 
       {/* CSV import */}
       <CsvImportForm />
+
+      {/* Bulk fee update */}
+      <BulkFeeForm />
 
       {/* Student list */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
