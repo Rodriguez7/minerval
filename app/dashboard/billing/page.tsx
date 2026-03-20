@@ -3,7 +3,11 @@ import { createCheckoutSession, createPortalSession } from "@/app/actions/billin
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ expired?: string }>;
+}) {
   const { plan, subscription } = await getTenantContext();
 
   const statusColors: Record<string, string> = {
@@ -41,6 +45,14 @@ export default async function BillingPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Billing</h1>
+
+      {(await searchParams).expired === "1" && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p className="text-red-700 text-sm font-medium">
+            Your subscription has expired. Please update your payment method to restore access.
+          </p>
+        </div>
+      )}
 
       {/* Current plan card */}
       <div className="bg-white rounded-xl shadow p-6">
