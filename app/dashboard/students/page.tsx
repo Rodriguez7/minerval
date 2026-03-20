@@ -7,7 +7,7 @@ import { CsvImportForm } from "./CsvImportForm";
 import { BulkFeeForm } from "./BulkFeeForm";
 
 export default async function StudentsPage() {
-  const { school } = await getTenantContext();
+  const { school, plan } = await getTenantContext();
 
   const supabase = await createSSRClient();
   const { data: students } = await supabase
@@ -63,7 +63,7 @@ export default async function StudentsPage() {
       <CsvImportForm />
 
       {/* Bulk fee update */}
-      <BulkFeeForm />
+      <BulkFeeForm canBulkOps={plan.can_bulk_ops} />
 
       {/* Student list */}
       <div className="bg-white rounded-xl shadow overflow-hidden">

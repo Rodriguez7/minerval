@@ -1,7 +1,11 @@
 "use client";
 import { useState, useRef } from "react";
 
-export function BulkFeeForm() {
+interface Props {
+  canBulkOps: boolean;
+}
+
+export function BulkFeeForm({ canBulkOps }: Props) {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -62,6 +66,30 @@ export function BulkFeeForm() {
     }
   }
 
+  if (!canBulkOps) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6">
+        <h2 className="font-semibold mb-1">Bulk Fee Update</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Upload a CSV with columns{" "}
+          <code className="bg-gray-100 px-1 rounded text-xs">
+            external_id,amount_due
+          </code>{" "}
+          to update balances in bulk.
+        </p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
+          <p>
+            Bulk fee updates are available on the{" "}
+            <a href="/dashboard/billing" className="font-medium text-gray-900 underline">
+              Pro plan
+            </a>
+            .
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow p-6">
       <h2 className="font-semibold mb-1">Bulk Fee Update</h2>
@@ -70,7 +98,7 @@ export function BulkFeeForm() {
         <code className="bg-gray-100 px-1 rounded text-xs">
           external_id,amount_due
         </code>{" "}
-        to update balances in bulk. Requires a Pro plan.
+        to update balances in bulk.
       </p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
