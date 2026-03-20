@@ -38,9 +38,7 @@ describe("addStudent", () => {
     // Mock: school already has 10 students
     fromMock.mockReturnValueOnce({
       select: vi.fn().mockReturnValueOnce({
-        eq: vi.fn().mockReturnValueOnce({
-          single: vi.fn().mockResolvedValue({ data: { count: 10 }, error: null }),
-        }),
+        eq: vi.fn().mockResolvedValue({ count: 10, error: null }),
       }),
     });
 
@@ -62,15 +60,11 @@ describe("addStudent", () => {
     });
 
     fromMock.mockReturnValueOnce({
-      insert: vi.fn().mockReturnThis(),
-      select: vi.fn().mockResolvedValue({ data: null, error: null }),
+      insert: vi.fn().mockResolvedValue({ data: null, error: null }),
     });
 
     const result = await addStudent(null, makeFormData(VALID_FORM));
 
-    // Should not return a student limit error
-    if (result?.error) {
-      expect(result.error).not.toMatch(/student limit/i);
-    }
+    expect(result).toEqual({ success: true });
   });
 });

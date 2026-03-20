@@ -55,9 +55,7 @@ describe("POST /api/dashboard/students/import", () => {
     // Mock: school already has 4 students
     fromMock.mockReturnValueOnce({
       select: vi.fn().mockReturnValueOnce({
-        eq: vi.fn().mockReturnValueOnce({
-          single: vi.fn().mockResolvedValue({ data: { count: 4 }, error: null }),
-        }),
+        eq: vi.fn().mockResolvedValue({ count: 4, error: null }),
       }),
     });
 

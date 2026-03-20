@@ -27,13 +27,12 @@ export async function addStudent(_: unknown, formData: FormData) {
 
   // Enforce max_students cap if the plan has one (NULL = unlimited)
   if (plan.max_students !== null) {
-    const { data: countData } = await supabase
+    const { count: currentCount } = await supabase
       .from("students")
-      .select("count", { count: "exact", head: true })
-      .eq("school_id", school.id)
-      .single();
+      .select("*", { count: "exact", head: true })
+      .eq("school_id", school.id);
 
-    const current = (countData as { count: number } | null)?.count ?? 0;
+    const current = currentCount ?? 0;
     if (current + 1 > plan.max_students) {
       return {
         error: `Student limit reached. Your plan allows ${plan.max_students} students (currently ${current}).`,
