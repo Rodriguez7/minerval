@@ -16,7 +16,7 @@ export default async function ReceiptPage({
 
   const admin = getAdminClient();
 
-  const { data: payment } = await admin
+  const { data: paymentData, error: paymentError } = await admin
     .from("payment_requests")
     .select(
       `id, amount, fee_amount, status, settled_at, telecom, phone,
@@ -32,12 +32,33 @@ export default async function ReceiptPage({
     .eq("id", ref)
     .single();
 
+  // Fallback: retry without logo_url if PostgREST schema cache doesn't have it yet.
+  let payment = paymentData;
+  if (paymentError) {
+    const { data: fallback } = await admin
+      .from("payment_requests")
+      .select(
+        `id, amount, fee_amount, status, settled_at, telecom, phone,
+         serdipay_transaction_id,
+         students(full_name, external_id, class_name),
+         schools!inner(
+           name, currency,
+           school_subscriptions!inner(
+             plans!inner(can_branded_receipts)
+           )
+         )`
+      )
+      .eq("id", ref)
+      .single();
+    payment = fallback;
+  }
+
   if (!payment) notFound();
 
   type StudentRow = { full_name: string; external_id: string; class_name: string | null } | null;
   type PlanRow = { can_branded_receipts: boolean };
   type SubRow = { plans: PlanRow | PlanRow[] };
-  type SchoolRow = { name: string; currency: string; logo_url: string | null; school_subscriptions: SubRow | SubRow[] };
+  type SchoolRow = { name: string; currency: string; logo_url?: string | null; school_subscriptions: SubRow | SubRow[] };
 
   const student = payment.students as StudentRow;
   const school = payment.schools as unknown as SchoolRow;
