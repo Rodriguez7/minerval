@@ -1,16 +1,12 @@
--- Create public school-logos bucket
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('school-logos', 'school-logos', true)
-ON CONFLICT (id) DO NOTHING;
+-- Fix: scope storage logo policies to the uploading user's own school.
+-- Migration 011 applied overly permissive INSERT/UPDATE policies.
+-- This migration replaces them with membership-scoped versions.
 
--- Allow anyone to read logos (public bucket, served via CDN)
 DROP POLICY IF EXISTS "school logos publicly readable" ON storage.objects;
 CREATE POLICY "school logos publicly readable"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'school-logos');
 
--- Allow school owners/admins to upload logos for their own school
--- Path convention: {school_id}/logo.{ext} — foldername extracts the school_id
 DROP POLICY IF EXISTS "authenticated users can upload logos" ON storage.objects;
 CREATE POLICY "authenticated users can upload logos"
   ON storage.objects FOR INSERT
@@ -53,6 +49,3 @@ CREATE POLICY "authenticated users can update logos"
         AND sm.status = 'active'
     )
   );
-
--- No DELETE policy is intentional: logos are replaced via upsert, never deleted through the app.
--- Removal (if ever needed) is done through the Supabase dashboard by an admin.
