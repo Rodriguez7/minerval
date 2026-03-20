@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { updatePricingPolicy } from "@/app/actions/settings";
+import { LogoUploadForm } from "./LogoUploadForm";
 
 export default async function SettingsPage() {
   const { school, membership, plan } = await getTenantContext();
@@ -105,6 +106,8 @@ export default async function SettingsPage() {
           </p>
         </div>
       )}
+
+      <LogoUploadForm currentLogoUrl={school.logo_url} />
     </div>
   );
 }
