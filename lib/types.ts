@@ -109,6 +109,7 @@ export interface Plan {
   can_accounting_export: boolean;
   can_advanced_analytics: boolean;
   max_students: number | null;
+  future_payout_discount_bps: number;
 }
 
 export interface Membership {

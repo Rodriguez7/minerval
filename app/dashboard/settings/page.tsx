@@ -5,7 +5,7 @@ import { getAdminClient } from "@/lib/supabase";
 import { updatePricingPolicy } from "@/app/actions/settings";
 
 export default async function SettingsPage() {
-  const { school, membership } = await getTenantContext();
+  const { school, membership, plan } = await getTenantContext();
   const canManage = ["owner", "admin"].includes(membership.role);
   const admin = getAdminClient();
 
@@ -93,6 +93,18 @@ export default async function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {plan.future_payout_discount_bps > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+          <h2 className="font-semibold text-blue-900 mb-1">Payout discount</h2>
+          <p className="text-sm text-blue-700">
+            Your plan includes a{" "}
+            <strong>{(plan.future_payout_discount_bps / 100).toFixed(2)}%</strong>{" "}
+            discount on future platform fee collections. This discount is applied
+            automatically to your settled payouts.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

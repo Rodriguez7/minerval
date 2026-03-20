@@ -23,7 +23,8 @@ export async function getTenantContext(): Promise<TenantContext> {
            plans (
              code, name, monthly_price_usd,
              can_branded_receipts, can_rich_reports, can_bulk_ops,
-             can_accounting_export, can_advanced_analytics, max_students
+             can_accounting_export, can_advanced_analytics, max_students,
+            future_payout_discount_bps
            )
          )
        )`
