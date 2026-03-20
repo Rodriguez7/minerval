@@ -4,6 +4,7 @@ import { callProxy, ProxyError } from "@/lib/proxy";
 import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
 import { getClientIp } from "@/lib/request";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { computeFee } from "@/lib/fee";
 import type { Telecom } from "@/lib/types";
 
 const VALID_TELECOMS: Telecom[] = ["AM", "OM", "MP", "AF"];
@@ -73,12 +74,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No fees outstanding for this student" }, { status: 400 });
   }
 
+  // Fetch pricing policy and compute parent fee
+  const { data: policy } = await admin
+    .from("school_pricing_policies")
+    .select("parent_fee_bps")
+    .eq("school_id", school.id)
+    .single();
+
+  const { feeAmount, totalAmount } = computeFee(
+    student.amount_due,
+    policy?.parent_fee_bps ?? 275
+  );
+
   const { data: paymentRequest, error: insertErr } = await admin
     .from("payment_requests")
     .insert({
       student_id: student.id,
       school_id: school.id,
-      amount: student.amount_due,
+      amount: totalAmount,
+      fee_amount: feeAmount,
       phone,
       telecom,
       status: "pending",
@@ -97,7 +111,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await callProxy({
-      amount: student.amount_due,
+      amount: totalAmount,
       phone,
       reference: paymentRequest.id,
       telecom: telecom as Telecom,
@@ -107,7 +121,7 @@ export async function POST(req: NextRequest) {
     await admin.from("payment_events").insert({
       payment_request_id: paymentRequest.id,
       event_type: "initiated",
-      payload: { phone, telecom, amount: student.amount_due },
+      payload: { phone, telecom, amount: totalAmount, fee_amount: feeAmount },
     });
 
     return NextResponse.json({ payment_request_id: paymentRequest.id, status: "pending" });

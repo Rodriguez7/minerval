@@ -148,6 +148,11 @@ describe("POST /api/payments/initiate", () => {
         single: vi.fn().mockResolvedValue({ data: mockStudent, error: null }),
       })
       .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
+      })
+      .mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { id: "pay-uuid" }, error: null }),
@@ -179,6 +184,11 @@ describe("POST /api/payments/initiate", () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: mockStudent, error: null }),
+      })
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
       })
       .mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
