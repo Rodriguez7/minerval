@@ -64,6 +64,33 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
     throw new Error(schoolError?.message ?? "Failed to create school");
   }
 
+  const { error: membershipError } = await admin.from("school_memberships").insert({
+    user_id: user.id,
+    school_id: school.id,
+    role: "owner",
+    status: "active",
+  });
+
+  if (membershipError) {
+    await admin.from("schools").delete().eq("id", school.id);
+    await admin.auth.admin.deleteUser(user.id);
+    throw new Error(membershipError.message);
+  }
+
+  // Upsert to pro_monthly so smoke test has all entitlements.
+  // The DB trigger creates starter_free on school insert, so we must upsert (not insert) to overwrite it.
+  await admin.from("school_subscriptions").upsert(
+    { school_id: school.id, plan_code: "pro_monthly", status: "active" },
+    { onConflict: "school_id" }
+  );
+
+  // Seed pricing policy with 0 bps so the payment button total matches the student's amount_due.
+  // (avoids test brittleness if the default fee changes in future)
+  await admin.from("school_pricing_policies").upsert(
+    { school_id: school.id, parent_fee_bps: 0, fee_display_mode: "hidden" },
+    { onConflict: "school_id" }
+  );
+
   const { data: student, error: studentError } = await admin
     .from("students")
     .insert({
