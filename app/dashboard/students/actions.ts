@@ -11,7 +11,7 @@ const studentSchema = z.object({
 });
 
 export async function addStudent(_: unknown, formData: FormData) {
-  const { school, membership } = await getTenantContext();
+  const { school, membership, plan } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
     return { error: "Unauthorized" };
   }
@@ -24,9 +24,25 @@ export async function addStudent(_: unknown, formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
   const supabase = await createSSRClient();
+
+  // Enforce max_students cap if the plan has one (NULL = unlimited)
+  if (plan.max_students !== null) {
+    const { data: countData } = await supabase
+      .from("students")
+      .select("count", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .single();
+
+    const current = (countData as { count: number } | null)?.count ?? 0;
+    if (current + 1 > plan.max_students) {
+      return {
+        error: `Student limit reached. Your plan allows ${plan.max_students} students (currently ${current}).`,
+      };
+    }
+  }
+
   const { data: seq, error: seqError } = await supabase
-    .rpc("increment_student_seq", { p_school_id: school.id, p_count: 1 })
-    .single() as { data: { prefix: string; new_seq: number } | null; error: unknown };
+    .rpc("increment_student_seq", { p_school_id: school.id, p_count: 1 }) as { data: { prefix: string; new_seq: number } | null; error: unknown };
 
   if (seqError || !seq) return { error: "Failed to generate student ID." };
 

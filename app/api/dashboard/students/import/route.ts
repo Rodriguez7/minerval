@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createSSRClient } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
+import { getAdminClient } from "@/lib/supabase";
 
 const RowSchema = z.object({
   full_name: z.string().min(1).max(200),
@@ -13,20 +14,14 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const ssrClient = await createSSRClient();
-  const {
-    data: { user },
-  } = await ssrClient.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { school, plan } = await getTenantContext();
 
-  const { data: membership } = await ssrClient
-    .from("school_memberships")
-    .select("school_id")
-    .eq("status", "active")
-    .single();
-
-  if (!membership) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const schoolId = membership.school_id;
+  if (!plan.can_bulk_ops) {
+    return NextResponse.json(
+      { error: "CSV import requires a Pro plan." },
+      { status: 403 }
+    );
+  }
 
   let body: unknown;
   try {
@@ -43,25 +38,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const count = parsed.data.rows.length;
+  const rowCount = parsed.data.rows.length;
+  const admin = getAdminClient();
 
-  // Atomically reserve `count` sequential IDs for this school
-  const { data: seq, error: seqError } = await ssrClient
-    .rpc("increment_student_seq", { p_school_id: schoolId, p_count: count })
-    .single() as { data: { prefix: string; new_seq: number } | null; error: unknown };
+  // Enforce max_students cap if the plan has one (NULL = unlimited)
+  if (plan.max_students !== null) {
+    const { data: countData } = await admin
+      .from("students")
+      .select("count", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .single();
+
+    const current = (countData as { count: number } | null)?.count ?? 0;
+    if (current + rowCount > plan.max_students) {
+      return NextResponse.json(
+        {
+          error: `Student limit reached. Your plan allows ${plan.max_students} students (currently ${current}).`,
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Atomically reserve `rowCount` sequential IDs for this school
+  const { data: seq, error: seqError } = await admin
+    .rpc("increment_student_seq", { p_school_id: school.id, p_count: rowCount }) as { data: { prefix: string; new_seq: number } | null; error: unknown };
 
   if (seqError || !seq) {
     return NextResponse.json({ error: "Failed to generate student IDs." }, { status: 500 });
   }
 
-  const startSeq = seq.new_seq - count + 1;
+  const startSeq = seq.new_seq - rowCount + 1;
   const rows = parsed.data.rows.map((r, i) => ({
     ...r,
-    school_id: schoolId,
+    school_id: school.id,
     external_id: `${seq.prefix}-${String(startSeq + i).padStart(3, "0")}`,
   }));
 
-  const { data, error } = await ssrClient.from("students").insert(rows).select("id");
+  const { data, error } = await admin.from("students").insert(rows).select("id");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

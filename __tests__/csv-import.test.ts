@@ -1,61 +1,43 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { NextRequest } from "next/server";
 
-vi.mock("../lib/supabase", () => ({
-  createSSRClient: vi.fn(),
-}));
+vi.mock("@/lib/tenant", () => ({ getTenantContext: vi.fn() }));
+vi.mock("@/lib/supabase", () => ({ getAdminClient: vi.fn() }));
 
-vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({ getAll: () => [], set: vi.fn() }),
-}));
+import { getTenantContext } from "@/lib/tenant";
+import { getAdminClient } from "@/lib/supabase";
 
-const mockInsertSelect = vi.fn().mockResolvedValue({
-  data: [{ id: "1" }, { id: "2" }],
-  error: null,
+const fromMock = vi.fn();
+const rpcMock = vi.fn();
+const adminMock = { from: fromMock, rpc: rpcMock };
+
+const PRO_CONTEXT = {
+  school: { id: "school-id", code: "STU", currency: "FC" },
+  membership: { role: "admin" },
+  plan: { can_bulk_ops: true, max_students: null },
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(getAdminClient).mockReturnValue(adminMock as never);
+  vi.mocked(getTenantContext).mockResolvedValue(PRO_CONTEXT as never);
 });
-const mockInsert = vi.fn(() => ({ select: mockInsertSelect }));
-const mockStudentFrom = vi.fn(() => ({ insert: mockInsert }));
-
-const mockMembershipSingle = vi.fn().mockResolvedValue({
-  data: { school_id: "school-id" },
-  error: null,
-});
-const mockMembershipEq = vi.fn(() => ({ single: mockMembershipSingle }));
-const mockMembershipSelect = vi.fn(() => ({ eq: mockMembershipEq }));
-const mockMembershipFrom = vi.fn(() => ({ select: mockMembershipSelect }));
-
-const mockRpcSingle = vi.fn().mockResolvedValue({
-  data: { prefix: "STU", new_seq: 2 },
-  error: null,
-});
-const mockRpc = vi.fn(() => ({ single: mockRpcSingle }));
-
-import { createSSRClient } from "../lib/supabase";
-
-type SSRClient = Awaited<ReturnType<typeof createSSRClient>>;
-
-function asSSRClient(client: { auth: unknown; from: unknown; rpc: unknown }) {
-  return client as unknown as SSRClient;
-}
 
 describe("POST /api/dashboard/students/import", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(createSSRClient).mockResolvedValue(asSSRClient({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { email: "admin@test.com" } },
-        }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "school_memberships") return mockMembershipFrom();
-        return mockStudentFrom();
-      }),
-      rpc: mockRpc,
-    }));
-  });
-
   it("imports valid rows and returns count", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { prefix: "STU", new_seq: 2 },
+      error: null,
+    });
+
+    fromMock.mockReturnValueOnce({
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({
+        data: [{ id: "1" }, { id: "2" }],
+        error: null,
+      }),
+    });
+
     const { POST } = await import(
       "../app/api/dashboard/students/import/route"
     );
@@ -66,13 +48,8 @@ describe("POST /api/dashboard/students/import", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           rows: [
-            { external_id: "S1", full_name: "Alice", amount_due: 5000 },
-            {
-              external_id: "S2",
-              full_name: "Bob",
-              class_name: "CP1",
-              amount_due: 3000,
-            },
+            { full_name: "Alice", amount_due: 5000 },
+            { full_name: "Bob", class_name: "CP1", amount_due: 3000 },
           ],
         }),
       }
@@ -93,7 +70,7 @@ describe("POST /api/dashboard/students/import", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          rows: [{ external_id: "", full_name: "Bad", amount_due: -1 }],
+          rows: [{ full_name: "Bad", amount_due: -1 }],
         }),
       }
     );
