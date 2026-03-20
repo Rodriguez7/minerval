@@ -16,6 +16,15 @@ export default async function SettingsPage() {
     .eq("school_id", school.id)
     .single();
 
+  // logo_url is fetched separately — isolated from tenant context so a stale
+  // PostgREST schema cache for migration-010 column doesn't break the dashboard.
+  const { data: logoRow } = await admin
+    .from("schools")
+    .select("logo_url")
+    .eq("id", school.id)
+    .single();
+  const currentLogoUrl = (logoRow as { logo_url?: string | null } | null)?.logo_url ?? null;
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
@@ -107,7 +116,7 @@ export default async function SettingsPage() {
         </div>
       )}
 
-      <LogoUploadForm currentLogoUrl={school.logo_url} canManage={canManage} />
+      <LogoUploadForm currentLogoUrl={currentLogoUrl} canManage={canManage} />
     </div>
   );
 }
