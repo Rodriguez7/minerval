@@ -83,16 +83,26 @@ export async function POST(request: Request) {
   }
 
   // For all other event types: look up school_id first, then insert billing_events, then process
-  const obj = event.data.object as { customer: string };
+  const obj = event.data.object as { customer: string; metadata?: Record<string, string> };
 
-  // Look up school_id by stripe_customer_id (1st DB call)
-  const { data: subData } = await admin
-    .from("school_subscriptions")
-    .select("school_id")
-    .eq("stripe_customer_id", obj.customer)
-    .single();
+  // For subscription events, try metadata first to avoid race with checkout.session.completed
+  // (subscription.updated can fire before checkout.session.completed sets stripe_customer_id in DB)
+  const isSubscriptionEvent =
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted";
+  let schoolId: string | null = isSubscriptionEvent
+    ? (obj.metadata?.school_id ?? null)
+    : null;
 
-  const schoolId = subData?.school_id ?? null;
+  if (!schoolId) {
+    // Fall back to DB lookup by stripe_customer_id
+    const { data: subData } = await admin
+      .from("school_subscriptions")
+      .select("school_id")
+      .eq("stripe_customer_id", obj.customer)
+      .single();
+    schoolId = subData?.school_id ?? null;
+  }
 
   if (!schoolId) {
     console.warn("[stripe-webhook] Could not resolve school_id for event", event.id);
