@@ -63,7 +63,7 @@ export default async function AnalyticsPage() {
   // Aggregate collections by class
   const collectionsByClass = new Map<string, number>();
   for (const p of settledPayments ?? []) {
-    const className = (p.students as { class_name: string | null } | null)?.class_name ?? "No class";
+    const className = (p.students as unknown as { class_name: string | null } | null)?.class_name ?? "No class";
     collectionsByClass.set(
       className,
       (collectionsByClass.get(className) ?? 0) + Number(p.amount)

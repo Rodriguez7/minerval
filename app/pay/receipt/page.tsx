@@ -50,7 +50,7 @@ export default async function ReceiptPage({
       )
       .eq("id", ref)
       .single();
-    payment = fallback;
+    payment = fallback as unknown as typeof paymentData;
   }
 
   if (!payment) notFound();
@@ -60,7 +60,7 @@ export default async function ReceiptPage({
   type SubRow = { plans: PlanRow | PlanRow[] };
   type SchoolRow = { name: string; currency: string; logo_url?: string | null; school_subscriptions: SubRow | SubRow[] };
 
-  const student = payment.students as StudentRow;
+  const student = payment.students as unknown as StudentRow;
   const school = payment.schools as unknown as SchoolRow;
   const currency = school.currency ?? "FC";
 

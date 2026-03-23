@@ -26,6 +26,7 @@ describe("SaaS types", () => {
       can_accounting_export: false,
       can_advanced_analytics: false,
       max_students: null,
+      future_payout_discount_bps: 0,
     };
     expectTypeOf(plan.can_branded_receipts).toBeBoolean();
     expectTypeOf(plan.max_students).toMatchTypeOf<number | null>();

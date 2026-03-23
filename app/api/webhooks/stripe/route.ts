@@ -126,7 +126,7 @@ export async function POST(request: Request) {
   }
 
   if (event.type === "customer.subscription.updated") {
-    const sub = event.data.object as {
+    const sub = event.data.object as unknown as {
       customer: string;
       status: string;
       current_period_end: number;

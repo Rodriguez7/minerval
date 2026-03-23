@@ -54,6 +54,7 @@ const mockMembershipRow = {
         can_accounting_export: false,
         can_advanced_analytics: false,
         max_students: null,
+        future_payout_discount_bps: 0,
       },
     },
   },
@@ -127,7 +128,7 @@ describe("getTenantContext", () => {
         school_subscriptions: null,
       },
     };
-    mockSupabaseClient({ user: mockUser, membershipData: membershipWithNoSubscription });
+    mockSupabaseClient({ user: mockUser, membershipData: membershipWithNoSubscription as unknown as typeof mockMembershipRow });
     await expect(getTenantContext()).rejects.toThrow("REDIRECT:/login");
     expect(redirect).toHaveBeenCalledWith("/login");
   });

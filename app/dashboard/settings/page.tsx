@@ -35,7 +35,7 @@ export default async function SettingsPage() {
           Controls what fee parents pay on top of the school fee amount.
         </p>
         <form
-          action={updatePricingPolicy.bind(null, undefined)}
+          action={async (fd: FormData) => { await updatePricingPolicy(undefined, fd); }}
           className="space-y-4"
         >
           <div>

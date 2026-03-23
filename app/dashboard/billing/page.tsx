@@ -104,7 +104,7 @@ export default async function BillingPage({
             </p>
           </div>
           {hasStripeCustomer && (
-            <form action={createPortalSession}>
+            <form action={async () => { await createPortalSession(); }}>
               <button
                 type="submit"
                 className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -151,7 +151,7 @@ export default async function BillingPage({
               Update payment method, download invoices, or cancel.
             </p>
           </div>
-          <form action={createPortalSession}>
+          <form action={async () => { await createPortalSession(); }}>
             <button
               type="submit"
               className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
@@ -179,7 +179,7 @@ export default async function BillingPage({
                 <li>✓ Rich reports</li>
                 <li>✓ Unlimited students</li>
               </ul>
-              <form action={createCheckoutSession.bind(null, "growth_monthly")}>
+              <form action={async () => { await createCheckoutSession("growth_monthly"); }}>
                 <button
                   type="submit"
                   className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -202,7 +202,7 @@ export default async function BillingPage({
                 <li>✓ Accounting export</li>
                 <li>✓ Advanced analytics</li>
               </ul>
-              <form action={createCheckoutSession.bind(null, "pro_monthly")}>
+              <form action={async () => { await createCheckoutSession("pro_monthly"); }}>
                 <button
                   type="submit"
                   className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
