@@ -15,6 +15,7 @@ export default defineConfig({
       STRIPE_PRICE_GROWTH_MONTHLY: "price_growth_test",
       STRIPE_PRICE_PRO_MONTHLY: "price_pro_test",
       STRIPE_WEBHOOK_SECRET: "whsec_test",
+      RESEND_API_KEY: "re_test_dummy",
     },
   },
   resolve: {

@@ -26,12 +26,14 @@ export async function sendPayoutFailedEmail(opts: {
   to: string;
   amount: number;
   currency: string;
+  phone: string;
+  telecom: string;
 }) {
   const resend = getResend();
   await resend.emails.send({
     from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.app>",
     to: opts.to,
     subject: "Your withdrawal could not be processed",
-    text: `Your withdrawal request of ${opts.amount} ${opts.currency} failed. Please contact support.`,
+    text: `Your withdrawal request of ${opts.amount} ${opts.currency} to ${opts.phone} (${opts.telecom}) failed. Please contact support.`,
   });
 }
