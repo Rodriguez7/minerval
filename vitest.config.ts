@@ -16,6 +16,9 @@ export default defineConfig({
       STRIPE_PRICE_PRO_MONTHLY: "price_pro_test",
       STRIPE_WEBHOOK_SECRET: "whsec_test",
       RESEND_API_KEY: "re_test_dummy",
+      SUPER_ADMIN_EMAIL: "admin@test.com",
+      SERDIPAY_CALLBACK_SECRET: "test-callback-secret",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     },
   },
   resolve: {
