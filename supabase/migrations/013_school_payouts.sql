@@ -19,8 +19,8 @@ CREATE TABLE school_payouts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_school_payouts_school_id ON school_payouts(school_id);
-CREATE INDEX idx_school_payouts_status ON school_payouts(school_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_school_payouts_school_id ON school_payouts(school_id);
+CREATE INDEX IF NOT EXISTS idx_school_payouts_status ON school_payouts(school_id, status, created_at DESC);
 
 -- RLS
 ALTER TABLE school_payouts ENABLE ROW LEVEL SECURITY;
@@ -44,12 +44,17 @@ DECLARE
   v_available BIGINT;
   v_payout_id UUID;
 BEGIN
+  -- Auth guard: caller must be authenticated and match the requested_by param
+  IF auth.uid() IS NULL OR auth.uid() != p_requested_by THEN
+    RETURN jsonb_build_object('error', 'unauthorized');
+  END IF;
+
   -- Advisory lock scoped to this school (prevents concurrent double-requests)
   PERFORM pg_advisory_xact_lock(hashtext(p_school_id::text));
 
   -- Calculate available balance: collected minus in-flight payouts
   SELECT
-    COALESCE(SUM(pr.amount - pr.fee_amount), 0)
+    COALESCE(SUM(pr.amount - COALESCE(pr.fee_amount, 0)), 0)
     - COALESCE((
         SELECT SUM(sp.amount)
         FROM school_payouts sp
@@ -70,3 +75,8 @@ BEGIN
   RETURN jsonb_build_object('id', v_payout_id, 'status', 'pending');
 END;
 $$;
+
+DROP TRIGGER IF EXISTS trg_school_payouts_updated_at ON school_payouts;
+CREATE TRIGGER trg_school_payouts_updated_at
+  BEFORE UPDATE ON school_payouts
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
