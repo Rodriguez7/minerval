@@ -127,7 +127,8 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
         eq: vi.fn().mockResolvedValue({ error: null }),
       });
     vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
-    vi.mocked(callProxyPayout).mockRejectedValueOnce(new (ProxyError as never)("SerdiPay error", 502));
+    const PE = ProxyError as unknown as new (msg: string, status: number) => InstanceType<typeof ProxyError>;
+    vi.mocked(callProxyPayout).mockRejectedValueOnce(new PE("SerdiPay error", 502));
 
     const res = await POST(makeRequest("payout-uuid"), { params: Promise.resolve({ id: "payout-uuid" }) });
     expect(res.status).toBe(502);

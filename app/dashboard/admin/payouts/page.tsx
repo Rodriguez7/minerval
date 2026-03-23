@@ -21,7 +21,7 @@ export default async function AdminPayoutsPage() {
 
   const { data: payouts } = await admin
     .from("school_payouts")
-    .select("id, school_id, amount, phone, telecom, status, created_at, requested_by, schools(name), profiles(email)")
+    .select("id, school_id, amount, phone, telecom, status, created_at, requested_by, schools(name)")
     .order("created_at", { ascending: false })
     .limit(200);
 

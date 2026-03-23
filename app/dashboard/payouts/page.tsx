@@ -91,13 +91,13 @@ export default async function PayoutsPage() {
       <div className="rounded-lg border p-4">
         <p className="text-xs text-gray-500">Available Balance</p>
         <p className="text-2xl font-bold">
-          {availableBalance.toLocaleString()} {school.currency}
+          {availableBalance.toLocaleString()} {currency}
         </p>
       </div>
 
       {/* Withdraw form — owner only */}
       {canWithdraw && (
-        <WithdrawForm availableBalance={availableBalance} currency={school.currency} />
+        <WithdrawForm availableBalance={availableBalance} currency={currency} />
       )}
 
       {/* Payout history */}
