@@ -5,9 +5,10 @@ import { getAdminClient } from "@/lib/supabase";
 import { takeJoined } from "@/lib/supabase-joins";
 import { TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
+import { WithdrawForm } from "./WithdrawForm";
 
 export default async function PayoutsPage() {
-  const { school } = await getTenantContext();
+  const { school, membership } = await getTenantContext();
   const admin = getAdminClient();
 
   const { data } = await admin
@@ -22,6 +23,35 @@ export default async function PayoutsPage() {
 
   const payments = data ?? [];
   const currency = school.currency ?? "FC";
+
+  // Available balance: collected minus in-flight payouts
+  const collectedData = data ?? [];
+  const collected = collectedData.reduce(
+    (sum: number, r: { amount: number; fee_amount: number | null }) =>
+      sum + (r.amount - (r.fee_amount ?? 0)),
+    0
+  );
+
+  const { data: inFlightData } = await admin
+    .from("school_payouts")
+    .select("amount")
+    .eq("school_id", school.id)
+    .in("status", ["pending", "processing"]);
+
+  const inFlight = (inFlightData ?? []).reduce(
+    (sum: number, r: { amount: number }) => sum + r.amount,
+    0
+  );
+  const availableBalance = Math.max(0, collected - inFlight);
+
+  const { data: payoutHistory } = await admin
+    .from("school_payouts")
+    .select("id, amount, phone, telecom, status, created_at")
+    .eq("school_id", school.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const canWithdraw = membership.role === "owner";
 
   const gross = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const fees = payments.reduce((sum, p) => sum + Number(p.fee_amount ?? 0), 0);
@@ -56,6 +86,48 @@ export default async function PayoutsPage() {
           </p>
         </div>
       </div>
+
+      {/* Available balance */}
+      <div className="rounded-lg border p-4">
+        <p className="text-xs text-gray-500">Available Balance</p>
+        <p className="text-2xl font-bold">
+          {availableBalance.toLocaleString()} {school.currency}
+        </p>
+      </div>
+
+      {/* Withdraw form — owner only */}
+      {canWithdraw && (
+        <WithdrawForm availableBalance={availableBalance} currency={school.currency} />
+      )}
+
+      {/* Payout history */}
+      {(payoutHistory ?? []).length > 0 && (
+        <div>
+          <h2 className="font-semibold text-sm mb-2">Withdrawal Requests</h2>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-500">
+                <th className="pb-2">Amount</th>
+                <th className="pb-2">Phone</th>
+                <th className="pb-2">Provider</th>
+                <th className="pb-2">Status</th>
+                <th className="pb-2">Requested</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(payoutHistory ?? []).map((p) => (
+                <tr key={p.id} className="border-t">
+                  <td className="py-2">{p.amount.toLocaleString()} {school.currency}</td>
+                  <td className="py-2">{p.phone}</td>
+                  <td className="py-2">{p.telecom}</td>
+                  <td className="py-2 capitalize">{p.status}</td>
+                  <td className="py-2">{new Date(p.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="p-5 border-b">
