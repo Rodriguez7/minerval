@@ -69,6 +69,31 @@ function parsePaymentPayload(body) {
   return { amount, phone, reference, telecom };
 }
 
+function parsePayoutPayload(body) {
+  const amount = Number(body?.amount);
+  const phone = String(body?.phone || "").trim();
+  const reference = String(body?.reference || "").trim();
+  const telecom = String(body?.telecom || "").trim().toUpperCase();
+
+  if (!Number.isFinite(amount) || amount < 1000) {
+    throw new Error("amount must be a number >= 1000");
+  }
+
+  if (!/^\d{9,15}$/.test(phone)) {
+    throw new Error("phone must be 9 to 15 digits");
+  }
+
+  if (!reference) {
+    throw new Error("reference is required");
+  }
+
+  if (!VALID_TELECOMS.has(telecom)) {
+    throw new Error("telecom must be one of AM, OM, MP, AF");
+  }
+
+  return { amount, phone, reference, telecom };
+}
+
 async function fetchJson(url, init) {
   const response = await fetch(url, {
     ...init,
@@ -144,6 +169,45 @@ async function processPayment(config, payload) {
   return { data, status: response.status };
 }
 
+async function processPayout(config, payload) {
+  const accessToken = await getAccessToken(config);
+
+  const payoutBody = {
+    api_id: config.apiId,
+    api_password: config.apiPassword,
+    merchantCode: config.merchantCode,
+    merchant_pin: config.merchantPin,
+    clientPhone: payload.phone,
+    amount: payload.amount,
+    currency: config.currency,
+    telecom: payload.telecom,
+    message: payload.reference,
+    reference: payload.reference,
+  };
+
+  const { data, response } = await fetchJson(
+    `${config.baseUrl}/merchant/payment-client`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payoutBody),
+    }
+  );
+
+  if (!response.ok) {
+    throw new SerdiPayError(
+      data?.message || `SerdiPay payout failed with ${response.status}`,
+      response.status,
+      data,
+      "payment"
+    );
+  }
+
+  return { data, status: response.status };
+}
+
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "16kb" }));
@@ -208,6 +272,65 @@ app.post("/pay", async (req, res) => {
     }
 
     console.error("Proxy request failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      requestId,
+    });
+
+    return res.status(500).json({
+      error: "Unexpected proxy error",
+      requestId,
+    });
+  }
+});
+
+app.post("/payout", async (req, res) => {
+  const requestId = crypto.randomUUID();
+  const config = getConfig();
+
+  if (req.get("x-proxy-secret") !== config.proxySecret) {
+    return res.status(401).json({ error: "Unauthorized", requestId });
+  }
+
+  const missingConfigKeys = getMissingConfigKeys(config);
+  if (missingConfigKeys.length > 0) {
+    return res.status(503).json({
+      error: "Proxy is not fully configured",
+      missingConfigKeys,
+      requestId,
+    });
+  }
+
+  let payload;
+  try {
+    payload = parsePayoutPayload(req.body);
+  } catch (error) {
+    return res.status(400).json({
+      error: error instanceof Error ? error.message : "Invalid payload",
+      requestId,
+    });
+  }
+
+  try {
+    const result = await processPayout(config, payload);
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    if (error instanceof SerdiPayError) {
+      if (error.stage === "payment") {
+        return res.status(error.status).json({
+          error: error.message,
+          details: error.details,
+          requestId,
+        });
+      }
+
+      return res.status(502).json({
+        error: "Unable to authenticate with SerdiPay",
+        details: error.details,
+        requestId,
+      });
+    }
+
+    console.error("Proxy payout request failed", {
       message: error instanceof Error ? error.message : "Unknown error",
       requestId,
     });
