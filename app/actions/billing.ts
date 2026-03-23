@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getTenantContext } from "@/lib/tenant";
-import { stripe, PLAN_PRICE_IDS } from "@/lib/stripe";
+import { getStripe, PLAN_PRICE_IDS } from "@/lib/stripe";
 
 const PAID_PLAN_CODES = ["growth_monthly", "pro_monthly"] as const;
 
@@ -25,7 +25,7 @@ export async function createCheckoutSession(planCode: string) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
     customer_email: school.billing_email ?? user.email,
     line_items: [{ price: priceId, quantity: 1 }],
@@ -58,7 +58,7 @@ export async function createPortalSession() {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await getStripe().billingPortal.sessions.create({
     customer: subscription.stripe_customer_id,
     return_url: `${appUrl}/dashboard/billing`,
   });

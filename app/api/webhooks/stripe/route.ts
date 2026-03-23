@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { stripe, priceIdToPlanCode } from "@/lib/stripe";
+import Stripe from "stripe";
+import { getStripe, priceIdToPlanCode } from "@/lib/stripe";
 import { getAdminClient } from "@/lib/supabase";
 
 // Must NOT be cached — webhooks are real-time events
@@ -10,9 +11,9 @@ export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature") ?? "";
 
-  let event: ReturnType<typeof stripe.webhooks.constructEvent>;
+  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!

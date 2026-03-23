@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// vi.hoisted ensures mockStripe is available when vi.mock factory runs
+const { mockStripe } = vi.hoisted(() => ({
+  mockStripe: {
+    checkout: { sessions: { create: vi.fn() } },
+    billingPortal: { sessions: { create: vi.fn() } },
+  },
+}));
+
 vi.mock("@/lib/tenant", () => ({ getTenantContext: vi.fn() }));
 vi.mock("@/lib/stripe", () => ({
-  stripe: {
-    checkout: {
-      sessions: { create: vi.fn() },
-    },
-    billingPortal: {
-      sessions: { create: vi.fn() },
-    },
-  },
+  getStripe: () => mockStripe,
   PLAN_PRICE_IDS: {
     growth_monthly: "price_growth",
     pro_monthly: "price_pro",
@@ -19,7 +20,6 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 import { createCheckoutSession, createPortalSession } from "@/app/actions/billing";
 import { getTenantContext } from "@/lib/tenant";
-import { stripe } from "@/lib/stripe";
 import { redirect } from "next/navigation";
 import type { TenantContext } from "@/lib/types";
 
@@ -64,9 +64,7 @@ describe("createCheckoutSession", () => {
 
   it("returns error when session.url is missing", async () => {
     mockTenant();
-    vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({
-      url: null,
-    } as never);
+    mockStripe.checkout.sessions.create.mockResolvedValue({ url: null } as never);
 
     const result = await createCheckoutSession("growth_monthly");
     expect(result?.error).toBeTruthy();
@@ -74,7 +72,7 @@ describe("createCheckoutSession", () => {
 
   it("creates Stripe Checkout session for growth_monthly and redirects", async () => {
     mockTenant();
-    vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({
+    mockStripe.checkout.sessions.create.mockResolvedValue({
       url: "https://checkout.stripe.com/pay/cs_123",
     } as never);
     vi.mocked(redirect).mockImplementation((url) => {
@@ -85,7 +83,7 @@ describe("createCheckoutSession", () => {
       "REDIRECT:https://checkout.stripe.com/pay/cs_123"
     );
 
-    expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
+    expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: "subscription",
         line_items: [{ price: "price_growth", quantity: 1 }],
@@ -134,7 +132,7 @@ describe("createPortalSession", () => {
         stripe_customer_id: "cus_123",
       },
     });
-    vi.mocked(stripe.billingPortal.sessions.create).mockResolvedValue({
+    mockStripe.billingPortal.sessions.create.mockResolvedValue({
       url: "https://billing.stripe.com/session/bps_123",
     } as never);
     vi.mocked(redirect).mockImplementation((url) => {
@@ -145,7 +143,7 @@ describe("createPortalSession", () => {
       "REDIRECT:https://billing.stripe.com/session/bps_123"
     );
 
-    expect(stripe.billingPortal.sessions.create).toHaveBeenCalledWith(
+    expect(mockStripe.billingPortal.sessions.create).toHaveBeenCalledWith(
       expect.objectContaining({
         customer: "cus_123",
         return_url: expect.stringContaining("/dashboard/billing"),
