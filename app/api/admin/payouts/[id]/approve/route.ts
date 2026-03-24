@@ -37,7 +37,8 @@ export async function POST(
     );
   }
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/serdipay/payout-callback`;
+  const secret = process.env.SERDIPAY_CALLBACK_SECRET ?? "";
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/serdipay/payout-callback?secret=${encodeURIComponent(secret)}`;
 
   try {
     await callProxyPayout({

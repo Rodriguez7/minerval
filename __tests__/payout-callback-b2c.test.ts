@@ -14,13 +14,11 @@ import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "../lib/email";
 type AdminClient = ReturnType<typeof getAdminClient>;
 
 function makeRequest(body: object, secret = "test-callback-secret") {
-  return new NextRequest("http://localhost/api/serdipay/payout-callback", {
+  const url = `http://localhost/api/serdipay/payout-callback?secret=${encodeURIComponent(secret)}`;
+  return new NextRequest(url, {
     method: "POST",
     body: JSON.stringify(body),
-    headers: {
-      "content-type": "application/json",
-      "x-serdipay-secret": secret,
-    },
+    headers: { "content-type": "application/json" },
   });
 }
 

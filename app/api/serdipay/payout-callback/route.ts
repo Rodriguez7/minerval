@@ -3,7 +3,7 @@ import { getAdminClient } from "@/lib/supabase";
 import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get("x-serdipay-secret");
+  const secret = req.nextUrl.searchParams.get("secret");
   if (
     process.env.SERDIPAY_CALLBACK_SECRET &&
     secret !== process.env.SERDIPAY_CALLBACK_SECRET
