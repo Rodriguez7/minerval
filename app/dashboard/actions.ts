@@ -32,7 +32,7 @@ async function applyReconciliationUpdate(options: {
   const reconciliationNote =
     options.note?.trim() ||
     (options.nextStatus === "manual_override"
-      ? "Manually resolved from the reconciliation dashboard."
+      ? "Resolution manuelle depuis le tableau de bord de rapprochement."
       : null);
 
   const update: {
@@ -82,13 +82,13 @@ export async function markPaymentFailed(paymentId: string) {
     .eq("id", paymentId)
     .single();
 
-  if (!payment || payment.school_id !== school.id) return { error: "Not found" };
-  if (payment.status !== "pending") return { error: "Only pending payments can be resolved" };
+  if (!payment || payment.school_id !== school.id) return { error: "Introuvable" };
+  if (payment.status !== "pending") return { error: "Seuls les paiements en attente peuvent etre resolus" };
 
   await applyReconciliationUpdate({
     paymentId,
     nextStatus: "manual_override",
-    note: "Marked failed from overview after the payment stayed pending too long.",
+    note: "Marque en echec depuis la vue d'ensemble apres un delai d'attente trop long.",
     actor: school.admin_email,
   });
 

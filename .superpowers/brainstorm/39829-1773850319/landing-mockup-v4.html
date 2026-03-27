@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minerval — Landing v4 (Animated Telecom Bar)</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Outfit', system-ui, sans-serif;
+    background: #ffffff; color: #0f172a;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid #e2e8f0; padding: 0 48px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    animation: navSlideDown 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes navSlideDown { from { transform: translateY(-100%); opacity:0; } to { transform: translateY(0); opacity:1; } }
+  .nav-logo { font-size: 20px; font-weight: 700; color: #1d4ed8; letter-spacing: -0.5px; }
+  .nav-links { display: flex; align-items: center; gap: 32px; }
+  .nav-links a { font-size: 14px; color: #475569; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover { color: #1d4ed8; }
+  .nav-cta {
+    background: #1d4ed8; color: white; border: none; padding: 9px 20px; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+  .nav-cta:hover { background: #1e40af; box-shadow: 0 4px 14px rgba(29,78,216,0.35); }
+  .nav-cta:active { transform: scale(0.97); }
+
+  /* HERO */
+  .hero {
+    min-height: 100dvh; padding-top: 60px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    max-width: 1400px; margin: 0 auto;
+    padding-left: 64px; padding-right: 48px;
+    align-items: center; gap: 64px;
+  }
+  .hero-left { padding-top: 24px; }
+  .hero-badge, .hero-h1, .hero-sub, .hero-actions, .hero-note {
+    opacity: 0; transform: translateY(24px);
+    animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .hero-badge   { animation-delay: 0.10s; }
+  .hero-h1      { animation-delay: 0.22s; }
+  .hero-sub     { animation-delay: 0.34s; }
+  .hero-actions { animation-delay: 0.44s; }
+  .hero-note    { animation-delay: 0.52s; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 500; color: #1d4ed8; margin-bottom: 28px;
+  }
+  .hero-badge-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+    50%      { box-shadow: 0 0 0 6px rgba(59,130,246,0.08); }
+  }
+  .hero-h1 {
+    font-size: clamp(36px,4.5vw,58px); font-weight: 800;
+    line-height: 1.08; letter-spacing: -1.5px; color: #0f172a; margin-bottom: 20px;
+  }
+  .hero-h1 span { color: #1d4ed8; }
+  .hero-sub { font-size: 17px; color: #475569; line-height: 1.65; max-width: 460px; margin-bottom: 36px; }
+  .hero-actions { display: flex; align-items: center; gap: 14px; margin-bottom: 48px; }
+  .btn-primary {
+    background: #1d4ed8; color: white; border: none; padding: 14px 28px; border-radius: 10px;
+    font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif;
+    box-shadow: 0 4px 14px rgba(29,78,216,0.3);
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+  .btn-primary:hover { background: #1e40af; box-shadow: 0 8px 24px rgba(29,78,216,0.4); transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost {
+    background: transparent; color: #475569; border: none; padding: 14px 20px;
+    font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'Outfit', sans-serif;
+    display: flex; align-items: center; gap: 6px; transition: color 0.2s;
+  }
+  .btn-ghost:hover { color: #1d4ed8; }
+  .btn-ghost svg { transition: transform 0.2s; }
+  .btn-ghost:hover svg { transform: scale(1.15); }
+  .hero-note { font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+
+  /* DASHBOARD CARD */
+  .hero-right {
+    display: flex; align-items: center; justify-content: flex-end;
+    opacity: 0; transform: translateX(32px) translateY(12px);
+    animation: slideInRight 0.9s cubic-bezier(0.16,1,0.3,1) 0.35s both;
+  }
+  @keyframes slideInRight { from { opacity:0; transform:translateX(32px) translateY(12px); } to { opacity:1; transform:translateX(0) translateY(0); } }
+  .dashboard-card {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px;
+    padding: 24px; width: 100%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04);
+    animation: cardFloat 5s ease-in-out infinite 1.2s;
+  }
+  @keyframes cardFloat {
+    0%,100% { transform:translateY(0);   box-shadow: 0 20px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04); }
+    50%      { transform:translateY(-8px); box-shadow: 0 32px 80px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.06); }
+  }
+  .db-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .db-title { font-size: 13px; font-weight: 600; color: #475569; }
+  .db-badge { background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+  .db-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: pulse-green 1.8s ease-in-out infinite; }
+  @keyframes pulse-green { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.8); } }
+  .db-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .db-stat { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+  .db-stat-label { font-size: 11px; color: #94a3b8; font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .db-stat-val { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+  .db-stat-sub { font-size: 12px; color: #10b981; font-weight: 500; margin-top: 2px; }
+  .db-payments-title { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .db-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; opacity:0; transform:translateX(-12px); animation: rowSlideIn 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+  .db-row:last-child { border-bottom: none; }
+  .db-row:nth-child(1) { animation-delay: 0.8s; }
+  .db-row:nth-child(2) { animation-delay: 1.0s; }
+  .db-row:nth-child(3) { animation-delay: 1.2s; }
+  @keyframes rowSlideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
+  .db-row-left { display: flex; align-items: center; gap: 10px; }
+  .db-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; }
+  .db-name { font-size: 13px; font-weight: 500; color: #0f172a; }
+  .db-time { font-size: 11px; color: #94a3b8; }
+  .db-row-right { text-align: right; }
+  .db-amount { font-size: 13px; font-weight: 600; color: #0f172a; }
+  .db-status { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; margin-top: 2px; display: inline-block; }
+  .status-success { background: #dcfce7; color: #16a34a; }
+  .status-pending { background: #fef9c3; color: #ca8a04; animation: pendingShimmer 2s ease-in-out infinite; }
+  @keyframes pendingShimmer { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+  /* ═══════════════════════════════════════
+     ANIMATED TELECOM BAR — marquee approach
+  ═══════════════════════════════════════ */
+  .telecom-section {
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    overflow: hidden;
+    padding: 20px 0;
+  }
+
+  /* top label row */
+  .telecom-intro {
+    text-align: center;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #94a3b8; font-weight: 600; margin-bottom: 20px;
+  }
+
+  /* Marquee track */
+  .marquee-wrapper { position: relative; overflow: hidden; }
+  .marquee-wrapper::before,
+  .marquee-wrapper::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2; pointer-events: none;
+  }
+  .marquee-wrapper::before { left: 0; background: linear-gradient(to right, #f8fafc, transparent); }
+  .marquee-wrapper::after  { right: 0; background: linear-gradient(to left, #f8fafc, transparent); }
+
+  .marquee-track {
+    display: flex; gap: 12px; width: max-content;
+    animation: marqueeScroll 22s linear infinite;
+  }
+  .marquee-track:hover { animation-play-state: paused; }
+  @keyframes marqueeScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* individual pill inside marquee */
+  .m-pill {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 22px; border-radius: 40px; border: 1.5px solid;
+    font-size: 14px; font-weight: 700; white-space: nowrap;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    cursor: default; flex-shrink: 0;
+  }
+  .m-pill:hover { transform: translateY(-3px); }
+  .m-pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .pill-mpesa  { border-color:#d1fae5; background:#f0fdf4; color:#15803d; }
+  .pill-mpesa  .m-pill-dot { background:#22c55e; animation: pulse-dot 2.0s ease-in-out infinite; }
+  .pill-airtel { border-color:#fee2e2; background:#fff5f5; color:#b91c1c; }
+  .pill-airtel .m-pill-dot { background:#ef4444; animation: pulse-dot 2.0s ease-in-out infinite 0.5s; }
+  .pill-orange { border-color:#ffedd5; background:#fff7ed; color:#c2410c; }
+  .pill-orange .m-pill-dot { background:#f97316; animation: pulse-dot 2.0s ease-in-out infinite 1.0s; }
+
+  @keyframes pulse-dot {
+    0%,100% { transform:scale(1);   opacity:1; }
+    50%      { transform:scale(1.5); opacity:0.6; }
+  }
+
+  /* separator between pills */
+  .m-sep {
+    display: flex; align-items: center; padding: 0 8px;
+    font-size: 18px; color: #cbd5e1; font-weight: 300; flex-shrink: 0;
+    user-select: none;
+  }
+
+  /* second marquee row (right to left, slower) */
+  .marquee-track-reverse {
+    display: flex; gap: 12px; width: max-content; margin-top: 10px;
+    animation: marqueeScrollReverse 30s linear infinite;
+  }
+  .marquee-track-reverse:hover { animation-play-state: paused; }
+  @keyframes marqueeScrollReverse {
+    from { transform: translateX(-50%); }
+    to   { transform: translateX(0); }
+  }
+
+  /* activity chips for second row */
+  .activity-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 18px; border-radius: 40px;
+    background: white; border: 1px solid #e2e8f0;
+    font-size: 12px; color: #64748b; font-weight: 500; white-space: nowrap; flex-shrink: 0;
+  }
+  .activity-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse-dot 2s ease-in-out infinite; }
+  .activity-chip strong { color: #0f172a; font-weight: 600; }
+
+  /* bottom tagline */
+  .telecom-tagline {
+    text-align: center; margin-top: 20px;
+    font-size: 13px; color: #94a3b8; font-weight: 400;
+  }
+
+  /* SCROLL REVEAL */
+  .reveal { opacity:0; transform:translateY(32px); transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1); }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+  .reveal-delay-1 { transition-delay:0.1s; }
+  .reveal-delay-2 { transition-delay:0.2s; }
+  .reveal-delay-3 { transition-delay:0.3s; }
+
+  /* HOW IT WORKS */
+  .section { max-width: 1400px; margin: 0 auto; padding: 96px 64px; }
+  .section-label { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:#3b82f6; font-weight:600; margin-bottom:14px; }
+  .section-title { font-size:clamp(28px,3vw,42px); font-weight:700; letter-spacing:-1px; color:#0f172a; margin-bottom:12px; }
+  .section-sub { font-size:16px; color:#64748b; max-width:480px; line-height:1.6; }
+  .steps-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; margin-top:56px; }
+  .step { padding:32px 40px 32px 0; border-right:1px solid #e2e8f0; margin-right:40px; }
+  .step:last-child { border-right:none; margin-right:0; padding-right:0; }
+  .step-num { width:40px; height:40px; border-radius:50%; background:#1d4ed8; color:white; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; margin-bottom:20px; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s; }
+  .step:hover .step-num { transform:scale(1.15); box-shadow:0 4px 16px rgba(29,78,216,0.35); }
+  .step-title { font-size:18px; font-weight:700; color:#0f172a; margin-bottom:10px; }
+  .step-desc { font-size:14px; color:#64748b; line-height:1.65; }
+
+  /* FEATURES */
+  .features-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px; margin-top:56px; background:#e2e8f0; border-radius:20px; overflow:hidden; }
+  .feature { background:white; padding:40px; transition:background 0.25s; }
+  .feature:first-child  { border-radius:20px 0 0 0; }
+  .feature:nth-child(2) { border-radius:0 20px 0 0; }
+  .feature:nth-child(3) { border-radius:0 0 0 20px; }
+  .feature:last-child   { border-radius:0 0 20px 0; }
+  .feature:hover { background:#f8faff; }
+  .feature-icon { width:44px; height:44px; border-radius:12px; background:#eff6ff; display:flex; align-items:center; justify-content:center; margin-bottom:18px; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.25s; }
+  .feature:hover .feature-icon { transform:scale(1.12) rotate(-4deg); background:#dbeafe; }
+  .feature-title { font-size:17px; font-weight:700; color:#0f172a; margin-bottom:8px; }
+  .feature-desc { font-size:14px; color:#64748b; line-height:1.65; }
+
+  /* CTA */
+  .cta-section { background:#1d4ed8; padding:80px 64px; text-align:center; position:relative; overflow:hidden; }
+  .cta-section::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.06) 0%, transparent 60%),radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.04) 0%, transparent 60%); pointer-events:none; }
+  .cta-inner { max-width:600px; margin:0 auto; position:relative; }
+  .cta-title { font-size:clamp(28px,3.5vw,44px); font-weight:800; color:white; letter-spacing:-1.2px; margin-bottom:14px; }
+  .cta-sub { font-size:16px; color:#bfdbfe; margin-bottom:32px; line-height:1.6; }
+  .btn-cta-white { background:white; color:#1d4ed8; border:none; padding:15px 32px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; box-shadow:0 4px 20px rgba(0,0,0,0.15); transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s; display:inline-block; }
+  .btn-cta-white:hover { transform:translateY(-3px) scale(1.02); box-shadow:0 12px 32px rgba(0,0,0,0.22); }
+  .btn-cta-white:active { transform:scale(0.97); }
+  .cta-note { font-size:13px; color:#93c5fd; margin-top:14px; }
+
+  footer { background:#0f172a; padding:32px 64px; display:flex; justify-content:space-between; align-items:center; }
+  .footer-logo { font-size:16px; font-weight:700; color:white; }
+  .footer-copy { font-size:13px; color:#475569; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Minerval</div>
+  <div class="nav-links">
+    <a href="#">How it works</a>
+    <a href="#">For schools</a>
+    <button class="nav-cta">Get started free</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-badge"><div class="hero-badge-dot"></div>Mobile money · M-Pesa · Airtel Money · Orange</div>
+    <h1 class="hero-h1">Stop chasing<br>payments. Let<br>parents <span>pay from<br>their phone.</span></h1>
+    <p class="hero-sub">No cash handling. No delays. School fees collected via mobile money and tracked in real time — all from one dashboard.</p>
+    <div class="hero-actions">
+      <button class="btn-primary">Create your school — free</button>
+      <button class="btn-ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        See how it works
+      </button>
+    </div>
+    <div class="hero-note">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Free to start. No setup fees. No card required.
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="dashboard-card">
+      <div class="db-header">
+        <span class="db-title">École Sainte Marie — Overview</span>
+        <span class="db-badge"><div class="db-badge-dot"></div>Live</span>
+      </div>
+      <div class="db-stats">
+        <div class="db-stat">
+          <div class="db-stat-label">Collected today</div>
+          <div class="db-stat-val" id="counter">0 FC</div>
+          <div class="db-stat-sub">+12% vs yesterday</div>
+        </div>
+        <div class="db-stat">
+          <div class="db-stat-label">Students</div>
+          <div class="db-stat-val">312</div>
+          <div class="db-stat-sub" style="color:#3b82f6;">248 paid</div>
+        </div>
+      </div>
+      <div>
+        <div class="db-payments-title">Recent payments</div>
+        <div class="db-row">
+          <div class="db-row-left"><div class="db-avatar" style="background:#3b82f6;">MK</div><div><div class="db-name">Marie Kalinda</div><div class="db-time">2 minutes ago</div></div></div>
+          <div class="db-row-right"><div class="db-amount">15,000 FC</div><div class="db-status status-success">Confirmed</div></div>
+        </div>
+        <div class="db-row">
+          <div class="db-row-left"><div class="db-avatar" style="background:#8b5cf6;">JM</div><div><div class="db-name">Jonas Mutombo</div><div class="db-time">18 minutes ago</div></div></div>
+          <div class="db-row-right"><div class="db-amount">15,000 FC</div><div class="db-status status-pending">Processing</div></div>
+        </div>
+        <div class="db-row">
+          <div class="db-row-left"><div class="db-avatar" style="background:#0ea5e9;">AB</div><div><div class="db-name">Aline Bukasa</div><div class="db-time">34 minutes ago</div></div></div>
+          <div class="db-row-right"><div class="db-amount">15,000 FC</div><div class="db-status status-success">Confirmed</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ANIMATED TELECOM BAR ═══ -->
+<div class="telecom-section">
+  <div class="telecom-intro">Accepted payment networks</div>
+
+  <!-- Row 1: Networks scrolling left -->
+  <div class="marquee-wrapper">
+    <div class="marquee-track" id="track1">
+      <!-- Set 1 -->
+      <div class="m-pill pill-mpesa"><div class="m-pill-dot"></div>M-Pesa</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-airtel"><div class="m-pill-dot"></div>Airtel Money</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-orange"><div class="m-pill-dot"></div>Orange Money</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-mpesa"><div class="m-pill-dot"></div>M-Pesa</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-airtel"><div class="m-pill-dot"></div>Airtel Money</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-orange"><div class="m-pill-dot"></div>Orange Money</div>
+      <div class="m-sep">·</div>
+      <!-- Set 2 (duplicate for seamless loop) -->
+      <div class="m-pill pill-mpesa"><div class="m-pill-dot"></div>M-Pesa</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-airtel"><div class="m-pill-dot"></div>Airtel Money</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-orange"><div class="m-pill-dot"></div>Orange Money</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-mpesa"><div class="m-pill-dot"></div>M-Pesa</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-airtel"><div class="m-pill-dot"></div>Airtel Money</div>
+      <div class="m-sep">·</div>
+      <div class="m-pill pill-orange"><div class="m-pill-dot"></div>Orange Money</div>
+      <div class="m-sep">·</div>
+    </div>
+  </div>
+
+  <!-- Row 2: Activity chips scrolling right (reverse) -->
+  <div class="marquee-wrapper" style="margin-top:10px;">
+    <div class="marquee-track-reverse">
+      <!-- Set 1 -->
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>M-Pesa</strong> · 15,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Airtel Money</strong> · 12,500 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Orange Money</strong> · 20,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>M-Pesa</strong> · 8,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Airtel Money</strong> · 15,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Orange Money</strong> · 10,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>M-Pesa</strong> · 18,000 FC</div>
+      <!-- Set 2 duplicate -->
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>M-Pesa</strong> · 15,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Airtel Money</strong> · 12,500 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Orange Money</strong> · 20,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>M-Pesa</strong> · 8,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Airtel Money</strong> · 15,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>Orange Money</strong> · 10,000 FC</div>
+      <div class="activity-chip"><div class="chip-dot"></div>Payment via <strong>M-Pesa</strong> · 18,000 FC</div>
+    </div>
+  </div>
+
+  <div class="telecom-tagline">Parents pay from any phone · No app download · No new account needed</div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+  <div class="reveal"><div class="section-label">How it works</div></div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; align-items:end;">
+    <div class="reveal reveal-delay-1"><div class="section-title">Three steps from signup<br>to first payment</div></div>
+    <div class="reveal reveal-delay-2" style="padding-bottom:6px;"><div class="section-sub">No technical setup. No bank account required. If you have a school and a phone number, you're ready.</div></div>
+  </div>
+  <div class="steps-grid">
+    <div class="step reveal reveal-delay-1">
+      <div class="step-num">1</div>
+      <div class="step-title">Register your school</div>
+      <div class="step-desc">Create an account, enter your school name and student ID prefix. Takes under 2 minutes.</div>
+    </div>
+    <div class="step reveal reveal-delay-2">
+      <div class="step-num">2</div>
+      <div class="step-title">Import your students</div>
+      <div class="step-desc">Upload a CSV or add students manually. Each student gets a unique ID and their fee amount automatically.</div>
+    </div>
+    <div class="step reveal reveal-delay-3">
+      <div class="step-num">3</div>
+      <div class="step-title">Share your payment link</div>
+      <div class="step-desc">Send your unique link to parents. They enter their child's ID, choose M-Pesa or Airtel, and pay in seconds.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" style="padding-top:0;">
+  <div class="reveal"><div class="section-label">What you get</div></div>
+  <div class="reveal reveal-delay-1"><div class="section-title">Everything a school needs.<br>Nothing it doesn't.</div></div>
+  <div class="features-grid">
+    <div class="feature reveal">
+      <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+      <div class="feature-title">Mobile money payments</div>
+      <div class="feature-desc">Accept M-Pesa, Airtel Money, and Orange Money. Parents pay from any phone, no app download needed.</div>
+    </div>
+    <div class="feature reveal reveal-delay-1">
+      <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div class="feature-title">Student roster</div>
+      <div class="feature-desc">Manage your full student list, track who has paid, and import hundreds of records via CSV in one click.</div>
+    </div>
+    <div class="feature reveal reveal-delay-2">
+      <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div class="feature-title">Real-time dashboard</div>
+      <div class="feature-desc">See every payment the moment it lands. Filter by class, date, or status. No manual reconciliation.</div>
+    </div>
+    <div class="feature reveal reveal-delay-3">
+      <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+      <div class="feature-title">Instant receipts</div>
+      <div class="feature-desc">Every successful payment generates a shareable receipt page. Parents can save or print it as proof.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner reveal">
+    <div class="cta-title">Ready to stop chasing fees?</div>
+    <div class="cta-sub">Free to start. Your first payment link is ready in under 5 minutes.</div>
+    <button class="btn-cta-white">Create your school — free</button>
+    <div class="cta-note">No setup fees. No card required.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">Minerval</div>
+  <div class="footer-copy">© 2026 Minerval. Built for Congo schools.</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Counter
+  const counterEl = document.getElementById('counter');
+  let start = null;
+  function animateCounter(ts) {
+    if (!start) start = ts;
+    const progress = Math.min((ts - start) / 1800, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    counterEl.textContent = Math.floor(ease * 47200).toLocaleString() + ' FC';
+    if (progress < 1) requestAnimationFrame(animateCounter);
+  }
+  setTimeout(() => requestAnimationFrame(animateCounter), 900);
+
+  // Live payment rows
+  const names = [
+    {initials:'GK', name:'Grâce Kabongo',  color:'#10b981'},
+    {initials:'PN', name:'Pierre Nkosi',   color:'#f59e0b'},
+    {initials:'LB', name:'Lucie Banza',    color:'#6366f1'},
+  ];
+  let nameIdx = 0;
+  function addNewPayment() {
+    const container = document.querySelector('.db-row').parentElement;
+    const rows = container.querySelectorAll('.db-row');
+    const last = rows[rows.length - 1];
+    const p = names[nameIdx++ % names.length];
+    const row = document.createElement('div');
+    row.className = 'db-row';
+    row.style.cssText = 'opacity:0;transform:translateX(-12px);transition:opacity 0.4s,transform 0.4s;';
+    row.innerHTML = `<div class="db-row-left"><div class="db-avatar" style="background:${p.color};">${p.initials}</div><div><div class="db-name">${p.name}</div><div class="db-time">Just now</div></div></div><div class="db-row-right"><div class="db-amount">15,000 FC</div><div class="db-status status-success">Confirmed</div></div>`;
+    container.insertBefore(row, container.querySelector('.db-row'));
+    requestAnimationFrame(() => { row.style.opacity='1'; row.style.transform='translateX(0)'; });
+    if (rows.length >= 4) {
+      last.style.cssText = 'opacity:0;transform:translateX(12px);transition:opacity 0.3s,transform 0.3s;';
+      setTimeout(() => last.remove(), 350);
+    }
+  }
+  setInterval(addNewPayment, 3500);
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
-          <p className="text-red-600">Invalid invite link.</p>
+          <p className="text-red-600">Lien d&apos;invitation invalide.</p>
         </div>
       </main>
     );
@@ -39,7 +39,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
-          <p className="text-red-600">Invite not found or already used.</p>
+          <p className="text-red-600">Invitation introuvable ou deja utilisee.</p>
         </div>
       </main>
     );
@@ -53,7 +53,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
-          <p className="text-red-600">This invite has expired. Ask your admin to send a new one.</p>
+          <p className="text-red-600">Cette invitation a expire. Demandez a votre admin d&apos;en envoyer une nouvelle.</p>
         </div>
       </main>
     );
@@ -64,7 +64,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
       <main className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
           <p className="text-red-600">
-            This invite was sent to {invite.email}. You are logged in as {user.email}.
+            Cette invitation a ete envoyee a {invite.email}. Vous etes connecte avec {user.email}.
           </p>
         </div>
       </main>
@@ -86,7 +86,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
-          <p className="text-red-600">Failed to accept invite. Please try again.</p>
+          <p className="text-red-600">Impossible d&apos;accepter l&apos;invitation. Reessayez.</p>
         </div>
       </main>
     );

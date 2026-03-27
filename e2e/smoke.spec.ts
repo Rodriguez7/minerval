@@ -197,53 +197,53 @@ test.describe.serial("Minerval smoke", () => {
   test("loads dashboard, reconciliation, reports, export, and public payment lookup", async ({
     page,
   }) => {
-    await page.goto("/login");
+    await page.goto("/fr/login");
     await page.locator('input[name="email"]').fill(seed.email);
     await page.locator('input[name="password"]').fill(seed.password);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByRole("button", { name: "Se connecter" }).click();
 
-    await page.waitForURL("**/dashboard");
-    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
-    await expect(page.getByText("School Payment QR")).toBeVisible();
+    await page.waitForURL("**/fr/dashboard");
+    await expect(page.getByRole("heading", { name: "Vue d'ensemble" })).toBeVisible();
+    await expect(page.getByText("QR de paiement de l'ecole")).toBeVisible();
 
-    await page.goto("/dashboard/reconciliation");
-    await expect(page.getByRole("heading", { name: "Reconciliation" })).toBeVisible();
-    await expect(page.getByText("Exception Queue")).toBeVisible();
+    await page.goto("/fr/dashboard/reconciliation");
+    await expect(page.getByRole("heading", { name: "Rapprochement" })).toBeVisible();
+    await expect(page.getByText("File d'exceptions")).toBeVisible();
     await expect(page.getByText(seed.studentExternalId)).toBeVisible();
 
-    await page.goto("/dashboard/reports");
-    await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
-    await expect(page.getByText("Daily Rollup")).toBeVisible();
+    await page.goto("/fr/dashboard/reports");
+    await expect(page.getByRole("heading", { name: "Rapports" })).toBeVisible();
+    await expect(page.getByText("Synthese journaliere")).toBeVisible();
 
-    const exportResponse = await page.context().request.get("/dashboard/reports/export");
+    const exportResponse = await page.context().request.get("/fr/dashboard/reports/export");
     expect(exportResponse.ok()).toBeTruthy();
     expect(exportResponse.headers()["content-type"]).toContain("text/csv");
     expect(await exportResponse.text()).toContain(seed.studentExternalId);
 
     // Payouts page
-    await page.goto("/dashboard/payouts");
-    await expect(page.getByRole("heading", { name: "Payouts" })).toBeVisible();
-    await expect(page.getByText("Net school payout")).toBeVisible();
+    await page.goto("/fr/dashboard/payouts");
+    await expect(page.getByRole("heading", { name: "Versements" })).toBeVisible();
+    await expect(page.getByText("Net pour l'ecole")).toBeVisible();
 
     // Analytics page (pro_monthly has can_advanced_analytics)
-    await page.goto("/dashboard/analytics");
-    await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
-    await expect(page.getByText("Payment success rate")).toBeVisible();
+    await page.goto("/fr/dashboard/analytics");
+    await expect(page.getByRole("heading", { name: "Analytique" })).toBeVisible();
+    await expect(page.getByText("Taux de succes")).toBeVisible();
 
     // Settings page — payout discount (pro_monthly has 50 bps = 0.50% discount)
-    await page.goto("/dashboard/settings");
-    await expect(page.getByText("Payout discount")).toBeVisible();
+    await page.goto("/fr/dashboard/settings");
+    await expect(page.getByText("Remise sur les versements")).toBeVisible();
     await expect(page.getByText("0.50%")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "School Logo" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Logo de l'ecole" })).toBeVisible();
 
-    await page.goto(`/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
+    await page.goto(`/fr/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
     await expect(page.getByText("Playwright Student")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Pay 1,500 FC/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Payer .*1.*500 FC/ })).toBeVisible();
 
     // Receipt page — publicly accessible, branded (pro_monthly has can_branded_receipts)
     await page.context().clearCookies();
-    await page.goto(`/pay/receipt?ref=${seed.paymentRequestId}`);
-    await expect(page.getByText("Payment confirmed")).toBeVisible();
+    await page.goto(`/fr/pay/receipt?ref=${seed.paymentRequestId}`);
+    await expect(page.getByText("Paiement confirme")).toBeVisible();
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("heading", { name: seed.schoolName })).toBeVisible();
   });

@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { useLocale } from "@/lib/i18n/client";
+import { formatMoney, formatNumber } from "@/lib/i18n/format";
 
 // ── Animated counter ──────────────────────────────────────────────────────────
 function useCounter(target: number, duration: number, delay: number) {
@@ -32,14 +35,211 @@ const PAYMENT_NAMES = [
   { initials: "LB", name: "Lucie Banza",    color: "#6366f1" },
 ];
 
-type PayRow = { id: number; initials: string; name: string; color: string; time: string; status: "Confirmed" | "Processing" };
+type PageLocale = "fr" | "en";
+type PaymentStatus = "confirmed" | "processing";
+type PayRow = { id: number; initials: string; name: string; color: string; time: string; status: PaymentStatus };
 
-function DashboardCard() {
+const HOME_COPY = {
+  fr: {
+    nav: {
+      howItWorks: "Comment ca marche",
+      forSchools: "Pour les ecoles",
+      login: "Connexion",
+      signup: "Commencer gratuitement",
+    },
+    hero: {
+      badge: "Mobile money · M-Pesa · Airtel Money · Orange",
+      titleLines: [
+        "Arretez de courir",
+        "apres les paiements.",
+        "Laissez les parents payer",
+        "depuis leur telephone.",
+      ],
+      description:
+        "Aucune gestion de cash. Aucun retard. Les frais scolaires sont collectes via mobile money et suivis en temps reel depuis un seul tableau de bord.",
+      cta: "Creer votre ecole — gratuit",
+      secondary: "Voir comment ca marche",
+      note: "Gratuit pour commencer. Aucun frais d'installation. Aucune carte requise.",
+    },
+    telecom: {
+      intro: "Reseaux de paiement acceptes",
+      activityPrefix: "Paiement via",
+      tagline: "Les parents paient depuis n'importe quel telephone · Aucun telechargement · Aucun nouveau compte requis",
+    },
+    how: {
+      label: "Comment ca marche",
+      titleLines: [
+        "Trois etapes entre l'inscription",
+        "et le premier paiement",
+      ],
+      description:
+        "Aucune configuration technique. Aucun compte bancaire requis. Si vous avez une ecole et un numero de telephone, vous etes pret.",
+      steps: [
+        {
+          title: "Enregistrez votre ecole",
+          desc: "Creez un compte, saisissez le nom de votre ecole et le prefixe d'ID eleve. Moins de 2 minutes.",
+        },
+        {
+          title: "Importez vos eleves",
+          desc: "Importez un CSV ou ajoutez les eleves manuellement. Chaque eleve recoit un identifiant unique et son montant.",
+        },
+        {
+          title: "Partagez votre lien de paiement",
+          desc: "Envoyez votre lien aux parents. Ils saisissent l'ID de leur enfant, choisissent M-Pesa ou Airtel, et paient en quelques secondes.",
+        },
+      ],
+    },
+    features: {
+      label: "Ce que vous obtenez",
+      titleLines: [
+        "Tout ce qu'une ecole doit avoir.",
+        "Rien de superflu.",
+      ],
+      items: [
+        {
+          title: "Paiements mobile money",
+          desc: "Acceptez M-Pesa, Airtel Money et Orange Money. Les parents paient depuis n'importe quel telephone.",
+        },
+        {
+          title: "Liste des eleves",
+          desc: "Gerez toute votre liste, suivez qui a paye et importez des centaines de lignes via CSV.",
+        },
+        {
+          title: "Tableau de bord en temps reel",
+          desc: "Voyez chaque paiement a l'instant ou il arrive. Filtrez par classe, date ou statut.",
+        },
+        {
+          title: "Recus instantanes",
+          desc: "Chaque paiement reussi genere une page de recu partageable que les parents peuvent conserver ou imprimer.",
+        },
+      ],
+    },
+    cta: {
+      title: "Pret a ne plus courir apres les frais ?",
+      description:
+        "Gratuit pour commencer. Votre premier lien de paiement est pret en moins de 5 minutes.",
+      button: "Creer votre ecole — gratuit",
+      note: "Aucun frais d'installation. Aucune carte requise.",
+    },
+    footer: "© 2026 Minerval. Concu pour les ecoles du Congo.",
+    card: {
+      header: "Ecole Sainte Marie — Vue d'ensemble",
+      live: "En direct",
+      collectedToday: "Collecte aujourd'hui",
+      collectedChange: "+12 % vs hier",
+      students: "Eleves",
+      studentsPaid: "248 ont paye",
+      recentPayments: "Paiements recents",
+      confirmed: "Confirme",
+      processing: "En cours",
+      times: ["Il y a 2 min", "Il y a 18 min", "Il y a 34 min"] as [string, string, string],
+      justNow: "A l'instant",
+    },
+  },
+  en: {
+    nav: {
+      howItWorks: "How it works",
+      forSchools: "For schools",
+      login: "Log in",
+      signup: "Get started free",
+    },
+    hero: {
+      badge: "Mobile money · M-Pesa · Airtel Money · Orange",
+      titleLines: [
+        "Stop chasing",
+        "payments.",
+        "Let parents pay",
+        "from their phone.",
+      ],
+      description:
+        "No cash handling. No delays. School fees are collected via mobile money and tracked in real time from one dashboard.",
+      cta: "Create your school — free",
+      secondary: "See how it works",
+      note: "Free to start. No setup fees. No card required.",
+    },
+    telecom: {
+      intro: "Accepted payment networks",
+      activityPrefix: "Payment via",
+      tagline: "Parents pay from any phone · No app download · No new account needed",
+    },
+    how: {
+      label: "How it works",
+      titleLines: [
+        "Three steps from signup",
+        "to first payment",
+      ],
+      description:
+        "No technical setup. No bank account required. If you have a school and a phone number, you're ready.",
+      steps: [
+        {
+          title: "Register your school",
+          desc: "Create an account, enter your school name and student ID prefix. Takes under 2 minutes.",
+        },
+        {
+          title: "Import your students",
+          desc: "Upload a CSV or add students manually. Each student gets a unique ID and their fee amount automatically.",
+        },
+        {
+          title: "Share your payment link",
+          desc: "Send your unique link to parents. They enter their child's ID, choose M-Pesa or Airtel, and pay in seconds.",
+        },
+      ],
+    },
+    features: {
+      label: "What you get",
+      titleLines: [
+        "Everything a school needs.",
+        "Nothing it doesn't.",
+      ],
+      items: [
+        {
+          title: "Mobile money payments",
+          desc: "Accept M-Pesa, Airtel Money, and Orange Money. Parents pay from any phone.",
+        },
+        {
+          title: "Student roster",
+          desc: "Manage your full student list, track who has paid, and import hundreds of records via CSV.",
+        },
+        {
+          title: "Real-time dashboard",
+          desc: "See every payment the moment it lands. Filter by class, date, or status.",
+        },
+        {
+          title: "Instant receipts",
+          desc: "Every successful payment generates a shareable receipt page that parents can save or print.",
+        },
+      ],
+    },
+    cta: {
+      title: "Ready to stop chasing fees?",
+      description:
+        "Free to start. Your first payment link is ready in under 5 minutes.",
+      button: "Create your school — free",
+      note: "No setup fees. No card required.",
+    },
+    footer: "© 2026 Minerval. Built for Congo schools.",
+    card: {
+      header: "Ecole Sainte Marie - Vue d'ensemble",
+      live: "Live",
+      collectedToday: "Collected today",
+      collectedChange: "+12% vs yesterday",
+      students: "Students",
+      studentsPaid: "248 paid",
+      recentPayments: "Recent payments",
+      confirmed: "Confirmed",
+      processing: "Processing",
+      times: ["2 minutes ago", "18 minutes ago", "34 minutes ago"] as [string, string, string],
+      justNow: "Just now",
+    },
+  },
+} as const;
+
+function DashboardCard({ locale, copy }: { locale: PageLocale; copy: (typeof HOME_COPY)[PageLocale] }) {
   const collected = useCounter(47200, 1800, 900);
   const [rows, setRows] = useState<PayRow[]>([
-    { id: 0, ...PAYMENT_NAMES[0], time: "2 minutes ago",   status: "Confirmed" },
-    { id: 1, ...PAYMENT_NAMES[1], time: "18 minutes ago",  status: "Processing" },
-    { id: 2, ...PAYMENT_NAMES[2], time: "34 minutes ago",  status: "Confirmed" },
+    { id: 0, ...PAYMENT_NAMES[0], time: copy.card.times[0], status: "confirmed" },
+    { id: 1, ...PAYMENT_NAMES[1], time: copy.card.times[1], status: "processing" },
+    { id: 2, ...PAYMENT_NAMES[2], time: copy.card.times[2], status: "confirmed" },
   ]);
   const idxRef = useRef(3);
 
@@ -47,12 +247,12 @@ function DashboardCard() {
     const t = setInterval(() => {
       const p = PAYMENT_NAMES[idxRef.current++ % PAYMENT_NAMES.length];
       setRows((prev) => [
-        { id: Date.now(), ...p, time: "Just now", status: "Confirmed" },
+        { id: Date.now(), ...p, time: copy.card.justNow, status: "confirmed" },
         ...prev.slice(0, 2),
       ]);
     }, 3500);
     return () => clearInterval(t);
-  }, []);
+  }, [copy.card.justNow]);
 
   return (
     <div style={{
@@ -63,27 +263,27 @@ function DashboardCard() {
     }}>
       {/* header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>École Sainte Marie — Overview</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>{copy.card.header}</span>
         <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block", animation: "pulseGreen 1.8s ease-in-out infinite" }} />
-          Live
+          {copy.card.live}
         </span>
       </div>
       {/* stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Collected today</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.5px" }}>{collected.toLocaleString()} FC</div>
-          <div style={{ fontSize: 12, color: "#10b981", fontWeight: 500, marginTop: 2 }}>+12% vs yesterday</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>{copy.card.collectedToday}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.5px" }}>{formatMoney(collected, "FC", locale)}</div>
+          <div style={{ fontSize: 12, color: "#10b981", fontWeight: 500, marginTop: 2 }}>{copy.card.collectedChange}</div>
         </div>
         <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Students</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.5px" }}>312</div>
-          <div style={{ fontSize: 12, color: "#3b82f6", fontWeight: 500, marginTop: 2 }}>248 paid</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>{copy.card.students}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.5px" }}>{formatNumber(312, locale)}</div>
+          <div style={{ fontSize: 12, color: "#3b82f6", fontWeight: 500, marginTop: 2 }}>{copy.card.studentsPaid}</div>
         </div>
       </div>
       {/* payments */}
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>Recent payments</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>{copy.card.recentPayments}</div>
       <div>
         {rows.map((row) => (
           <div key={row.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9", animation: "rowSlideIn 0.4s cubic-bezier(0.16,1,0.3,1)" }}>
@@ -95,12 +295,12 @@ function DashboardCard() {
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>15,000 FC</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{formatMoney(15000, "FC", locale)}</div>
               <span style={{
                 fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 10, marginTop: 2, display: "inline-block",
-                background: row.status === "Confirmed" ? "#dcfce7" : "#fef9c3",
-                color: row.status === "Confirmed" ? "#16a34a" : "#ca8a04",
-              }}>{row.status}</span>
+                background: row.status === "confirmed" ? "#dcfce7" : "#fef9c3",
+                color: row.status === "confirmed" ? "#16a34a" : "#ca8a04",
+              }}>{row.status === "confirmed" ? copy.card.confirmed : copy.card.processing}</span>
             </div>
           </div>
         ))}
@@ -138,6 +338,9 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const locale = useLocale();
+  const copy = HOME_COPY[locale];
+
   return (
     <>
       <style>{`
@@ -247,39 +450,40 @@ export default function HomePage() {
       <nav className="landing-nav">
         <span style={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8", letterSpacing: "-0.5px" }}>Minerval</span>
         <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-          <a href="#how-it-works" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>How it works</a>
-          <a href="#features" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>For schools</a>
-          <Link href="/login" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>Log in</Link>
-          <Link href="/signup" className="btn-primary" style={{ padding: "9px 20px", fontSize: 14, borderRadius: 8 }}>Get started free</Link>
+          <a href="#how-it-works" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>{copy.nav.howItWorks}</a>
+          <a href="#features" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>{copy.nav.forSchools}</a>
+          <LocalizedLink href="/login" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>{copy.nav.login}</LocalizedLink>
+          <LocalizedLink href="/signup" className="btn-primary" style={{ padding: "9px 20px", fontSize: 14, borderRadius: 8 }}>{copy.nav.signup}</LocalizedLink>
+          <LanguageSwitcher />
         </div>
       </nav>
 
       {/* Hero */}
       <section className="landing-hero">
         <div className="hero-left">
-          <div className="hero-badge"><div className="hero-badge-dot" />Mobile money · M-Pesa · Airtel Money · Orange</div>
-          <h1 className="hero-h1">Stop chasing<br />payments. Let<br />parents <span>pay from<br />their phone.</span></h1>
-          <p className="hero-sub">No cash handling. No delays. School fees collected via mobile money and tracked in real time — all from one dashboard.</p>
+          <div className="hero-badge"><div className="hero-badge-dot" />{copy.hero.badge}</div>
+          <h1 className="hero-h1">{copy.hero.titleLines[0]}<br />{copy.hero.titleLines[1]}<br />{copy.hero.titleLines[2]} <span>{copy.hero.titleLines[3]}</span></h1>
+          <p className="hero-sub">{copy.hero.description}</p>
           <div className="hero-actions">
-            <Link href="/signup" className="btn-primary">Create your school — free</Link>
+            <LocalizedLink href="/signup" className="btn-primary">{copy.hero.cta}</LocalizedLink>
             <a href="#how-it-works" className="btn-ghost">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></svg>
-              See how it works
+              {copy.hero.secondary}
             </a>
           </div>
           <div className="hero-note">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-            Free to start. No setup fees. No card required.
+            {copy.hero.note}
           </div>
         </div>
         <div className="hero-right">
-          <DashboardCard />
+          <DashboardCard locale={locale} copy={copy} />
         </div>
       </section>
 
       {/* Telecom bar */}
       <div className="telecom-section">
-        <div className="telecom-intro">Accepted payment networks</div>
+        <div className="telecom-intro">{copy.telecom.intro}</div>
         <div className="marquee-wrapper">
           <div className="marquee-track">
             {[...Array(2)].flatMap((_, i) => [
@@ -301,39 +505,35 @@ export default function HomePage() {
         <div className="marquee-wrapper" style={{ marginTop: 10 }}>
           <div className="marquee-track-reverse">
             {[...Array(2)].flatMap((_, i) => [
-              { net: "M-Pesa", amount: "15,000 FC" },
-              { net: "Airtel Money", amount: "12,500 FC" },
-              { net: "Orange Money", amount: "20,000 FC" },
-              { net: "M-Pesa", amount: "8,000 FC" },
-              { net: "Airtel Money", amount: "15,000 FC" },
-              { net: "Orange Money", amount: "10,000 FC" },
-              { net: "M-Pesa", amount: "18,000 FC" },
+              { net: "M-Pesa", amount: formatMoney(15000, "FC", locale) },
+              { net: "Airtel Money", amount: formatMoney(12500, "FC", locale) },
+              { net: "Orange Money", amount: formatMoney(20000, "FC", locale) },
+              { net: "M-Pesa", amount: formatMoney(8000, "FC", locale) },
+              { net: "Airtel Money", amount: formatMoney(15000, "FC", locale) },
+              { net: "Orange Money", amount: formatMoney(10000, "FC", locale) },
+              { net: "M-Pesa", amount: formatMoney(18000, "FC", locale) },
             ].map((c, j) => (
               <div key={`chip-${i}-${j}`} className="activity-chip">
-                <div className="chip-dot" />Payment via <strong>{c.net}</strong> · {c.amount}
+                <div className="chip-dot" />{copy.telecom.activityPrefix} <strong>{c.net}</strong> · {c.amount}
               </div>
             )))}
           </div>
         </div>
-        <div className="telecom-tagline">Parents pay from any phone · No app download · No new account needed</div>
+        <div className="telecom-tagline">{copy.telecom.tagline}</div>
       </div>
 
       {/* How it works */}
       <section className="land-section" id="how-it-works">
-        <Reveal><div className="section-label">How it works</div></Reveal>
+        <Reveal><div className="section-label">{copy.how.label}</div></Reveal>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "end", gap: 24 }}>
-          <Reveal delay={100}><div className="section-title">Three steps from signup<br />to first payment</div></Reveal>
-          <Reveal delay={200}><div className="section-sub">No technical setup. No bank account required. If you have a school and a phone number, you&apos;re ready.</div></Reveal>
+          <Reveal delay={100}><div className="section-title">{copy.how.titleLines[0]}<br />{copy.how.titleLines[1]}</div></Reveal>
+          <Reveal delay={200}><div className="section-sub">{copy.how.description}</div></Reveal>
         </div>
         <div className="steps-grid">
-          {[
-            { n: 1, title: "Register your school", desc: "Create an account, enter your school name and student ID prefix. Takes under 2 minutes." },
-            { n: 2, title: "Import your students", desc: "Upload a CSV or add students manually. Each student gets a unique ID and their fee amount automatically." },
-            { n: 3, title: "Share your payment link", desc: "Send your unique link to parents. They enter their child's ID, choose M-Pesa or Airtel, and pay in seconds." },
-          ].map((s, i) => (
-            <Reveal key={s.n} delay={i * 100}>
+          {copy.how.steps.map((s, i) => (
+            <Reveal key={s.title} delay={i * 100}>
               <div className="step">
-                <div className="step-num">{s.n}</div>
+                <div className="step-num">{i + 1}</div>
                 <div className="step-title">{s.title}</div>
                 <div className="step-desc">{s.desc}</div>
               </div>
@@ -344,29 +544,25 @@ export default function HomePage() {
 
       {/* Features */}
       <section className="land-section" id="features" style={{ paddingTop: 0 }}>
-        <Reveal><div className="section-label">What you get</div></Reveal>
-        <Reveal delay={100}><div className="section-title">Everything a school needs.<br />Nothing it doesn&apos;t.</div></Reveal>
+        <Reveal><div className="section-label">{copy.features.label}</div></Reveal>
+        <Reveal delay={100}><div className="section-title">{copy.features.titleLines[0]}<br />{copy.features.titleLines[1]}</div></Reveal>
         <div className="features-grid">
           {[
             {
               icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>,
-              title: "Mobile money payments",
-              desc: "Accept M-Pesa, Airtel Money, and Orange Money. Parents pay from any phone, no app download needed.",
+              ...copy.features.items[0],
             },
             {
               icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>,
-              title: "Student roster",
-              desc: "Manage your full student list, track who has paid, and import hundreds of records via CSV in one click.",
+              ...copy.features.items[1],
             },
             {
               icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
-              title: "Real-time dashboard",
-              desc: "See every payment the moment it lands. Filter by class, date, or status. No manual reconciliation.",
+              ...copy.features.items[2],
             },
             {
               icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>,
-              title: "Instant receipts",
-              desc: "Every successful payment generates a shareable receipt page. Parents can save or print it as proof.",
+              ...copy.features.items[3],
             },
           ].map((f, i) => (
             <Reveal key={f.title} delay={i * 100}>
@@ -384,10 +580,10 @@ export default function HomePage() {
       <div className="cta-section">
         <Reveal>
           <div className="cta-inner">
-            <div className="cta-title">Ready to stop chasing fees?</div>
-            <div className="cta-sub">Free to start. Your first payment link is ready in under 5 minutes.</div>
-            <Link href="/signup" className="btn-cta-white">Create your school — free</Link>
-            <div style={{ fontSize: 13, color: "#93c5fd", marginTop: 14 }}>No setup fees. No card required.</div>
+            <div className="cta-title">{copy.cta.title}</div>
+            <div className="cta-sub">{copy.cta.description}</div>
+            <LocalizedLink href="/signup" className="btn-cta-white">{copy.cta.button}</LocalizedLink>
+            <div style={{ fontSize: 13, color: "#93c5fd", marginTop: 14 }}>{copy.cta.note}</div>
           </div>
         </Reveal>
       </div>
@@ -395,7 +591,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="land-footer">
         <span style={{ fontSize: 16, fontWeight: 700, color: "white" }}>Minerval</span>
-        <span style={{ fontSize: 13, color: "#475569" }}>© 2026 Minerval. Built for Congo schools.</span>
+        <span style={{ fontSize: 13, color: "#475569" }}>{copy.footer}</span>
       </footer>
     </>
   );

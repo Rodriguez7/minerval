@@ -28,18 +28,18 @@ function makeFormData(fields: Record<string, string>) {
 describe("updatePricingPolicy", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns Unauthorized for viewer", async () => {
+  it("returns French unauthorized error for viewer", async () => {
     mockTenant("viewer");
     const fd = makeFormData({ parentFeeBps: "275", feeDisplayMode: "visible_line_item" });
     const result = await updatePricingPolicy(undefined, fd);
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
-  it("returns Unauthorized for finance", async () => {
+  it("returns French unauthorized error for finance", async () => {
     mockTenant("finance");
     const fd = makeFormData({ parentFeeBps: "275", feeDisplayMode: "visible_line_item" });
     const result = await updatePricingPolicy(undefined, fd);
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
   it("returns validation error for out-of-range bps (owner, no DB call)", async () => {

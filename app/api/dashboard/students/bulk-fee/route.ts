@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   if (!plan.can_bulk_ops) {
     return NextResponse.json(
-      { error: "Bulk fee updates require a Pro plan." },
+      { error: "La mise a jour groupee des frais exige un plan Pro." },
       { status: 403 }
     );
   }
@@ -26,13 +26,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation error" },
+      { error: parsed.error.issues[0]?.message ?? "Erreur de validation" },
       { status: 400 }
     );
   }

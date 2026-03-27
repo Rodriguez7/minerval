@@ -39,19 +39,19 @@ function makeAdminWithTarget(target: Record<string, unknown>) {
 describe("changeMemberRole", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns Unauthorized for viewer role", async () => {
+  it("returns French unauthorized error for viewer role", async () => {
     mockTenant("viewer");
     const result = await changeMemberRole("mem2", "admin");
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
-  it("returns Unauthorized for finance role", async () => {
+  it("returns French unauthorized error for finance role", async () => {
     mockTenant("finance");
     const result = await changeMemberRole("mem2", "admin");
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
-  it("rejects cross-school membership change", async () => {
+  it("rejects cross-school membership change with French not found error", async () => {
     mockTenant("owner", "uid1");
     const fromMock = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -64,7 +64,7 @@ describe("changeMemberRole", () => {
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
 
     const result = await changeMemberRole("mem2", "admin");
-    expect(result?.error).toBe("Not found");
+    expect(result?.error).toBe("Introuvable");
   });
 
   it("allows owner to change another member's role", async () => {
@@ -87,10 +87,10 @@ describe("changeMemberRole", () => {
 describe("deactivateMember", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns Unauthorized for viewer role", async () => {
+  it("returns French unauthorized error for viewer role", async () => {
     mockTenant("viewer");
     const result = await deactivateMember("mem2");
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
   it("prevents deactivating own membership", async () => {
@@ -101,7 +101,7 @@ describe("deactivateMember", () => {
     expect(result?.error).toBeTruthy();
   });
 
-  it("rejects cross-school deactivation", async () => {
+  it("rejects cross-school deactivation with French not found error", async () => {
     mockTenant("owner", "uid1");
     const fromMock = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -114,7 +114,7 @@ describe("deactivateMember", () => {
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
 
     const result = await deactivateMember("mem2");
-    expect(result?.error).toBe("Not found");
+    expect(result?.error).toBe("Introuvable");
   });
 
   it("allows owner to deactivate another member", async () => {
@@ -178,10 +178,10 @@ function makeAdminWithInvite({
 describe("sendInvite", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns Unauthorized for viewer role", async () => {
+  it("returns French unauthorized error for viewer role", async () => {
     mockTenant("viewer");
     const result = await sendInvite("new@school.com", "admin");
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
   it("returns error for invalid role (owner not allowed)", async () => {

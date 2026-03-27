@@ -57,18 +57,18 @@ async function loadDashboardData() {
   const paymentQrCode = await QRCode.toDataURL(paymentUrl, { margin: 1, width: 256 });
 
   const stats = [
-    { label: "Students", value: studentCountResult.count ?? 0 },
+    { label: "Eleves", value: studentCountResult.count ?? 0 },
     {
-      label: "Pending",
+      label: "En attente",
       value: pending.length,
-      sub: `${pending.reduce((s, p) => s + p.amount, 0).toLocaleString()} ${school.currency}`,
+      sub: `${pending.reduce((s, p) => s + p.amount, 0).toLocaleString("fr-FR")} ${school.currency}`,
     },
     {
-      label: "Confirmed",
+      label: "Confirmes",
       value: successful.length,
-      sub: `${successful.reduce((s, p) => s + p.amount, 0).toLocaleString()} ${school.currency}`,
+      sub: `${successful.reduce((s, p) => s + p.amount, 0).toLocaleString("fr-FR")} ${school.currency}`,
     },
-    { label: "With Dues", value: studentsWithDues.length },
+    { label: "Avec soldes", value: studentsWithDues.length },
   ];
 
   const staleCutoff = new Date(Date.now() - 3_600_000).toISOString();
@@ -84,6 +84,29 @@ async function loadDashboardData() {
   };
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const styles = {
+    success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    failed: "bg-red-50 text-red-700 border border-red-200",
+    pending: "bg-amber-50 text-amber-700 border border-amber-200",
+  } as const;
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+        styles[status as keyof typeof styles] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200"
+      }`}
+    >
+      {status === "success"
+        ? "succes"
+        : status === "failed"
+          ? "echec"
+          : status === "pending"
+            ? "en attente"
+            : status}
+    </span>
+  );
+}
+
 export default async function DashboardPage() {
   const {
     school,
@@ -96,119 +119,113 @@ export default async function DashboardPage() {
   } = await loadDashboardData();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold">Overview</h1>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Vue d&apos;ensemble</h1>
+        <p className="text-sm text-zinc-500 mt-1">Activite des paiements et indicateurs de l&apos;ecole</p>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl shadow p-5">
-            <p className="text-sm text-gray-500">{s.label}</p>
-            <p className="text-3xl font-bold mt-1">{s.value}</p>
-            {s.sub && <p className="text-sm text-gray-400 mt-0.5">{s.sub}</p>}
+          <div key={s.label} className="bg-white rounded-xl border border-zinc-200 p-5">
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{s.label}</p>
+            <p className="text-3xl font-bold font-mono text-zinc-950 mt-2">{s.value}</p>
+            {s.sub && <p className="text-xs text-zinc-400 mt-0.5">{s.sub}</p>}
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="p-5 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      {/* QR Code */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold">School Payment QR</h2>
-            <p className="text-sm text-gray-500">
-              Share this QR code or link with parents. They scan it, then enter the
-              student ID.
+            <h2 className="text-sm font-semibold text-zinc-900">QR de paiement de l&apos;ecole</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Partagez ce QR code ou ce lien avec les parents pour collecter les frais
             </p>
           </div>
           <form action={regeneratePaymentAccessToken}>
             <button
               type="submit"
-              className="text-sm font-medium text-red-600 hover:underline"
+              className="text-xs font-medium text-red-600 hover:text-red-700 transition-colors"
             >
-              Regenerate QR
+              Regenerer
             </button>
           </form>
         </div>
-        <div className="p-5 flex flex-col gap-6 md:flex-row md:items-center">
+        <div className="px-4 py-5 md:px-6 flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
           <Image
             src={paymentQrCode}
-            alt={`Payment QR for ${school.name}`}
-            width={208}
-            height={208}
+            alt={`QR de paiement pour ${school.name}`}
+            width={176}
+            height={176}
             unoptimized
-            className="rounded-lg border p-2 bg-white"
+            className="rounded-lg border border-zinc-200 p-2 bg-white shrink-0"
           />
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500">Active payment link</p>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Lien de paiement actif</p>
             <Link
               href={paymentUrl}
               target="_blank"
-              className="text-sm text-blue-600 hover:underline break-all"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline break-all transition-colors"
             >
               {paymentUrl}
             </Link>
-            <p className="text-xs text-gray-500">
-              Regenerating the QR code immediately disables the previous school payment
-              link.
+            <p className="text-xs text-zinc-400">
+              La regeneration invalide immediatement l&apos;ancien lien.
             </p>
           </div>
         </div>
       </div>
 
       {/* Recent Payments */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="p-5 border-b flex items-center justify-between">
-          <h2 className="font-semibold">Recent Payments</h2>
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-900">Paiements recents</h2>
           <Link
             href={paymentUrl}
             target="_blank"
-            className="text-sm text-blue-600 hover:underline"
+            className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
           >
-            Payment page ↗
+            Page de paiement ↗
           </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr>
-                {["Student", "Amount", "Phone", "Provider", "Status", "Date", ""].map((h) => (
-                  <th key={h} className="px-4 py-3 text-gray-500 font-medium">
+          <table>
+            <thead>
+              <tr className="border-b border-zinc-100">
+                {["Eleve", "Montant", "Telephone", "Operateur", "Statut", "Date", ""].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-zinc-100">
               {allPayments.map((p) => {
                 const student = takeJoined(p.students);
                 const stale = p.status === "pending" && p.created_at < staleCutoff;
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                  <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-zinc-900">
                       {student?.full_name}
-                      <span className="text-gray-400 text-xs ml-1">
-                        ({student?.external_id})
+                      <span className="text-zinc-400 text-xs ml-1.5">
+                        {student?.external_id}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{Number(p.amount).toLocaleString()} {school.currency}</td>
-                    <td className="px-4 py-3">{p.phone}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-sm font-mono text-zinc-900">
+                      {Number(p.amount).toLocaleString("fr-FR")} {school.currency}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">
                       {TELECOM_LABELS[p.telecom as Telecom] ?? p.telecom}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          p.status === "success"
-                            ? "bg-green-100 text-green-700"
-                            : p.status === "failed"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {p.status}
-                      </span>
+                      <StatusBadge status={p.status} />
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {new Date(p.created_at).toLocaleDateString()}
+                    <td className="px-4 py-3 text-sm text-zinc-400">
+                      {new Date(p.created_at).toLocaleDateString("fr-FR")}
                     </td>
                     <td className="px-4 py-3">
                       {stale && (
@@ -220,9 +237,9 @@ export default async function DashboardPage() {
                         >
                           <button
                             type="submit"
-                            className="text-xs text-red-600 hover:underline"
+                            className="text-xs text-red-600 hover:underline transition-colors"
                           >
-                            Mark failed
+                            Marquer en echec
                           </button>
                         </form>
                       )}
@@ -233,35 +250,38 @@ export default async function DashboardPage() {
             </tbody>
           </table>
           {allPayments.length === 0 && (
-            <p className="p-5 text-gray-400">No payments yet.</p>
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm text-zinc-400">Aucun paiement pour le moment.</p>
+            </div>
           )}
         </div>
       </div>
 
       {/* Students with outstanding dues */}
       {studentsWithDues.length > 0 && (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="p-5 border-b">
-            <h2 className="font-semibold">Students with Outstanding Fees</h2>
+        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-900">Frais impayes</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Eleves avec un solde restant</p>
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                {["Name", "ID", "Class", "Amount Due"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-gray-500 font-medium text-left">
+          <table>
+            <thead>
+              <tr className="border-b border-zinc-100">
+                {["Nom", "ID", "Classe", "Montant du"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-zinc-100">
               {studentsWithDues.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">{s.full_name}</td>
-                  <td className="px-4 py-3 text-gray-500">{s.external_id}</td>
-                  <td className="px-4 py-3 text-gray-500">{s.class_name ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium">
-                    {Number(s.amount_due).toLocaleString()} {school.currency}
+                <tr key={s.id} className="hover:bg-zinc-50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-900">{s.full_name}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-500 font-mono">{s.external_id}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-500">{s.class_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm font-semibold font-mono text-zinc-900">
+                    {Number(s.amount_due).toLocaleString("fr-FR")} {school.currency}
                   </td>
                 </tr>
               ))}

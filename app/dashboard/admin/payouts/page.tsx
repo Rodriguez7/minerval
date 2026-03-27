@@ -3,15 +3,35 @@ import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { ApproveButton } from "./ApproveButton";
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  processing: "Processing",
-  completed: "Completed",
-  failed: "Failed",
+  pending: "En attente",
+  processing: "En cours",
+  completed: "Termine",
+  failed: "Echec",
+};
+
+const statusBadge = (status: string) => {
+  const styles: Record<string, string> = {
+    completed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    pending: "bg-amber-50 text-amber-700 border border-amber-200",
+    processing: "bg-blue-50 text-blue-700 border border-blue-200",
+    failed: "bg-red-50 text-red-700 border border-red-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+        styles[status] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200"
+      }`}
+    >
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
 };
 
 export default async function AdminPayoutsPage() {
   const ssr = await createSSRClient();
-  const { data: { user } } = await ssr.auth.getUser();
+  const {
+    data: { user },
+  } = await ssr.auth.getUser();
 
   if (!user || user.email !== process.env.SUPER_ADMIN_EMAIL) {
     redirect("/dashboard");
@@ -21,7 +41,9 @@ export default async function AdminPayoutsPage() {
 
   const { data: payouts } = await admin
     .from("school_payouts")
-    .select("id, school_id, amount, phone, telecom, status, created_at, requested_by, schools(name)")
+    .select(
+      "id, school_id, amount, phone, telecom, status, created_at, requested_by, schools(name)"
+    )
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -30,71 +52,101 @@ export default async function AdminPayoutsPage() {
 
   return (
     <div className="space-y-8 p-6">
-      <h1 className="text-xl font-bold">Payout Requests</h1>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight text-zinc-950">Demandes de versement</h1>
+        <p className="text-sm text-zinc-500 mt-1">Admin - verifier et approuver les demandes de retrait</p>
+      </div>
 
-      <section>
-        <h2 className="font-semibold mb-3">Pending Approval ({pending.length})</h2>
+      {/* Pending */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">
+            En attente d&apos;approbation
+            <span className="ml-2 text-xs font-normal text-zinc-400">{pending.length}</span>
+          </h2>
+        </div>
         {pending.length === 0 ? (
-          <p className="text-sm text-gray-500">No pending requests.</p>
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm text-zinc-400">Aucune demande en attente.</p>
+          </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table>
             <thead>
-              <tr className="text-left text-xs text-gray-500">
-                <th className="pb-2">School</th>
-                <th className="pb-2">Amount</th>
-                <th className="pb-2">Phone</th>
-                <th className="pb-2">Provider</th>
-                <th className="pb-2">Requested</th>
-                <th className="pb-2"></th>
+              <tr className="border-b border-zinc-100">
+                {["Ecole", "Montant", "Telephone", "Operateur", "Demande le", ""].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-zinc-100">
               {pending.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="py-2">{(p.schools as { name?: string } | null)?.name ?? p.school_id}</td>
-                  <td className="py-2">{p.amount.toLocaleString()}</td>
-                  <td className="py-2">{p.phone}</td>
-                  <td className="py-2">{p.telecom}</td>
-                  <td className="py-2">{new Date(p.created_at).toLocaleDateString()}</td>
-                  <td className="py-2">
+                <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-900">
+                    {(p.schools as { name?: string } | null)?.name ?? p.school_id}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-zinc-900">
+                    {p.amount.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-600">{p.telecom}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-400">
+                    {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3">
                     <ApproveButton payoutId={p.id} />
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
-      </section>
+      </div>
 
-      <section>
-        <h2 className="font-semibold mb-3">History</h2>
+      {/* History */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">
+            Historique
+            <span className="ml-2 text-xs font-normal text-zinc-400">{history.length}</span>
+          </h2>
+        </div>
         {history.length === 0 ? (
-          <p className="text-sm text-gray-500">No history yet.</p>
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm text-zinc-400">Aucun historique pour le moment.</p>
+          </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table>
             <thead>
-              <tr className="text-left text-xs text-gray-500">
-                <th className="pb-2">School</th>
-                <th className="pb-2">Amount</th>
-                <th className="pb-2">Phone</th>
-                <th className="pb-2">Status</th>
-                <th className="pb-2">Date</th>
+              <tr className="border-b border-zinc-100">
+                {["Ecole", "Montant", "Telephone", "Statut", "Date"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-zinc-100">
               {history.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="py-2">{(p.schools as { name?: string } | null)?.name ?? p.school_id}</td>
-                  <td className="py-2">{p.amount.toLocaleString()}</td>
-                  <td className="py-2">{p.phone}</td>
-                  <td className="py-2">{STATUS_LABELS[p.status] ?? p.status}</td>
-                  <td className="py-2">{new Date(p.created_at).toLocaleDateString()}</td>
+                <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-900">
+                    {(p.schools as { name?: string } | null)?.name ?? p.school_id}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-zinc-900">
+                    {p.amount.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
+                  <td className="px-4 py-3">{statusBadge(p.status)}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-400">
+                    {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                  </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

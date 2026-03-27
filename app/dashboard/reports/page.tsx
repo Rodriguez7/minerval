@@ -15,6 +15,15 @@ import Link from "next/link";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-zinc-200 p-5">
+      <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xl font-bold font-mono text-zinc-950 mt-2">{value}</p>
+    </div>
+  );
+}
+
 export default async function ReportsPage({
   searchParams,
 }: {
@@ -24,17 +33,17 @@ export default async function ReportsPage({
 
   if (!plan.can_rich_reports) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold">Reports</h1>
-        <div className="bg-white rounded-xl shadow p-8 text-center space-y-4">
-          <p className="text-gray-500">
-            Rich reports are available on Growth and Pro plans.
+      <div className="space-y-6 max-w-2xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Rapports</h1>
+        <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center space-y-4">
+          <p className="text-sm text-zinc-500">
+            Les rapports avances sont disponibles avec les plans Growth et Pro.
           </p>
           <a
             href="/dashboard/billing"
-            className="inline-block bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium"
+            className="inline-flex bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors"
           >
-            View plans
+            Voir les plans
           </a>
         </div>
       </div>
@@ -85,13 +94,9 @@ export default async function ReportsPage({
           amount: 0,
           collected: 0,
         };
-
         current.count += 1;
         current.amount += Number(row.amount);
-        if (row.status === "success") {
-          current.collected += Number(row.amount);
-        }
-
+        if (row.status === "success") current.collected += Number(row.amount);
         map.set(key, current);
         return map;
       }, new Map<string, { date: string; count: number; amount: number; collected: number }>())
@@ -106,123 +111,130 @@ export default async function ReportsPage({
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="space-y-8">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-sm text-gray-500">
-            Review payment performance, reconciliation exceptions, and export the filtered
-            report as CSV.
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Rapports</h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            Performance des paiements, exceptions de rapprochement et export CSV
           </p>
         </div>
         <div className="flex items-center gap-4">
           <Link
             href={`/dashboard/reports/export?${exportParams.toString()}`}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
           >
-            Export CSV
+            Exporter en CSV
           </Link>
           <Link
             href="/dashboard/reconciliation"
-            className="text-sm text-gray-600 hover:underline"
-          >
-            Open reconciliation queue
+            className="text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+        >
+            File de rapprochement
           </Link>
         </div>
       </div>
 
-      <form className="bg-white rounded-xl shadow p-5 grid gap-4 md:grid-cols-5">
-        <div>
-          <label className="block text-sm font-medium mb-1">From</label>
+      {/* Filters */}
+      <form className="bg-white rounded-xl border border-zinc-200 p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Du</label>
           <input
             type="date"
             name="from"
             defaultValue={filters.from}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">To</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Au</label>
           <input
             type="date"
             name="to"
             defaultValue={filters.to}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Payment status</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Statut du paiement</label>
           <select
             name="paymentStatus"
             defaultValue={filters.paymentStatus}
-            className="w-full rounded-lg border px-3 py-2 text-sm bg-white"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="success">Success</option>
-            <option value="failed">Failed</option>
+            <option value="all">Tous</option>
+            <option value="pending">En attente</option>
+            <option value="success">Succes</option>
+            <option value="failed">Echec</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Reconciliation</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Rapprochement</label>
           <select
             name="reconciliationStatus"
             defaultValue={filters.reconciliationStatus}
-            className="w-full rounded-lg border px-3 py-2 text-sm bg-white"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">All</option>
-            <option value="pending_review">Pending review</option>
-            <option value="reconciled">Reconciled</option>
-            <option value="needs_review">Needs review</option>
-            <option value="manual_override">Manual override</option>
+            <option value="all">Tous</option>
+            <option value="pending_review">En attente de verification</option>
+            <option value="reconciled">Rapproche</option>
+            <option value="needs_review">A verifier</option>
+            <option value="manual_override">Resolution manuelle</option>
           </select>
         </div>
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-lg bg-gray-900 text-white py-2 text-sm font-medium"
+            className="w-full rounded-lg bg-zinc-900 text-white py-2 text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
           >
-            Apply filters
+            Appliquer les filtres
           </button>
         </div>
       </form>
 
+      {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <MetricCard label="Initiated" value={`${totals.initiated.toLocaleString()} ${school.currency}`} />
-        <MetricCard label="Collected" value={`${totals.collected.toLocaleString()} ${school.currency}`} />
-        <MetricCard label="Pending" value={`${totals.pending.toLocaleString()} ${school.currency}`} />
-        <MetricCard label="Failed" value={`${totals.failed.toLocaleString()} ${school.currency}`} />
+        <MetricCard label="Lances" value={`${totals.initiated.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label="Encaisse" value={`${totals.collected.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label="En attente" value={`${totals.pending.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label="Echec" value={`${totals.failed.toLocaleString("fr-FR")} ${school.currency}`} />
         <MetricCard label="Exceptions" value={String(totals.exceptions)} />
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="p-5 border-b">
-            <h2 className="font-semibold">Daily Rollup</h2>
+      {/* Daily rollup + reconciliation breakdown */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1.4fr_1fr]">
+        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-900">Synthese journaliere</h2>
           </div>
           {dailyTotals.length === 0 ? (
-            <p className="p-5 text-sm text-gray-500">No payments in this filter range.</p>
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm text-zinc-400">Aucun paiement pour cette plage de filtres.</p>
+            </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["Date", "Requests", "Initiated", "Collected"].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-3 text-left text-gray-500 font-medium"
-                    >
-                      {heading}
+            <table>
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  {["Date", "Demandes", "Lances", "Encaisse"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                      {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-zinc-100">
                 {dailyTotals.map((row) => (
-                  <tr key={row.date}>
-                    <td className="px-4 py-3">{new Date(`${row.date}T00:00:00Z`).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">{row.count}</td>
-                    <td className="px-4 py-3">{row.amount.toLocaleString()} {school.currency}</td>
-                    <td className="px-4 py-3">{row.collected.toLocaleString()} {school.currency}</td>
+                  <tr key={row.date} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-zinc-900">
+                      {new Date(`${row.date}T00:00:00Z`).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-mono text-zinc-900">{row.count}</td>
+                    <td className="px-4 py-3 text-sm font-mono text-zinc-600">
+                      {row.amount.toLocaleString("fr-FR")} {school.currency}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-mono text-emerald-700">
+                      {row.collected.toLocaleString("fr-FR")} {school.currency}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -230,19 +242,17 @@ export default async function ReportsPage({
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="p-5 border-b">
-            <h2 className="font-semibold">Reconciliation Breakdown</h2>
+        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-900">Repartition du rapprochement</h2>
           </div>
-          <div className="p-5 space-y-3 text-sm">
-            {(
-              ["pending_review", "reconciled", "needs_review", "manual_override"] as const
-            ).map((status) => {
+          <div className="px-6 py-4 space-y-3">
+            {(["pending_review", "reconciled", "needs_review", "manual_override"] as const).map((status) => {
               const count = rows.filter((row) => row.reconciliation_status === status).length;
               return (
-                <div key={status} className="flex items-center justify-between">
-                  <span className="text-gray-600">{RECONCILIATION_LABELS[status]}</span>
-                  <span className="font-medium">{count}</span>
+                <div key={status} className="flex items-center justify-between py-1 border-b border-zinc-50 last:border-0">
+                  <span className="text-sm text-zinc-600">{RECONCILIATION_LABELS[status]}</span>
+                  <span className="text-sm font-semibold font-mono text-zinc-900">{count}</span>
                 </div>
               );
             })}
@@ -250,55 +260,64 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold">Filtered Transactions</h2>
+      {/* Filtered transactions */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">
+            Transactions filtrees
+            <span className="ml-2 text-xs font-normal text-zinc-400">{rows.length}</span>
+          </h2>
         </div>
         {rows.length === 0 ? (
-          <p className="p-5 text-sm text-gray-500">No transactions for this filter range.</p>
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm text-zinc-400">Aucune transaction pour cette plage de filtres.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["Student", "Amount", "Provider", "Payment", "Reconciliation", "Date"].map(
-                    (heading) => (
-                      <th
-                        key={heading}
-                        className="px-4 py-3 text-left text-gray-500 font-medium"
-                      >
-                        {heading}
-                      </th>
-                    )
-                  )}
+            <table>
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  {["Eleve", "Montant", "Operateur", "Paiement", "Rapprochement", "Date"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-zinc-100">
                 {rows.slice(0, 100).map((row) => {
                   const student = takeJoined(row.students);
                   return (
-                    <tr key={row.id}>
+                    <tr key={row.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-3">
-                        {student?.full_name ?? "Unknown student"}
-                        <span className="block text-xs text-gray-400">
-                          {student?.external_id ?? "—"}
-                        </span>
+                        <p className="text-sm font-medium text-zinc-900">
+                          {student?.full_name ?? "Eleve inconnu"}
+                        </p>
+                        <p className="text-xs text-zinc-400 font-mono">{student?.external_id ?? "—"}</p>
                       </td>
-                      <td className="px-4 py-3">{Number(row.amount).toLocaleString()} {school.currency}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-sm font-mono text-zinc-900">
+                        {Number(row.amount).toLocaleString("fr-FR")} {school.currency}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">
                         {TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom}
                       </td>
-                      <td className="px-4 py-3">{row.status}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">
+                        {row.status === "success"
+                          ? "succes"
+                          : row.status === "failed"
+                            ? "echec"
+                            : row.status === "pending"
+                              ? "en attente"
+                              : row.status}
+                      </td>
                       <td className="px-4 py-3">
-                        {RECONCILIATION_LABELS[row.reconciliation_status]}
+                        <p className="text-sm text-zinc-600">{RECONCILIATION_LABELS[row.reconciliation_status]}</p>
                         {row.reconciliation_note && (
-                          <span className="block text-xs text-gray-400">
-                            {row.reconciliation_note}
-                          </span>
+                          <p className="text-xs text-zinc-400">{row.reconciliation_note}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {new Date(row.created_at).toLocaleDateString()}
+                      <td className="px-4 py-3 text-sm text-zinc-400">
+                        {new Date(row.created_at).toLocaleDateString("fr-FR")}
                       </td>
                     </tr>
                   );
@@ -308,15 +327,6 @@ export default async function ReportsPage({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white rounded-xl shadow p-5">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold mt-2">{value}</p>
     </div>
   );
 }

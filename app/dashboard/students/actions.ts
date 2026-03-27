@@ -13,7 +13,7 @@ const studentSchema = z.object({
 export async function addStudent(_: unknown, formData: FormData) {
   const { school, membership, plan } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
-    return { error: "Unauthorized" };
+    return { error: "Non autorise" };
   }
 
   const parsed = studentSchema.safeParse({
@@ -35,7 +35,7 @@ export async function addStudent(_: unknown, formData: FormData) {
     const current = currentCount ?? 0;
     if (current + 1 > plan.max_students) {
       return {
-        error: `Student limit reached. Your plan allows ${plan.max_students} students (currently ${current}).`,
+        error: `Limite d'eleves atteinte. Votre plan autorise ${plan.max_students} eleves (actuellement ${current}).`,
       };
     }
   }
@@ -43,7 +43,7 @@ export async function addStudent(_: unknown, formData: FormData) {
   const { data: seq, error: seqError } = await supabase
     .rpc("increment_student_seq", { p_school_id: school.id, p_count: 1 }) as { data: { prefix: string; new_seq: number } | null; error: unknown };
 
-  if (seqError || !seq) return { error: "Failed to generate student ID." };
+  if (seqError || !seq) return { error: "Impossible de generer l'ID eleve." };
 
   const external_id = `${seq.prefix}-${String(seq.new_seq).padStart(3, "0")}`;
 
@@ -53,7 +53,7 @@ export async function addStudent(_: unknown, formData: FormData) {
     external_id,
   });
 
-  if (error) return { error: "Failed to add student." };
+  if (error) return { error: "Impossible d'ajouter l'eleve." };
 
   revalidatePath("/dashboard/students");
   return { success: true };
@@ -62,7 +62,7 @@ export async function addStudent(_: unknown, formData: FormData) {
 export async function editStudent(_: unknown, formData: FormData) {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
-    return { error: "Unauthorized" };
+    return { error: "Non autorise" };
   }
 
   const schema = z.object({
@@ -89,7 +89,7 @@ export async function editStudent(_: unknown, formData: FormData) {
     .eq("id", id)
     .eq("school_id", school.id);
 
-  if (error) return { error: "Failed to update student." };
+  if (error) return { error: "Impossible de mettre a jour l'eleve." };
 
   revalidatePath("/dashboard/students");
   return { success: true };
@@ -98,7 +98,7 @@ export async function editStudent(_: unknown, formData: FormData) {
 export async function deleteStudent(id: string) {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Unauthorized" };
+    return { error: "Non autorise" };
   }
 
   const supabase = await createSSRClient();
@@ -108,7 +108,7 @@ export async function deleteStudent(id: string) {
     .eq("id", id)
     .eq("school_id", school.id);
 
-  if (error) return { error: "Failed to delete student." };
+  if (error) return { error: "Impossible de supprimer l'eleve." };
 
   revalidatePath("/dashboard/students");
   return { success: true };

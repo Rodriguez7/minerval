@@ -34,7 +34,7 @@ beforeEach(() => {
 });
 
 describe("POST /api/dashboard/students/bulk-fee", () => {
-  it("returns 403 when can_bulk_ops is false", async () => {
+  it("returns French 403 when can_bulk_ops is false", async () => {
     vi.mocked(getTenantContext).mockResolvedValue({
       ...PRO_CONTEXT,
       plan: { can_bulk_ops: false },
@@ -46,7 +46,7 @@ describe("POST /api/dashboard/students/bulk-fee", () => {
 
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toMatch(/pro plan/i);
+    expect(body.error).toBe("La mise a jour groupee des frais exige un plan Pro.");
   });
 
   it("returns 400 for empty rows array", async () => {

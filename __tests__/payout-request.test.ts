@@ -55,7 +55,7 @@ describe("POST /api/dashboard/payouts/request", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 422 if RPC returns insufficient_balance", async () => {
+  it("returns French 422 if RPC returns insufficient_balance", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
     const mockRpc = vi.fn().mockResolvedValueOnce({
       data: { error: "insufficient_balance", available: 2000 },
@@ -66,7 +66,7 @@ describe("POST /api/dashboard/payouts/request", () => {
     const res = await POST(makeRequest({ amount: 5000, phone: "0812345678", telecom: "OM" }));
     expect(res.status).toBe(422);
     const body = await res.json();
-    expect(body.error).toMatch(/insufficient/i);
+    expect(body.error).toBe("Solde insuffisant");
   });
 
   it("returns 201 with payout id on success", async () => {

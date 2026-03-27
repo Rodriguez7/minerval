@@ -51,7 +51,7 @@ describe("POST /api/serdipay/callback", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 200 if already processed (idempotency)", async () => {
+  it("returns French 200 message if already processed (idempotency)", async () => {
     const mockFrom = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -65,7 +65,7 @@ describe("POST /api/serdipay/callback", () => {
     const res = await POST(makeRequest(successCallback));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.message).toMatch(/already processed/i);
+    expect(body.message).toBe("Deja traite");
   });
 
   it("stores transactionId and sets amount_due to 0 on success", async () => {

@@ -21,7 +21,7 @@ export function InviteForm() {
           name="email"
           type="email"
           required
-          placeholder="colleague@school.com"
+          placeholder="collegue@ecole.com"
           className="border rounded-lg px-3 py-2 text-sm w-64"
         />
       </div>
@@ -30,7 +30,7 @@ export function InviteForm() {
         <select name="role" className="border rounded-lg px-3 py-2 text-sm bg-white">
           <option value="admin">Admin</option>
           <option value="finance">Finance</option>
-          <option value="viewer">Viewer</option>
+          <option value="viewer">Lecture</option>
         </select>
       </div>
       <button
@@ -38,7 +38,7 @@ export function InviteForm() {
         disabled={isPending}
         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
       >
-        {isPending ? "Sending…" : "Send invite"}
+        {isPending ? "Envoi…" : "Envoyer l&apos;invitation"}
       </button>
 
       {state?.error && (
@@ -46,9 +46,9 @@ export function InviteForm() {
       )}
       {state?.inviteLink && (
         <div className="w-full text-sm">
-          <p className="text-green-700 font-medium">Invite sent!</p>
+          <p className="text-green-700 font-medium">Invitation envoyee !</p>
           <p className="text-gray-500 mt-1">
-            Share this link if email doesn&apos;t arrive:{" "}
+            Partagez ce lien si l&apos;email n&apos;arrive pas :{" "}
             <a href={state.inviteLink} className="text-blue-600 hover:underline break-all">
               {state.inviteLink}
             </a>

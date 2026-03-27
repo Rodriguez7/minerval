@@ -9,14 +9,14 @@ export async function POST(req: NextRequest) {
   const { user, school, membership } = await getTenantContext();
 
   if (membership.role !== "owner") {
-    return NextResponse.json({ error: "Only school owners can request payouts" }, { status: 403 });
+    return NextResponse.json({ error: "Seul le proprietaire de l'ecole peut demander un versement" }, { status: 403 });
   }
 
   let body: { amount?: unknown; phone?: unknown; telecom?: unknown };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
   const amount = Number(body.amount);
@@ -25,18 +25,18 @@ export async function POST(req: NextRequest) {
 
   if (!Number.isFinite(amount) || amount < MIN_AMOUNT) {
     return NextResponse.json(
-      { error: `Amount must be at least ${MIN_AMOUNT}` },
+      { error: `Le montant minimum est de ${MIN_AMOUNT}` },
       { status: 400 }
     );
   }
 
   if (!/^\d{9,15}$/.test(phone)) {
-    return NextResponse.json({ error: "Phone must be 9 to 15 digits" }, { status: 400 });
+    return NextResponse.json({ error: "Le numero doit contenir entre 9 et 15 chiffres" }, { status: 400 });
   }
 
   if (!VALID_TELECOMS.has(telecom)) {
     return NextResponse.json(
-      { error: "Telecom must be one of AM, OM, MP, AF" },
+      { error: "L'operateur doit etre AM, OM, MP ou AF" },
       { status: 400 }
     );
   }
@@ -52,12 +52,12 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error("[payouts/request] RPC error:", error.message);
-    return NextResponse.json({ error: "Failed to create payout request" }, { status: 500 });
+    return NextResponse.json({ error: "Impossible de creer la demande de versement" }, { status: 500 });
   }
 
   if (data?.error === "insufficient_balance") {
     return NextResponse.json(
-      { error: "Insufficient balance", available: data.available },
+      { error: "Solde insuffisant", available: data.available },
       { status: 422 }
     );
   }

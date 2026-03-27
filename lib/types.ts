@@ -14,10 +14,10 @@ export const TELECOM_LABELS: Record<Telecom, string> = {
 };
 
 export const RECONCILIATION_LABELS: Record<ReconciliationStatus, string> = {
-  pending_review: "Pending review",
-  reconciled: "Reconciled",
-  needs_review: "Needs review",
-  manual_override: "Manual override",
+  pending_review: "En attente de verification",
+  reconciled: "Rapproche",
+  needs_review: "A verifier",
+  manual_override: "Resolution manuelle",
 };
 
 export interface StudentInfo {

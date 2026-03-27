@@ -1,9 +1,14 @@
 "use client";
 import { useActionState } from "react";
 import { resetPassword } from "@/app/actions/auth";
-import Link from "next/link";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { useLocale } from "@/lib/i18n/client";
+import { getAuthCopy } from "@/lib/i18n/copy/auth";
 
 export default function ForgotPasswordPage() {
+  const locale = useLocale();
+  const copy = getAuthCopy(locale);
   const [state, action, pending] = useActionState(resetPassword, null);
 
   return (
@@ -127,7 +132,10 @@ export default function ForgotPasswordPage() {
         }
       `}</style>
 
-      <div className="fp-root min-h-[100dvh] flex" style={{ background: "#f8fafc" }}>
+      <div className="fp-root relative min-h-[100dvh] flex" style={{ background: "#f8fafc" }}>
+        <div className="absolute right-4 top-4 z-20 md:right-6 md:top-6">
+          <LanguageSwitcher />
+        </div>
 
         {/* ── Left brand panel ── */}
         <div
@@ -145,21 +153,22 @@ export default function ForgotPasswordPage() {
 
           {/* Logo */}
           <div>
-            <Link href="/" style={{ textDecoration: "none" }}>
+            <LocalizedLink href="/" style={{ textDecoration: "none" }}>
               <span style={{ fontSize: 22, fontWeight: 700, color: "white", letterSpacing: "-0.5px" }}>Minerval</span>
-            </Link>
+            </LocalizedLink>
           </div>
 
           {/* Main copy */}
           <div style={{ maxWidth: 400 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(147,197,253,0.9)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 20 }}>
-              Account recovery
+              {copy.forgotPassword.heroEyebrow}
             </p>
             <h2 style={{ fontSize: "clamp(26px,3vw,38px)", fontWeight: 800, color: "white", lineHeight: 1.15, letterSpacing: "-1px", marginBottom: 16 }}>
-              Back in two<br />minutes flat.
+              {copy.forgotPassword.heroTitleLines[0]}<br />
+              {copy.forgotPassword.heroTitleLines[1]}
             </h2>
             <p style={{ fontSize: 15, color: "rgba(148,163,184,0.9)", lineHeight: 1.7, maxWidth: 340 }}>
-              Enter your email and we'll send a secure reset link directly to your inbox. No security questions, no friction.
+              {copy.forgotPassword.heroDescription}
             </p>
           </div>
 
@@ -172,8 +181,8 @@ export default function ForgotPasswordPage() {
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
                 ),
-                title: "Encrypted link",
-                desc: "Your reset link is single-use and expires in 1 hour.",
+                title: copy.forgotPassword.securityCards[0].title,
+                desc: copy.forgotPassword.securityCards[0].desc,
               },
               {
                 icon: (
@@ -181,8 +190,8 @@ export default function ForgotPasswordPage() {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
                 ),
-                title: "No password exposure",
-                desc: "We never send your current password by email.",
+                title: copy.forgotPassword.securityCards[1].title,
+                desc: copy.forgotPassword.securityCards[1].desc,
               },
             ].map((c) => (
               <div key={c.title} className="security-card" style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -202,9 +211,9 @@ export default function ForgotPasswordPage() {
 
             {/* Mobile logo */}
             <div className="lg:hidden mb-8">
-              <Link href="/" style={{ textDecoration: "none" }}>
+              <LocalizedLink href="/" style={{ textDecoration: "none" }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8", letterSpacing: "-0.5px" }}>Minerval</span>
-              </Link>
+              </LocalizedLink>
             </div>
 
             {state?.success ? (
@@ -228,14 +237,14 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px", marginBottom: 10 }}>
-                  Check your inbox
+                  {copy.forgotPassword.successTitle}
                 </h2>
                 <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, maxWidth: 300, margin: "0 auto 32px" }}>
-                  A password reset link is on its way. It expires in 1 hour — check your spam folder if you don't see it.
+                  {copy.forgotPassword.successDescription}
                 </p>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                  <Link href="/login" style={{
+                  <LocalizedLink href="/login" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "11px 24px", borderRadius: 10,
                     background: "#1d4ed8", color: "white",
@@ -243,15 +252,15 @@ export default function ForgotPasswordPage() {
                     boxShadow: "0 4px 14px rgba(29,78,216,0.25)",
                     transition: "background 0.18s",
                   }}>
-                    Back to sign in
-                  </Link>
+                    {copy.forgotPassword.backToSignIn}
+                  </LocalizedLink>
                   <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
-                    Didn't receive it?{" "}
+                    {copy.forgotPassword.successFooterPrompt}{" "}
                     <button
                       onClick={() => window.location.reload()}
                       style={{ color: "#1d4ed8", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 12, padding: 0 }}
                     >
-                      Try again
+                      {copy.forgotPassword.retry}
                     </button>
                   </p>
                 </div>
@@ -262,25 +271,26 @@ export default function ForgotPasswordPage() {
                 {/* Heading */}
                 <div className="form-field" style={{ marginBottom: 36 }}>
                   <h1 style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.8px", marginBottom: 6 }}>
-                    Forgot your password?
+                    {copy.forgotPassword.heading}
                   </h1>
                   <p style={{ fontSize: 14, color: "#64748b" }}>
-                    No problem — enter your email and we'll send a reset link.
+                    {copy.forgotPassword.subheading}
                   </p>
                 </div>
 
                 <form action={action} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <input type="hidden" name="locale" value={locale} />
 
                   {/* Email */}
                   <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Email address</label>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{copy.forgotPassword.emailLabel}</label>
                     <input
                       name="email"
                       type="email"
                       required
                       autoComplete="email"
                       autoFocus
-                      placeholder="admin@yourschool.org"
+                      placeholder={copy.forgotPassword.emailPlaceholder}
                       className={`input-field${state?.error ? " error" : ""}`}
                       style={{
                         border: "1.5px solid #e2e8f0", borderRadius: 10,
@@ -325,17 +335,17 @@ export default function ForgotPasswordPage() {
                           <span className="dot-2" />
                           <span className="dot-3" />
                         </>
-                      ) : "Send reset link"}
+                      ) : copy.forgotPassword.submit}
                     </button>
                   </div>
                 </form>
 
                 {/* Footer */}
                 <p style={{ marginTop: 28, fontSize: 13, color: "#94a3b8", textAlign: "center" }}>
-                  Remember your password?{" "}
-                  <Link href="/login" style={{ color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
-                    Sign in
-                  </Link>
+                  {copy.forgotPassword.footerPrompt}{" "}
+                  <LocalizedLink href="/login" style={{ color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
+                    {copy.forgotPassword.footerLink}
+                  </LocalizedLink>
                 </p>
               </>
             )}

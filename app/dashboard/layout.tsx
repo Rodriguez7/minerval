@@ -1,65 +1,61 @@
 import { getAuthenticatedSchool } from "@/lib/auth";
-import Link from "next/link";
 import { logout } from "@/app/actions/auth";
+import { getDashboardShellCopy } from "@/lib/i18n/copy/dashboard";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { NavLinks } from "./NavLinks";
+import { MobileNav } from "./MobileNav";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getRequestLocale();
+  const copy = getDashboardShellCopy(locale);
   const school = await getAuthenticatedSchool();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <span className="font-bold text-lg">Minerval</span>
-          <span className="text-gray-300">|</span>
-          <span className="text-sm text-gray-600 font-medium">{school.name}</span>
-          <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
-            Overview
-          </Link>
-          <Link href="/dashboard/students" className="text-sm text-gray-600 hover:text-gray-900">
-            Students
-          </Link>
-          <Link href="/dashboard/fees" className="text-sm text-gray-600 hover:text-gray-900">
-            Fees
-          </Link>
-          <Link
-            href="/dashboard/reconciliation"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            Reconciliation
-          </Link>
-          <Link
-            href="/dashboard/reports"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            Reports
-          </Link>
-          <Link href="/dashboard/payouts" className="text-sm text-gray-600 hover:text-gray-900">
-            Payouts
-          </Link>
-          <Link href="/dashboard/analytics" className="text-sm text-gray-600 hover:text-gray-900">
-            Analytics
-          </Link>
-          <Link href="/dashboard/team" className="text-sm text-gray-600 hover:text-gray-900">
-            Team
-          </Link>
-          <Link href="/dashboard/billing" className="text-sm text-gray-600 hover:text-gray-900">
-            Billing
-          </Link>
-          <Link href="/dashboard/settings" className="text-sm text-gray-600 hover:text-gray-900">
-            Settings
-          </Link>
+    <div className="flex min-h-[100dvh] bg-zinc-50">
+      {/* Sidebar — hidden on mobile, visible md+ */}
+      <aside className="hidden md:flex w-[220px] shrink-0 sticky top-0 h-screen bg-white border-r border-zinc-200 flex-col">
+        {/* Brand */}
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
+          <span className="text-sm font-bold tracking-tight text-zinc-950">
+            Minerval
+          </span>
+          <p className="text-xs text-zinc-400 mt-0.5 truncate">{school.name}</p>
         </div>
-        <form action={logout}>
-          <button type="submit" className="text-sm text-gray-500 hover:text-gray-700">
-            Log out
-          </button>
-        </form>
-      </nav>
-      <div className="px-6 py-8">{children}</div>
+
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto">
+          <NavLinks />
+        </div>
+
+        {/* Logout */}
+        <div className="px-3 pb-4 border-t border-zinc-100 pt-3">
+          <form action={logout}>
+            <button
+              type="submit"
+              className="w-full px-3 py-2 text-sm text-zinc-400 hover:text-zinc-600 text-left rounded-lg hover:bg-zinc-50 transition-colors"
+            >
+              {copy.logout}
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile top bar + drawer */}
+        <MobileNav schoolName={school.name} />
+
+        {/* Page content */}
+        <main className="flex-1">
+          <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

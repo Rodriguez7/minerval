@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
   const reference = body.message;
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const transactionId = body.payment?.transactionId;
 
   if (!reference || !paymentStatus) {
-    return NextResponse.json({ error: "message and payment.status are required" }, { status: 400 });
+    return NextResponse.json({ error: "message et payment.status sont obligatoires" }, { status: 400 });
   }
 
   const admin = getAdminClient();
@@ -37,11 +37,11 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (lookupErr || !payment) {
-    return NextResponse.json({ message: "Reference not found" }, { status: 200 });
+    return NextResponse.json({ message: "Reference introuvable" }, { status: 200 });
   }
 
   if (payment.status !== "pending") {
-    return NextResponse.json({ message: "Already processed" }, { status: 200 });
+    return NextResponse.json({ message: "Deja traite" }, { status: 200 });
   }
 
   const isSuccess = paymentStatus === "success";

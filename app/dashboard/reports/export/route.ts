@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   if (!plan.can_accounting_export) {
     return NextResponse.json(
-      { error: "CSV export is not available on your current plan." },
+      { error: "L'export CSV n'est pas disponible avec votre plan actuel." },
       { status: 403 }
     );
   }
@@ -39,19 +39,19 @@ export async function GET(req: Request) {
 
   const header = [
     "reference",
-    "requested_at",
-    "student_id",
-    "student_name",
-    "amount_fc",
-    "phone",
-    "provider",
-    "payment_status",
-    "reconciliation_status",
-    "reconciliation_note",
-    "reconciliation_updated_at",
-    "reconciliation_updated_by",
-    "settled_at",
-    "serdipay_transaction_id",
+    "demande_le",
+    "id_eleve",
+    "nom_eleve",
+    "montant_fc",
+    "telephone",
+    "operateur",
+    "statut_paiement",
+    "statut_rapprochement",
+    "note_rapprochement",
+    "rapprochement_mis_a_jour_le",
+    "rapprochement_mis_a_jour_par",
+    "regle_le",
+    "id_transaction_serdipay",
   ];
 
   const csvRows = rows.map((row) => {
@@ -64,7 +64,13 @@ export async function GET(req: Request) {
       row.amount,
       row.phone,
       TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom,
-      row.status,
+      row.status === "success"
+        ? "succes"
+        : row.status === "failed"
+          ? "echec"
+          : row.status === "pending"
+            ? "en attente"
+            : row.status,
       RECONCILIATION_LABELS[row.reconciliation_status],
       row.reconciliation_note ?? "",
       row.reconciliation_updated_at ?? "",
@@ -81,7 +87,7 @@ export async function GET(req: Request) {
   return new NextResponse(csv, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": `attachment; filename="${school.code}-payments-report.csv"`,
+      "content-disposition": `attachment; filename="${school.code}-rapport-paiements.csv"`,
       "cache-control": "no-store",
     },
   });

@@ -15,16 +15,16 @@ export function ApproveButton({ payoutId }: { payoutId: string }) {
         setDone(true);
       } else {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Failed");
+        setError(data.error ?? "Echec");
       }
     } catch {
-      setError("Network error");
+      setError("Erreur reseau");
     } finally {
       setLoading(false);
     }
   }
 
-  if (done) return <span className="text-xs text-green-600">Sent</span>;
+  if (done) return <span className="text-xs text-green-600">Envoye</span>;
   if (error) return <span className="text-xs text-red-600">{error}</span>;
 
   return (
@@ -33,7 +33,7 @@ export function ApproveButton({ payoutId }: { payoutId: string }) {
       disabled={loading}
       className="rounded bg-black px-3 py-1 text-xs text-white disabled:opacity-40"
     >
-      {loading ? "…" : "Approve"}
+      {loading ? "…" : "Approuver"}
     </button>
   );
 }

@@ -50,12 +50,12 @@ describe("signup action (Phase 1b)", () => {
     expect(getAdminClient).not.toHaveBeenCalled();
   });
 
-  it("redirects to /onboarding/school on success", async () => {
+  it("redirects to the French onboarding path on success", async () => {
     vi.mocked(createSSRClient).mockResolvedValue({
       auth: { signUp: vi.fn().mockResolvedValue({ data: { user: { id: "uid1" } }, error: null }) },
     } as never);
     vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
 
-    await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123" }))).rejects.toThrow("REDIRECT:/onboarding/school");
+    await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123" }))).rejects.toThrow("REDIRECT:/fr/onboarding/school");
   });
 });

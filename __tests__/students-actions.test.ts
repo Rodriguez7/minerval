@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 describe("addStudent", () => {
-  it("returns error when max_students cap is reached", async () => {
+  it("returns French error when max_students cap is reached", async () => {
     vi.mocked(getTenantContext).mockResolvedValue({
       school: { id: "school1", code: "TST" },
       membership: { role: "admin" },
@@ -44,7 +44,9 @@ describe("addStudent", () => {
 
     const result = await addStudent(null, makeFormData(VALID_FORM));
 
-    expect(result).toEqual({ error: expect.stringMatching(/student limit/i) });
+    expect(result).toEqual({
+      error: "Limite d'eleves atteinte. Votre plan autorise 10 eleves (actuellement 10).",
+    });
   });
 
   it("proceeds when max_students is null (unlimited)", async () => {

@@ -1,15 +1,22 @@
 export const dynamic = "force-dynamic";
 
 import { getAdminClient } from "@/lib/supabase";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { getPaymentsCopy } from "@/lib/i18n/copy/payments";
+import { formatDateTime, formatMoney } from "@/lib/i18n/format";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export default async function ReceiptPage({
   searchParams,
 }: {
   searchParams: Promise<{ ref?: string }>;
 }) {
+  const locale = await getRequestLocale();
+  const copy = getPaymentsCopy(locale);
   const { ref } = await searchParams;
 
   if (!ref) notFound();
@@ -74,25 +81,30 @@ export default async function ReceiptPage({
   const settledDate = payment.settled_at ? new Date(payment.settled_at) : null;
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
+    <main className="relative min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
+      <div className="absolute right-4 top-4 md:right-6 md:top-6">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         {/* School branding */}
         <div className="mb-8 text-center">
           {canBrandedReceipts ? (
             <>
               {school.logo_url && (
-                <img
+                <Image
                   src={school.logo_url}
                   alt={`${school.name} logo`}
+                  width={192}
+                  height={48}
                   className="h-12 w-auto mx-auto mb-3 object-contain"
                 />
               )}
               <h1 className="text-2xl font-bold">{school.name}</h1>
-              <p className="text-gray-500 text-sm mt-1">Payment Receipt</p>
+              <p className="text-gray-500 text-sm mt-1">{copy.receipt.title}</p>
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-bold">Payment Receipt</h1>
+              <h1 className="text-2xl font-bold">{copy.receipt.title}</h1>
               <p className="text-gray-500 text-sm mt-1">{school.name}</p>
             </>
           )}
@@ -111,17 +123,16 @@ export default async function ReceiptPage({
               isSuccess ? "text-green-700" : "text-amber-700"
             }`}
           >
-            {isSuccess ? "Payment confirmed" : "Payment pending"}
+            {isSuccess ? copy.receipt.confirmed : copy.receipt.pending}
           </p>
           {isSuccess && settledDate && (
             <p className="text-sm text-green-600 mt-1">
-              {settledDate.toLocaleString()}
+              {formatDateTime(settledDate, locale)}
             </p>
           )}
           {!isSuccess && (
             <p className="text-sm text-amber-600 mt-1">
-              Your payment is being processed. This page will show the
-              confirmation once complete.
+              {copy.receipt.pendingDescription}
             </p>
           )}
         </div>
@@ -131,16 +142,16 @@ export default async function ReceiptPage({
           {student && (
             <>
               <div className="flex justify-between">
-                <span className="text-gray-500">Student</span>
+                <span className="text-gray-500">{copy.receipt.student}</span>
                 <span className="font-medium">{student.full_name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Student ID</span>
+                <span className="text-gray-500">{copy.receipt.studentId}</span>
                 <span className="font-mono text-gray-700">{student.external_id}</span>
               </div>
               {student.class_name && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Class</span>
+                  <span className="text-gray-500">{copy.receipt.class}</span>
                   <span>{student.class_name}</span>
                 </div>
               )}
@@ -149,34 +160,34 @@ export default async function ReceiptPage({
 
           <div className="border-t pt-3 mt-3">
             <div className="flex justify-between font-bold text-base">
-              <span>Amount paid</span>
+              <span>{copy.receipt.amountPaid}</span>
               <span>
-                {Number(payment.amount).toLocaleString()} {currency}
+                {formatMoney(payment.amount, currency, locale)}
               </span>
             </div>
           </div>
 
           <div className="border-t pt-3 mt-1 space-y-2 text-gray-500">
             <div className="flex justify-between">
-              <span>Provider</span>
+              <span>{copy.receipt.provider}</span>
               <span>
                 {TELECOM_LABELS[payment.telecom as Telecom] ?? payment.telecom}
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Phone</span>
+              <span>{copy.receipt.phone}</span>
               <span className="font-mono">{payment.phone}</span>
             </div>
             {payment.serdipay_transaction_id && (
               <div className="flex justify-between">
-                <span>Transaction ref</span>
+                <span>{copy.receipt.transactionRef}</span>
                 <span className="font-mono text-xs break-all">
                   {payment.serdipay_transaction_id}
                 </span>
               </div>
             )}
             <div className="flex justify-between">
-              <span>Reference</span>
+              <span>{copy.receipt.reference}</span>
               <span className="font-mono text-xs break-all">{payment.id}</span>
             </div>
           </div>
@@ -185,7 +196,7 @@ export default async function ReceiptPage({
         {/* Footer */}
         {!canBrandedReceipts && (
           <p className="text-center text-xs text-gray-400 mt-8">
-            Powered by Minerval
+            {copy.receipt.poweredBy}
           </p>
         )}
       </div>

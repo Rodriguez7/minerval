@@ -12,12 +12,12 @@ export async function GET(
   const paymentToken = req.nextUrl.searchParams.get("payment_token");
 
   if (!paymentToken) {
-    return NextResponse.json({ error: "payment_token is required" }, { status: 400 });
+    return NextResponse.json({ error: "payment_token est obligatoire" }, { status: 400 });
   }
 
   const school = await getSchoolByPaymentAccessToken(paymentToken);
   if (!school) {
-    return NextResponse.json({ error: "Payment link not found" }, { status: 404 });
+    return NextResponse.json({ error: "Lien de paiement introuvable" }, { status: 404 });
   }
 
   const rateLimit = consumeRateLimit({
@@ -29,7 +29,7 @@ export async function GET(
   if (!rateLimit.allowed) {
     return NextResponse.json(
       {
-        error: `Too many lookup attempts. Please wait ${rateLimit.retryAfterSeconds} seconds and try again.`,
+        error: `Trop de tentatives de recherche. Attendez ${rateLimit.retryAfterSeconds} secondes puis reessayez.`,
       },
       { status: 429 }
     );
@@ -43,7 +43,7 @@ export async function GET(
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    return NextResponse.json({ error: "Eleve introuvable" }, { status: 404 });
   }
 
   return NextResponse.json({

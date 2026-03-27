@@ -1,30 +1,37 @@
 "use server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
+import { getPreferredLocale } from "@/lib/i18n/config";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 
-const SchoolSchema = z.object({
-  schoolName: z.string().min(2).max(200),
-  schoolCode: z
-    .string()
-    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, hyphens only")
-    .min(2)
-    .max(30),
-  studentIdPrefix: z
-    .string()
-    .regex(/^[A-Z0-9]{2,6}$/, "2–6 uppercase letters/numbers (e.g. ESM)"),
-  currency: z.enum(["FC", "USD"]),
-});
+function getFormLocale(formData: FormData) {
+  return getPreferredLocale(formData.get("locale")?.toString());
+}
 
 export async function createSchool(_: unknown, formData: FormData) {
-  const parsed = SchoolSchema.safeParse({
+  const locale = getFormLocale(formData);
+  const copy = getOnboardingCopy(locale);
+  const schoolSchema = z.object({
+    schoolName: z.string().min(2).max(200),
+    schoolCode: z
+      .string()
+      .regex(/^[a-z0-9-]+$/, copy.actions.invalidSchoolCode)
+      .min(2)
+      .max(30),
+    studentIdPrefix: z
+      .string()
+      .regex(/^[A-Z0-9]{2,6}$/, copy.actions.invalidStudentIdPrefix),
+    currency: z.enum(["FC", "USD"]),
+  });
+  const parsed = schoolSchema.safeParse({
     schoolName: formData.get("schoolName"),
     schoolCode: formData.get("schoolCode"),
     studentIdPrefix: formData.get("studentIdPrefix"),
     currency: formData.get("currency"),
   });
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "Validation error";
+    const msg = parsed.error.issues[0]?.message ?? copy.actions.validationError;
     return { error: msg };
   }
 
@@ -38,8 +45,8 @@ export async function createSchool(_: unknown, formData: FormData) {
     .select("id")
     .eq("code", parsed.data.schoolCode)
     .maybeSingle();
-  if (lookupError) return { error: "Failed to check school code availability." };
-  if (existing) return { error: "School code already taken." };
+  if (lookupError) return { error: copy.actions.failedCheckAvailability };
+  if (existing) return { error: copy.actions.schoolCodeTaken };
 
   const { data: newSchool, error: schoolError } = await admin
     .from("schools")
@@ -53,7 +60,7 @@ export async function createSchool(_: unknown, formData: FormData) {
     .select("id")
     .single();
 
-  if (schoolError || !newSchool) return { error: "Failed to create school." };
+  if (schoolError || !newSchool) return { error: copy.actions.failedCreateSchool };
 
   const { error: membershipError } = await admin.from("school_memberships").insert({
     user_id: user.id,
@@ -61,7 +68,7 @@ export async function createSchool(_: unknown, formData: FormData) {
     role: "owner",
     status: "active",
   });
-  if (membershipError) return { error: "Failed to complete school setup." };
+  if (membershipError) return { error: copy.actions.failedCompleteSetup };
 
   const { error: subscriptionError } = await admin.from("school_subscriptions").insert({
     school_id: newSchool.id,
@@ -69,7 +76,7 @@ export async function createSchool(_: unknown, formData: FormData) {
     status: "active",
     billing_exempt: false,
   });
-  if (subscriptionError) return { error: "Failed to complete school setup." };
+  if (subscriptionError) return { error: copy.actions.failedCompleteSetup };
 
   const { error: pricingError } = await admin.from("school_pricing_policies").insert({
     school_id: newSchool.id,
@@ -77,25 +84,26 @@ export async function createSchool(_: unknown, formData: FormData) {
     fee_display_mode: "visible_line_item",
     active: true,
   });
-  if (pricingError) return { error: "Failed to complete school setup." };
+  if (pricingError) return { error: copy.actions.failedCompleteSetup };
 
   redirect("/onboarding/billing-contact");
 }
 
-const BillingContactSchema = z.object({
-  billingEmail: z.string().email(),
-  billingContact: z.string().min(2).max(200),
-  timezone: z.string().min(1),
-});
-
 export async function updateBillingContact(_: unknown, formData: FormData) {
-  const parsed = BillingContactSchema.safeParse({
+  const locale = getFormLocale(formData);
+  const copy = getOnboardingCopy(locale);
+  const billingContactSchema = z.object({
+    billingEmail: z.string().email(),
+    billingContact: z.string().min(2).max(200),
+    timezone: z.string().min(1),
+  });
+  const parsed = billingContactSchema.safeParse({
     billingEmail: formData.get("billingEmail"),
     billingContact: formData.get("billingContact"),
     timezone: formData.get("timezone"),
   });
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "Validation error";
+    const msg = parsed.error.issues[0]?.message ?? copy.actions.validationError;
     return { error: msg };
   }
 
@@ -121,7 +129,7 @@ export async function updateBillingContact(_: unknown, formData: FormData) {
     })
     .eq("id", membership.school_id);
 
-  if (error) return { error: "Failed to update billing contact." };
+  if (error) return { error: copy.actions.failedUpdateBilling };
 
   redirect("/onboarding/import");
 }

@@ -2,10 +2,7 @@
 import { describe, it, expectTypeOf } from "vitest";
 import type {
   MembershipRole,
-  SubscriptionStatus,
   Plan,
-  Membership,
-  Subscription,
   TenantContext,
 } from "../lib/types";
 

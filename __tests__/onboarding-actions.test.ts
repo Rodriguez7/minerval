@@ -21,6 +21,7 @@ const validSchoolData = {
   schoolCode: "saint-michel",
   studentIdPrefix: "ESM",
   currency: "FC",
+  locale: "fr",
 };
 
 function mockAuth(userId = "uid1", email = "admin@school.com") {
@@ -58,7 +59,7 @@ describe("createSchool action", () => {
     vi.mocked(getAdminClient).mockReturnValue({ from: vi.fn().mockReturnValue(adminChain) } as never);
 
     const result = await createSchool(null, makeFormData(validSchoolData));
-    expect(result?.error).toBe("School code already taken.");
+    expect(result?.error).toBe("Ce code ecole est deja utilise.");
   });
 
   it("creates school + membership + subscription + pricing policy", async () => {

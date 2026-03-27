@@ -15,110 +15,134 @@ export default async function FeesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold">Fees</h1>
+    <div className="space-y-8 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Frais</h1>
+        <p className="text-sm text-zinc-500 mt-1">Definissez les structures de frais recurrentes et exceptionnelles</p>
+      </div>
 
       {/* Create fee form */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="font-semibold mb-4">Create Fee</h2>
+      <div className="bg-white rounded-xl border border-zinc-200 p-6">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Creer un frais</h2>
         <form
           action={createFee.bind(null, null) as (formData: FormData) => void}
-          className="flex flex-wrap gap-3"
+          className="flex flex-wrap gap-3 items-end"
         >
-          <input
-            name="title"
-            placeholder="Fee title *"
-            required
-            className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-36"
-          />
-          <select
-            name="type"
-            required
-            className="border rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="recurring">Recurring</option>
-            <option value="special">Special</option>
-          </select>
-          <input
-            name="amount"
-            type="number"
-            min="0.01"
-            step="0.01"
-            placeholder="Amount (FC) *"
-            required
-            className="border rounded-lg px-3 py-2 text-sm w-36"
-          />
+          <div className="space-y-1.5 flex-1 min-w-44">
+            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              Intitule du frais <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="title"
+              placeholder="ex. Frais de scolarite"
+              required
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Type</label>
+            <select
+              name="type"
+              required
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
+            >
+              <option value="recurring">Recurrent</option>
+              <option value="special">Exceptionnel</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              Montant ({school.currency}) <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required
+              className="w-32 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
+            />
+          </div>
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
           >
-            Create
+            Creer
           </button>
         </form>
       </div>
 
       {/* Fee list */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              {["Title", "Type", "Amount", "Status", ""].map((h) => (
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">
+            Grille des frais
+            <span className="ml-2 text-xs font-normal text-zinc-400">{fees?.length ?? 0}</span>
+          </h2>
+        </div>
+        <div className="overflow-x-auto"><table>
+          <thead>
+            <tr className="border-b border-zinc-100">
+              {["Intitule", "Type", "Montant", "Statut", ""].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-gray-500 font-medium text-left"
+                  className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide"
                 >
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-zinc-100">
             {fees?.map((f) => (
-              <tr key={f.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{f.title}</td>
+              <tr key={f.id} className="hover:bg-zinc-50 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium text-zinc-900">{f.title}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                       f.type === "recurring"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-purple-100 text-purple-700"
+                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : "bg-violet-50 text-violet-700 border border-violet-200"
                     }`}
                   >
-                    {f.type}
+                    {f.type === "recurring" ? "Recurrent" : "Exceptionnel"}
                   </span>
                 </td>
-                <td className="px-4 py-3">
-                  {Number(f.amount).toLocaleString()} {school.currency}
+                <td className="px-4 py-3 text-sm font-mono text-zinc-900">
+                  {Number(f.amount).toLocaleString("fr-FR")} {school.currency}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={f.active ? "text-green-600" : "text-gray-400"}>
-                    {f.active ? "Active" : "Inactive"}
+                  <span
+                    className={`text-sm font-medium ${
+                      f.active ? "text-emerald-600" : "text-zinc-400"
+                    }`}
+                  >
+                    {f.active ? "Actif" : "Inactif"}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <form
                     action={
-                      toggleFeeActive.bind(
-                        null,
-                        f.id,
-                        !f.active
-                      ) as () => void
+                      toggleFeeActive.bind(null, f.id, !f.active) as () => void
                     }
                   >
                     <button
                       type="submit"
-                      className="text-xs text-gray-500 hover:underline"
+                      className="text-xs text-zinc-500 hover:text-zinc-700 hover:underline transition-colors"
                     >
-                      {f.active ? "Deactivate" : "Activate"}
+                      {f.active ? "Desactiver" : "Activer"}
                     </button>
                   </form>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         {!fees?.length && (
-          <p className="p-5 text-gray-400">No fees defined yet.</p>
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm text-zinc-400">Aucun frais defini pour le moment.</p>
+          </div>
         )}
       </div>
     </div>

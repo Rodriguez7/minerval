@@ -50,10 +50,10 @@ describe("createCheckoutSession", () => {
     expect(result?.error).toBeTruthy();
   });
 
-  it("returns Unauthorized for non-owner/admin role", async () => {
+  it("returns French unauthorized error for non-owner/admin role", async () => {
     mockTenant({ membership: { id: "mem1", role: "viewer", status: "active" } });
     const result = await createCheckoutSession("growth_monthly");
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
   it("returns error for starter_free plan", async () => {
@@ -100,10 +100,10 @@ describe("createCheckoutSession", () => {
 describe("createPortalSession", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns Unauthorized for non-owner/admin role", async () => {
+  it("returns French unauthorized error for non-owner/admin role", async () => {
     mockTenant({ membership: { id: "mem1", role: "viewer", status: "active" } });
     const result = await createPortalSession();
-    expect(result?.error).toBe("Unauthorized");
+    expect(result?.error).toBe("Non autorise");
   });
 
   it("returns error if no stripe_customer_id", async () => {

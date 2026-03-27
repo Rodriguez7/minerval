@@ -42,7 +42,7 @@ describe("POST /api/dashboard/school/logo", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 403 for non-manager roles (viewer, finance)", async () => {
+  it("returns French 403 for non-manager roles (viewer, finance)", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce({
       school: { id: "school-123" },
       membership: { role: "viewer" },
@@ -54,16 +54,16 @@ describe("POST /api/dashboard/school/logo", () => {
     const res = await POST(req);
     expect(res.status).toBe(403);
     const json = await res.json();
-    expect(json.error).toMatch(/unauthorized/i);
+    expect(json.error).toBe("Non autorise");
   });
 
-  it("returns 400 when no file is provided", async () => {
+  it("returns French 400 when no file is provided", async () => {
     const formData = new FormData();
     const req = makeRequest(formData);
     const res = await POST(req);
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toMatch(/no file/i);
+    expect(json.error).toBe("Aucun fichier fourni");
   });
 
   it("returns 400 for disallowed MIME type", async () => {
@@ -77,7 +77,7 @@ describe("POST /api/dashboard/school/logo", () => {
     expect(json.error).toMatch(/png|jpeg|webp|gif/i);
   });
 
-  it("returns 400 when file exceeds 2MB", async () => {
+  it("returns French 400 when file exceeds 2MB", async () => {
     const formData = new FormData();
     const bigBuffer = new Uint8Array(3 * 1024 * 1024); // 3MB
     const file = new File([bigBuffer], "big.png", { type: "image/png" });
@@ -86,10 +86,10 @@ describe("POST /api/dashboard/school/logo", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toMatch(/2mb/i);
+    expect(json.error).toBe("Le fichier doit faire moins de 2 Mo");
   });
 
-  it("returns 500 when storage upload fails", async () => {
+  it("returns French 500 when storage upload fails", async () => {
     mockUpload.mockResolvedValue({ error: new Error("storage error") });
     const formData = new FormData();
     const file = new File(["img"], "logo.png", { type: "image/png" });
@@ -98,7 +98,7 @@ describe("POST /api/dashboard/school/logo", () => {
     const res = await POST(req);
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toMatch(/upload failed/i);
+    expect(json.error).toBe("L'envoi du logo a echoue");
   });
 
   it("returns logo_url on success", async () => {

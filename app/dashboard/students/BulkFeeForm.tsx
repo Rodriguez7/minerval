@@ -37,7 +37,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
       .filter(Boolean);
 
     if (rows.length === 0) {
-      setStatus("No valid rows found. Check your CSV format.");
+      setStatus("Aucune ligne valide trouvee. Verifiez le format du CSV.");
       setLoading(false);
       return;
     }
@@ -50,17 +50,17 @@ export function BulkFeeForm({ canBulkOps }: Props) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setStatus(data.error || "Update failed.");
+        setStatus(data.error || "La mise a jour a echoue.");
       } else {
         setStatus(
-          `Updated ${data.updated} student${data.updated !== 1 ? "s" : ""}.${
-            data.errors ? ` ${data.errors} row(s) had no matching student.` : ""
+          `${data.updated} eleve${data.updated !== 1 ? "s" : ""} mis a jour.${
+            data.errors ? ` ${data.errors} ligne(s) sans eleve correspondant.` : ""
           }`
         );
         if (fileRef.current) fileRef.current.value = "";
       }
     } catch {
-      setStatus("Network error. Please try again.");
+      setStatus("Erreur reseau. Reessayez.");
     } finally {
       setLoading(false);
     }
@@ -69,19 +69,19 @@ export function BulkFeeForm({ canBulkOps }: Props) {
   if (!canBulkOps) {
     return (
       <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="font-semibold mb-1">Bulk Fee Update</h2>
+        <h2 className="font-semibold mb-1">Mise a jour groupee des frais</h2>
         <p className="text-sm text-gray-500 mb-4">
-          Upload a CSV with columns{" "}
+          Importez un CSV avec les colonnes{" "}
           <code className="bg-gray-100 px-1 rounded text-xs">
             external_id,amount_due
           </code>{" "}
-          to update balances in bulk.
+          pour mettre a jour les soldes en masse.
         </p>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
           <p>
-            Bulk fee updates are available on the{" "}
+            Les mises a jour groupees sont disponibles avec le{" "}
             <a href="/dashboard/billing" className="font-medium text-gray-900 underline">
-              Pro plan
+              plan Pro
             </a>
             .
           </p>
@@ -92,13 +92,13 @@ export function BulkFeeForm({ canBulkOps }: Props) {
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="font-semibold mb-1">Bulk Fee Update</h2>
+      <h2 className="font-semibold mb-1">Mise a jour groupee des frais</h2>
       <p className="text-sm text-gray-500 mb-4">
-        Upload a CSV with columns{" "}
+        Importez un CSV avec les colonnes{" "}
         <code className="bg-gray-100 px-1 rounded text-xs">
           external_id,amount_due
         </code>{" "}
-        to update balances in bulk.
+        pour mettre a jour les soldes en masse.
       </p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
@@ -111,7 +111,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
         {status && (
           <p
             className={`text-sm ${
-              status.startsWith("Updated")
+              status.includes("mis a jour")
                 ? "text-green-700"
                 : "text-red-600"
             }`}
@@ -124,7 +124,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
           disabled={loading}
           className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
-          {loading ? "Updating…" : "Upload & Update"}
+          {loading ? "Mise a jour…" : "Importer et mettre a jour"}
         </button>
       </form>
     </div>

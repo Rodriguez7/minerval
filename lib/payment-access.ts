@@ -15,6 +15,10 @@ export function getSchoolPaymentUrl(paymentAccessToken: string) {
   return appUrl ? `${appUrl}${path}` : path;
 }
 
+function isMissingLogoColumnError(message: string) {
+  return message.includes("logo_url") && message.includes("does not exist");
+}
+
 export async function getSchoolByPaymentAccessToken(
   paymentAccessToken: string
 ): Promise<PaymentAccessSchool | null> {
@@ -31,7 +35,12 @@ export async function getSchoolByPaymentAccessToken(
   // Fallback: retry without logo_url. PostgREST may not have the column in
   // its schema cache yet (migration 010 added it; NOTIFY may not have reached
   // the service-role request path). Self-heals once PostgREST reloads.
-  console.error("[payment-access] school lookup with logo_url failed, retrying without it:", error.message);
+  if (!isMissingLogoColumnError(error.message)) {
+    console.error(
+      "[payment-access] school lookup with logo_url failed, retrying without it:",
+      error.message
+    );
+  }
 
   const { data: fallback } = await admin
     .from("schools")

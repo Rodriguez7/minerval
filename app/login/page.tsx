@@ -1,9 +1,15 @@
 "use client";
 import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
-import Link from "next/link";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { useLocale } from "@/lib/i18n/client";
+import { getAuthCopy } from "@/lib/i18n/copy/auth";
+import { formatMoney, formatNumber } from "@/lib/i18n/format";
 
 export default function LoginPage() {
+  const locale = useLocale();
+  const copy = getAuthCopy(locale);
   const [state, action, pending] = useActionState(login, null);
 
   return (
@@ -79,7 +85,10 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="login-root min-h-[100dvh] flex" style={{ background: "#f8fafc" }}>
+      <div className="login-root relative min-h-[100dvh] flex" style={{ background: "#f8fafc" }}>
+        <div className="absolute right-4 top-4 z-20 md:right-6 md:top-6">
+          <LanguageSwitcher />
+        </div>
 
         {/* ── Left brand panel ── */}
         <div className="left-panel hidden lg:flex lg:w-[52%] flex-col justify-between p-12 relative overflow-hidden"
@@ -96,30 +105,47 @@ export default function LoginPage() {
 
           {/* Logo */}
           <div>
-            <Link href="/" style={{ textDecoration: "none" }}>
+            <LocalizedLink href="/" style={{ textDecoration: "none" }}>
               <span style={{ fontSize: 22, fontWeight: 700, color: "white", letterSpacing: "-0.5px" }}>Minerval</span>
-            </Link>
+            </LocalizedLink>
           </div>
 
           {/* Main copy */}
           <div style={{ maxWidth: 400 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(147,197,253,0.9)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 20 }}>
-              School finance, simplified
+              {copy.login.heroEyebrow}
             </p>
             <h2 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 800, color: "white", lineHeight: 1.15, letterSpacing: "-1px", marginBottom: 16 }}>
-              Every payment.<br />Every student.<br />One dashboard.
+              {copy.login.heroTitleLines[0]}<br />
+              {copy.login.heroTitleLines[1]}<br />
+              {copy.login.heroTitleLines[2]}
             </h2>
             <p style={{ fontSize: 15, color: "rgba(148,163,184,0.9)", lineHeight: 1.7, maxWidth: 340 }}>
-              Collect school fees via mobile money and reconcile in real time — no spreadsheets, no cash counting.
+              {copy.login.heroDescription}
             </p>
           </div>
 
           {/* Live stats strip */}
           <div style={{ display: "flex", gap: 12 }}>
             {[
-              { label: "Collected today", value: "47,200 FC", sub: "+12%" },
-              { label: "Students paid", value: "248", sub: "of 312" },
-              { label: "Pending", value: "3", sub: "< 1h old" },
+              {
+                label: copy.login.stats[0].label,
+                value: formatMoney(47200, "FC", locale),
+                sub: copy.login.stats[0].sub,
+              },
+              {
+                label: copy.login.stats[1].label,
+                value: formatNumber(248, locale),
+                sub:
+                  locale === "fr"
+                    ? `sur ${formatNumber(312, locale)}`
+                    : `of ${formatNumber(312, locale)}`,
+              },
+              {
+                label: copy.login.stats[2].label,
+                value: formatNumber(3, locale),
+                sub: copy.login.stats[2].sub,
+              },
             ].map((s) => (
               <div key={s.label} className="stat-card" style={{
                 flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
@@ -140,32 +166,33 @@ export default function LoginPage() {
 
             {/* Mobile logo */}
             <div className="lg:hidden mb-8">
-              <Link href="/" style={{ textDecoration: "none" }}>
+              <LocalizedLink href="/" style={{ textDecoration: "none" }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8", letterSpacing: "-0.5px" }}>Minerval</span>
-              </Link>
+              </LocalizedLink>
             </div>
 
             {/* Heading */}
             <div className="form-field" style={{ marginBottom: 36 }}>
               <h1 style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.8px", marginBottom: 6 }}>
-                Welcome back
+                {copy.login.heading}
               </h1>
               <p style={{ fontSize: 14, color: "#64748b" }}>
-                Sign in to your school dashboard
+                {copy.login.subheading}
               </p>
             </div>
 
             <form action={action} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <input type="hidden" name="locale" value={locale} />
 
               {/* Email */}
               <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Email address</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{copy.login.emailLabel}</label>
                 <input
                   name="email"
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="admin@yourschool.org"
+                  placeholder={copy.login.emailPlaceholder}
                   className={`input-field${state?.error ? " error" : ""}`}
                   style={{
                     border: "1.5px solid #e2e8f0", borderRadius: 10,
@@ -179,15 +206,15 @@ export default function LoginPage() {
               {/* Password */}
               <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
-                  <Link href="/forgot-password" style={{ fontSize: 12, color: "#1d4ed8", textDecoration: "none" }}>Forgot password?</Link>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{copy.login.passwordLabel}</label>
+                  <LocalizedLink href="/forgot-password" style={{ fontSize: 12, color: "#1d4ed8", textDecoration: "none" }}>{copy.login.forgotPassword}</LocalizedLink>
                 </div>
                 <input
                   name="password"
                   type="password"
                   required
                   autoComplete="current-password"
-                  placeholder="••••••••"
+                  placeholder={copy.login.passwordPlaceholder}
                   className={`input-field${state?.error ? " error" : ""}`}
                   style={{
                     border: "1.5px solid #e2e8f0", borderRadius: 10,
@@ -234,17 +261,17 @@ export default function LoginPage() {
                       <span className="dot-2" />
                       <span className="dot-3" />
                     </>
-                  ) : "Sign in"}
+                  ) : copy.login.submit}
                 </button>
               </div>
             </form>
 
             {/* Footer link */}
             <p style={{ marginTop: 28, fontSize: 13, color: "#94a3b8", textAlign: "center" }}>
-              New school?{" "}
-              <Link href="/signup" style={{ color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
-                Create a free account
-              </Link>
+              {copy.login.footerPrompt}{" "}
+              <LocalizedLink href="/signup" style={{ color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
+                {copy.login.footerLink}
+              </LocalizedLink>
             </p>
           </div>
         </div>

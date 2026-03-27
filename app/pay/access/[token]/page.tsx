@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Image from "next/image";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getAdminClient } from "@/lib/supabase";
@@ -8,6 +9,11 @@ import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
 import { computeFee } from "@/lib/fee";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { getPaymentsCopy } from "@/lib/i18n/copy/payments";
+import { formatMoney } from "@/lib/i18n/format";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { renderTemplate } from "@/lib/i18n/template";
 
 export default async function PayAccessPage({
   params,
@@ -16,6 +22,8 @@ export default async function PayAccessPage({
   params: Promise<{ token: string }>;
   searchParams: Promise<{ student?: string }>;
 }) {
+  const locale = await getRequestLocale();
+  const copy = getPaymentsCopy(locale);
   const { token } = await params;
   const { student: studentExternalId } = await searchParams;
   const school = await getSchoolByPaymentAccessToken(token);
@@ -36,7 +44,9 @@ export default async function PayAccessPage({
     });
 
     if (!rateLimit.allowed) {
-      studentError = `Too many lookup attempts. Please wait ${rateLimit.retryAfterSeconds} seconds and try again.`;
+      studentError = renderTemplate(copy.access.tooManyLookupAttempts, {
+        seconds: rateLimit.retryAfterSeconds,
+      });
     } else {
       const { data, error } = await getAdminClient()
         .from("students")
@@ -46,7 +56,7 @@ export default async function PayAccessPage({
         .single();
 
       if (error || !data) {
-        studentError = "Student not found. Check your ID and try again.";
+        studentError = copy.access.studentNotFound;
       } else {
         student = data;
 
@@ -73,21 +83,26 @@ export default async function PayAccessPage({
   const currency = school.currency ?? "FC";
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
+    <main className="relative min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
+      <div className="absolute right-4 top-4 md:right-6 md:top-6">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         <div className="mb-8">
           {school.logo_url && (
-            <img
+            <Image
               src={school.logo_url}
               alt={`${school.name} logo`}
+              width={192}
+              height={48}
               className="h-12 w-auto mb-3 object-contain"
             />
           )}
           <h1 className="text-2xl font-bold">{school.name}</h1>
-          <p className="text-gray-500 text-sm">School Fee Payment</p>
+          <p className="text-gray-500 text-sm">{copy.access.pageSubtitle}</p>
         </div>
 
-        {!studentExternalId && <StudentSearch />}
+        {!studentExternalId && <StudentSearch label={copy.access.searchLabel} placeholder={copy.access.searchPlaceholder} buttonLabel={copy.access.searchButton} />}
 
         {studentExternalId && studentError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -102,32 +117,32 @@ export default async function PayAccessPage({
               {student.class_name && (
                 <p className="text-gray-500 text-sm">{student.class_name}</p>
               )}
-              <p className="text-sm text-gray-400 mt-1">ID: {student.external_id}</p>
+              <p className="text-sm text-gray-400 mt-1">{copy.access.studentIdLabel}: {student.external_id}</p>
 
               {feeDisplayMode === "visible_line_item" && feeAmount > 0 ? (
                 <div className="mt-4 space-y-1 text-sm text-gray-600 border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between">
-                    <span>School fee</span>
-                    <span>{student.amount_due.toLocaleString()} {currency}</span>
+                    <span>{copy.access.schoolFee}</span>
+                    <span>{formatMoney(student.amount_due, currency, locale)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Transaction fee</span>
-                    <span>{feeAmount.toLocaleString()} {currency}</span>
+                    <span>{copy.access.transactionFee}</span>
+                    <span>{formatMoney(feeAmount, currency, locale)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-base border-t pt-2 mt-1">
-                    <span>Total</span>
-                    <span>{totalAmount.toLocaleString()} {currency}</span>
+                    <span>{copy.access.total}</span>
+                    <span>{formatMoney(totalAmount, currency, locale)}</span>
                   </div>
                 </div>
               ) : (
                 <p className="text-3xl font-bold mt-4">
-                  {totalAmount.toLocaleString()} {currency}
+                  {formatMoney(totalAmount, currency, locale)}
                 </p>
               )}
             </div>
 
             {student.amount_due <= 0 ? (
-              <p className="text-green-700 font-medium">No outstanding fees. All paid!</p>
+              <p className="text-green-700 font-medium">{copy.access.allPaid}</p>
             ) : (
               <PayForm
                 studentId={student.external_id}
@@ -143,22 +158,30 @@ export default async function PayAccessPage({
   );
 }
 
-function StudentSearch() {
+function StudentSearch({
+  label,
+  placeholder,
+  buttonLabel,
+}: {
+  label: string;
+  placeholder: string;
+  buttonLabel: string;
+}) {
   return (
     <form method="GET" className="bg-white rounded-xl shadow p-6">
-      <label className="block text-sm font-medium mb-2">Enter your Student ID</label>
+      <label className="block text-sm font-medium mb-2">{label}</label>
       <input
         name="student"
         type="text"
         required
-        placeholder="e.g. STU-001"
+        placeholder={placeholder}
         className="w-full border rounded-lg px-3 py-2 mb-4"
       />
       <button
         type="submit"
         className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium"
       >
-        Look up
+        {buttonLabel}
       </button>
     </form>
   );

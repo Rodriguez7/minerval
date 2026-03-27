@@ -19,7 +19,7 @@ export async function updatePricingPolicy(
   const { school, membership } = await getTenantContext();
 
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Unauthorized" };
+    return { error: "Non autorise" };
   }
 
   const parsed = PricingSchema.safeParse({
@@ -28,7 +28,7 @@ export async function updatePricingPolicy(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Validation error" };
+    return { error: parsed.error.issues[0]?.message ?? "Erreur de validation" };
   }
 
   const admin = getAdminClient();
@@ -43,7 +43,7 @@ export async function updatePricingPolicy(
       { onConflict: "school_id" }
     );
 
-  if (error) return { error: "Failed to update pricing policy." };
+  if (error) return { error: "Impossible de mettre a jour la politique tarifaire." };
 
   revalidatePath("/dashboard/settings");
   return { success: true };

@@ -15,9 +15,6 @@ async function loadTeamData() {
     .eq("school_id", school.id)
     .order("created_at");
 
-  // NOTE: listUsers() defaults to perPage:50 and caps at 1,000. For Phase 1b (small teams)
-  // this is fine, but will silently show "(unknown)" for emails beyond page 1 at scale.
-  // Phase 1b-SSR plan should track adding pagination or a per-user lookup.
   const { data: listData } = await admin.auth.admin.listUsers();
   const emailMap = new Map(
     (listData?.users ?? []).map((u) => [u.id, u.email ?? ""])
@@ -35,10 +32,10 @@ async function loadTeamData() {
 }
 
 const ROLE_LABELS: Record<MembershipRole, string> = {
-  owner: "Owner",
+  owner: "Proprietaire",
   admin: "Admin",
   finance: "Finance",
-  viewer: "Viewer",
+  viewer: "Lecture",
 };
 
 export default async function TeamPage() {
@@ -46,39 +43,48 @@ export default async function TeamPage() {
   const canManage = ["owner", "admin"].includes(currentMembership.role);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Team</h1>
+    <div className="space-y-8 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Equipe</h1>
+        <p className="text-sm text-zinc-500 mt-1">Gerez les membres et les roles d&apos;acces</p>
+      </div>
 
       {canManage && (
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="font-semibold mb-4">Invite team member</h2>
+        <div className="bg-white rounded-xl border border-zinc-200 p-6">
+          <h2 className="text-sm font-semibold text-zinc-900 mb-4">Inviter un membre</h2>
           <InviteForm />
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left">
-            <tr>
-              {["Email", "Role", "Status", ""].map((h) => (
-                <th key={h} className="px-4 py-3 text-gray-500 font-medium">
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">
+            Membres
+            <span className="ml-2 text-xs font-normal text-zinc-400">{members.length}</span>
+          </h2>
+        </div>
+        <div className="overflow-x-auto"><table>
+          <thead>
+            <tr className="border-b border-zinc-100">
+              {["Email", "Role", "Statut", ""].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-zinc-100">
             {members.map((m) => {
               const isSelf = m.user_id === currentUserId;
               return (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
+                <tr key={m.id} className="hover:bg-zinc-50 transition-colors">
+                  <td className="px-4 py-3 text-sm text-zinc-900">
                     {m.email}
                     {isSelf && (
-                      <span className="ml-2 text-xs text-gray-400">(you)</span>
+                      <span className="ml-2 text-xs text-zinc-400">(vous)</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-sm text-zinc-600">
                     {canManage && !isSelf ? (
                       <RoleSelect memberId={m.id} currentRole={m.role} />
                     ) : (
@@ -87,16 +93,16 @@ export default async function TeamPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                         m.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-zinc-100 text-zinc-500 border border-zinc-200"
                       }`}
                     >
-                      {m.status}
+                      {m.status === "active" ? "actif" : "inactif"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 space-x-3">
+                  <td className="px-4 py-3">
                     {canManage && !isSelf && m.status === "active" && (
                       <form
                         action={async () => {
@@ -107,9 +113,9 @@ export default async function TeamPage() {
                       >
                         <button
                           type="submit"
-                          className="text-xs text-red-600 hover:underline"
+                          className="text-xs text-red-600 hover:underline transition-colors"
                         >
-                          Deactivate
+                          Desactiver
                         </button>
                       </form>
                     )}
@@ -118,7 +124,7 @@ export default async function TeamPage() {
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

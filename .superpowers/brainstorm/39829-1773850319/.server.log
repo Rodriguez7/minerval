@@ -1,0 +1,9 @@
+{"type":"server-started","port":62087,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62087","screen_dir":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319"}
+{"type":"screen-added","file":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319/hero-layout.html"}
+{"source":"user-event","type":"click","text":"A — Split Screen\n      Bold headline left, dashboard screenshot right. Immediately shows the product.","choice":"A","id":null,"timestamp":1773850538562}
+{"type":"screen-added","file":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319/page-structure.html"}
+{"type":"screen-added","file":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319/landing-mockup.html"}
+{"type":"screen-added","file":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319/landing-mockup-v2.html"}
+{"type":"screen-added","file":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319/landing-mockup-v3.html"}
+{"type":"screen-added","file":"/Users/rod/20 Apps/Minerval/minerval/.superpowers/brainstorm/39829-1773850319/landing-mockup-v4.html"}
+{"type":"server-stopped","reason":"owner process exited"}

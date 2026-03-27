@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { school, membership } = await getTenantContext();
 
   if (!["owner", "admin"].includes(membership.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 });
   }
 
   const admin = getAdminClient();
@@ -18,24 +18,24 @@ export async function POST(req: NextRequest) {
   try {
     formData = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+    return NextResponse.json({ error: "Donnees de formulaire invalides" }, { status: 400 });
   }
 
   const file = formData.get("logo") as File | null;
   if (!file || file.size === 0) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 });
   }
 
   if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
-      { error: "File must be PNG, JPEG, WebP, or GIF" },
+      { error: "Le fichier doit etre au format PNG, JPEG, WebP ou GIF" },
       { status: 400 }
     );
   }
 
   if (file.size > MAX_SIZE) {
     return NextResponse.json(
-      { error: "File must be under 2MB" },
+      { error: "Le fichier doit faire moins de 2 Mo" },
       { status: 400 }
     );
   }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     });
 
   if (uploadError) {
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json({ error: "L'envoi du logo a echoue" }, { status: 500 });
   }
 
   const { data: urlData } = admin.storage
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     .eq("id", school.id);
 
   if (updateError) {
-    return NextResponse.json({ error: "Failed to save logo URL" }, { status: 500 });
+    return NextResponse.json({ error: "Impossible d'enregistrer l'URL du logo" }, { status: 500 });
   }
 
   return NextResponse.json({ logo_url });

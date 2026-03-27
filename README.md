@@ -56,11 +56,11 @@ Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/
 
 ### Fixed-IP Proxy
 
-The fixed-IP SerdiPay proxy now lives in [`proxy/`](/Users/rod/20%20Apps/Minerval/minerval/proxy). It includes:
+The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](/Users/rod/20%20Apps/Minerval/minerval/serdipay-proxy). It includes:
 
 - a deployable Express service
 - PM2 config for Hetzner
-- a dedicated env example in [`proxy/.env.example`](/Users/rod/20%20Apps/Minerval/minerval/proxy/.env.example)
+- a dedicated env example in [`serdipay-proxy/.env.example`](/Users/rod/20%20Apps/Minerval/minerval/serdipay-proxy/.env.example)
 
 ## How Payments Work
 

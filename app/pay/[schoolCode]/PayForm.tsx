@@ -3,6 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Telecom } from "@/lib/types";
 import { TELECOM_LABELS } from "@/lib/types";
+import { useLocale } from "@/lib/i18n/client";
+import { getPaymentsCopy } from "@/lib/i18n/copy/payments";
+import { formatMoney } from "@/lib/i18n/format";
+import { localizeHref } from "@/lib/i18n/config";
 
 interface Props {
   studentId: string;
@@ -13,6 +17,8 @@ interface Props {
 
 export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }: Props) {
   const router = useRouter();
+  const locale = useLocale();
+  const copy = getPaymentsCopy(locale);
   const [phone, setPhone] = useState("");
   const [telecom, setTelecom] = useState<Telecom | "">("");
   const [loading, setLoading] = useState(false);
@@ -36,16 +42,18 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
       });
       const data = await res.json();
       if (res.status === 409) {
-        setError("A payment is already in progress. Please wait 2 minutes and try again.");
+        setError(copy.sharedForm.errors.paymentInProgress);
       } else if (res.status === 429) {
-        setError(data.error || "Too many attempts. Please try again later.");
+        setError(copy.sharedForm.errors.tooManyAttempts);
       } else if (!res.ok) {
-        setError(data.error || "Payment failed. Please try again.");
+        setError(copy.sharedForm.errors.paymentFailed);
       } else {
-        router.push(`/pay/receipt?ref=${data.payment_request_id}`);
+        router.push(
+          localizeHref(locale, `/pay/receipt?ref=${data.payment_request_id}`)
+        );
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError(copy.sharedForm.errors.network);
     } finally {
       setLoading(false);
     }
@@ -54,26 +62,26 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Mobile Money Provider</label>
+        <label className="block text-sm font-medium mb-1">{copy.sharedForm.providerLabel}</label>
         <select
           value={telecom}
           onChange={(e) => setTelecom(e.target.value as Telecom)}
           required
           className="w-full border rounded-lg px-3 py-2 bg-white"
         >
-          <option value="">Select provider…</option>
+          <option value="">{copy.sharedForm.providerPlaceholder}</option>
           {(Object.entries(TELECOM_LABELS) as [Telecom, string][]).map(([code, label]) => (
             <option key={code} value={code}>{label}</option>
           ))}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Mobile Money Number</label>
+        <label className="block text-sm font-medium mb-1">{copy.sharedForm.numberLabel}</label>
         <input
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="243812345678"
+          placeholder={copy.sharedForm.phonePlaceholder}
           required
           className="w-full border rounded-lg px-3 py-2"
         />
@@ -84,7 +92,9 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
         disabled={loading || !telecom}
         className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
       >
-        {loading ? "Processing…" : `Pay ${amountDue.toLocaleString()} ${currency}`}
+        {loading
+          ? copy.sharedForm.processing
+          : `${copy.sharedForm.payButtonLabel} ${formatMoney(amountDue, currency, locale)}`}
       </button>
     </form>
   );

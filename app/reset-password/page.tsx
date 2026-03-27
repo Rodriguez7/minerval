@@ -1,13 +1,19 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { useLocale } from "@/lib/i18n/client";
+import { getAuthCopy } from "@/lib/i18n/copy/auth";
+import { localizePathname } from "@/lib/i18n/config";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const copy = getAuthCopy(locale);
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("")
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
@@ -17,14 +23,20 @@ export default function ResetPasswordPage() {
     : password.length < 12 ? 2
     : 3;
 
-  const strengthLabel = ["", "Too short", "Good", "Strong"][strength];
+  const strengthLabel = copy.resetPassword.strengthLabels[strength];
   const strengthColor = ["", "#ef4444", "#f59e0b", "#16a34a"][strength];
   const strengthWidth = ["0%", "33%", "66%", "100%"][strength];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (password.length < 8) {
+      setError(copy.resetPassword.errors.passwordMin);
+      return;
+    }
+    if (password !== confirm) {
+      setError(copy.resetPassword.errors.passwordMismatch);
+      return;
+    }
 
     setPending(true);
     setError(null);
@@ -39,7 +51,7 @@ export default function ResetPasswordPage() {
 
     if (updateError) { setError(updateError.message); return; }
     setDone(true);
-    setTimeout(() => router.push("/dashboard"), 2200);
+    setTimeout(() => router.push(localizePathname(locale, "/dashboard")), 2200);
   }
 
   return (
@@ -151,7 +163,10 @@ export default function ResetPasswordPage() {
         }
       `}</style>
 
-      <div className="rp-root min-h-[100dvh] flex" style={{ background: "#f8fafc" }}>
+      <div className="rp-root relative min-h-[100dvh] flex" style={{ background: "#f8fafc" }}>
+        <div className="absolute right-4 top-4 z-20 md:right-6 md:top-6">
+          <LanguageSwitcher />
+        </div>
 
         {/* ── Left brand panel ── */}
         <div
@@ -167,33 +182,30 @@ export default function ResetPasswordPage() {
           ))}
 
           <div>
-            <Link href="/" style={{ textDecoration: "none" }}>
+            <LocalizedLink href="/" style={{ textDecoration: "none" }}>
               <span style={{ fontSize: 22, fontWeight: 700, color: "white", letterSpacing: "-0.5px" }}>Minerval</span>
-            </Link>
+            </LocalizedLink>
           </div>
 
           <div style={{ maxWidth: 400 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(147,197,253,0.9)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 20 }}>
-              Almost done
+              {copy.resetPassword.heroEyebrow}
             </p>
             <h2 style={{ fontSize: "clamp(26px,3vw,38px)", fontWeight: 800, color: "white", lineHeight: 1.15, letterSpacing: "-1px", marginBottom: 16 }}>
-              Choose a password<br />you'll remember.
+              {copy.resetPassword.heroTitleLines[0]}<br />
+              {copy.resetPassword.heroTitleLines[1]}
             </h2>
             <p style={{ fontSize: 15, color: "rgba(148,163,184,0.9)", lineHeight: 1.7, maxWidth: 340 }}>
-              Your new password will replace the old one immediately. All other sessions will remain active.
+              {copy.resetPassword.heroDescription}
             </p>
           </div>
 
           {/* Steps */}
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(147,197,253,0.7)", letterSpacing: "1.2px", textTransform: "uppercase", marginBottom: 16 }}>
-              What happens next
+              {copy.resetPassword.stepsLabel}
             </p>
-            {[
-              "Set your new password below",
-              "You'll be signed in automatically",
-              "Manage your account from the dashboard",
-            ].map((step, i) => (
+            {copy.resetPassword.steps.map((step, i) => (
               <div key={i} className="steps-item">
                 <div className="step-num">{i + 1}</div>
                 <p style={{ fontSize: 13, color: "rgba(148,163,184,0.9)", lineHeight: 1.55, paddingTop: 2 }}>{step}</p>
@@ -208,9 +220,9 @@ export default function ResetPasswordPage() {
 
             {/* Mobile logo */}
             <div className="lg:hidden mb-8">
-              <Link href="/" style={{ textDecoration: "none" }}>
+              <LocalizedLink href="/" style={{ textDecoration: "none" }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8", letterSpacing: "-0.5px" }}>Minerval</span>
-              </Link>
+              </LocalizedLink>
             </div>
 
             {done ? (
@@ -233,10 +245,10 @@ export default function ResetPasswordPage() {
                   </div>
                 </div>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px", marginBottom: 10 }}>
-                  Password updated
+                  {copy.resetPassword.successTitle}
                 </h2>
                 <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, marginBottom: 8 }}>
-                  Taking you to your dashboard…
+                  {copy.resetPassword.successDescription}
                 </p>
                 <div style={{ width: 40, height: 2, background: "#e2e8f0", borderRadius: 2, margin: "0 auto" }}>
                   <div style={{ height: "100%", background: "#1d4ed8", borderRadius: 2, animation: "strengthFill 2.2s linear both" }} />
@@ -247,10 +259,10 @@ export default function ResetPasswordPage() {
               <>
                 <div className="form-field" style={{ marginBottom: 36 }}>
                   <h1 style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.8px", marginBottom: 6 }}>
-                    Set new password
+                    {copy.resetPassword.heading}
                   </h1>
                   <p style={{ fontSize: 14, color: "#64748b" }}>
-                    Choose something strong — at least 8 characters.
+                    {copy.resetPassword.subheading}
                   </p>
                 </div>
 
@@ -258,14 +270,14 @@ export default function ResetPasswordPage() {
 
                   {/* New password */}
                   <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>New password</label>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{copy.resetPassword.newPasswordLabel}</label>
                     <input
                       type="password"
                       required
-                      placeholder="Min. 8 characters"
+                      placeholder={copy.resetPassword.newPasswordPlaceholder}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      className={`input-field${error && error.includes("8") ? " error" : ""}`}
+                      className={`input-field${error === copy.resetPassword.errors.passwordMin ? " error" : ""}`}
                       style={{
                         border: "1.5px solid #e2e8f0", borderRadius: 10,
                         padding: "11px 14px", fontSize: 14, color: "#0f172a",
@@ -290,14 +302,14 @@ export default function ResetPasswordPage() {
 
                   {/* Confirm password */}
                   <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Confirm password</label>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{copy.resetPassword.confirmPasswordLabel}</label>
                     <input
                       type="password"
                       required
-                      placeholder="Repeat your password"
+                      placeholder={copy.resetPassword.confirmPasswordPlaceholder}
                       value={confirm}
                       onChange={e => setConfirm(e.target.value)}
-                      className={`input-field${error && error.includes("match") ? " error" : ""}`}
+                      className={`input-field${error === copy.resetPassword.errors.passwordMismatch ? " error" : ""}`}
                       style={{
                         border: "1.5px solid #e2e8f0", borderRadius: 10,
                         padding: "11px 14px", fontSize: 14, color: "#0f172a",
@@ -307,7 +319,7 @@ export default function ResetPasswordPage() {
                     {/* Match indicator */}
                     {confirm.length > 0 && (
                       <p style={{ fontSize: 11, fontWeight: 600, marginTop: 2, color: confirm === password ? "#16a34a" : "#ef4444" }}>
-                        {confirm === password ? "Passwords match" : "Does not match"}
+                        {confirm === password ? copy.resetPassword.matchYes : copy.resetPassword.matchNo}
                       </p>
                     )}
                   </div>
@@ -347,16 +359,16 @@ export default function ResetPasswordPage() {
                           <span className="dot-2" />
                           <span className="dot-3" />
                         </>
-                      ) : "Update password"}
+                      ) : copy.resetPassword.submit}
                     </button>
                   </div>
                 </form>
 
                 <p style={{ marginTop: 28, fontSize: 13, color: "#94a3b8", textAlign: "center" }}>
-                  Remembered your password?{" "}
-                  <Link href="/login" style={{ color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
-                    Sign in
-                  </Link>
+                  {copy.resetPassword.footerPrompt}{" "}
+                  <LocalizedLink href="/login" style={{ color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
+                    {copy.resetPassword.footerLink}
+                  </LocalizedLink>
                 </p>
               </>
             )}

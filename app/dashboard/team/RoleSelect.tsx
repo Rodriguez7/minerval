@@ -24,7 +24,11 @@ export function RoleSelect({ memberId, currentRole }: { memberId: string; curren
       >
         {(["owner", "admin", "finance", "viewer"] as MembershipRole[]).map((r) => (
           <option key={r} value={r}>
-            {r.charAt(0).toUpperCase() + r.slice(1)}
+            {r === "owner"
+              ? "Proprietaire"
+              : r === "viewer"
+                ? "Lecture"
+                : r.charAt(0).toUpperCase() + r.slice(1)}
           </option>
         ))}
       </select>

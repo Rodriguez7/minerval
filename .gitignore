@@ -2,7 +2,7 @@
 
 # dependencies
 /node_modules
-proxy/node_modules
+serdipay-proxy/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -34,7 +34,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
-!proxy/.env.example
+!serdipay-proxy/.env.example
 
 # vercel
 .vercel

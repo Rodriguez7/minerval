@@ -13,9 +13,9 @@ export function PayForm({ student }: { student: StudentInfo }) {
   if (done) {
     return (
       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-        <p className="font-semibold text-green-700">Payment initiated</p>
+        <p className="font-semibold text-green-700">Paiement lance</p>
         <p className="text-sm text-green-600 mt-1">
-          You will receive a confirmation prompt on your phone shortly.
+          Vous recevrez bientot une demande de confirmation sur votre telephone.
         </p>
       </div>
     );
@@ -34,14 +34,14 @@ export function PayForm({ student }: { student: StudentInfo }) {
       });
       const data = await res.json();
       if (res.status === 409) {
-        setError("A payment is already in progress for this number. Please wait 2 minutes and try again.");
+        setError("Un paiement est deja en cours pour ce numero. Attendez 2 minutes puis reessayez.");
       } else if (!res.ok) {
-        setError(data.error || "Payment failed. Please try again.");
+        setError(data.error || "Le paiement a echoue. Reessayez.");
       } else {
         setDone(true);
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError("Erreur reseau. Reessayez.");
     } finally {
       setLoading(false);
     }
@@ -50,26 +50,26 @@ export function PayForm({ student }: { student: StudentInfo }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Mobile Money Provider</label>
+        <label className="block text-sm font-medium mb-1">Operateur Mobile Money</label>
         <select
           value={telecom}
           onChange={(e) => setTelecom(e.target.value as Telecom)}
           required
           className="w-full border rounded-lg px-3 py-2 bg-white"
         >
-          <option value="">Select provider...</option>
+          <option value="">Choisir un operateur...</option>
           {(Object.entries(TELECOM_LABELS) as [Telecom, string][]).map(([code, label]) => (
             <option key={code} value={code}>{label}</option>
           ))}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Mobile Money Number</label>
+        <label className="block text-sm font-medium mb-1">Numero Mobile Money</label>
         <input
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="e.g. 243812345678"
+          placeholder="ex. 243812345678"
           required
           className="w-full border rounded-lg px-3 py-2"
         />
@@ -80,7 +80,7 @@ export function PayForm({ student }: { student: StudentInfo }) {
         disabled={loading || !telecom}
         className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
       >
-        {loading ? "Processing..." : `Pay ${student.amount_due.toLocaleString()} FC`}
+        {loading ? "Traitement..." : `Payer ${student.amount_due.toLocaleString("fr-FR")} FC`}
       </button>
     </form>
   );

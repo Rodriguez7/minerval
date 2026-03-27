@@ -120,7 +120,7 @@ describe("POST /api/payments/initiate", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 400 with 'no fees' message if amount_due is 0", async () => {
+  it("returns French 400 message when amount_due is 0", async () => {
     const mockFrom = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -138,7 +138,7 @@ describe("POST /api/payments/initiate", () => {
     );
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/no fees/i);
+    expect(body.error).toBe("Aucun frais en attente pour cet eleve");
   });
 
   it("creates payment_request with telecom, calls proxy, returns pending", async () => {

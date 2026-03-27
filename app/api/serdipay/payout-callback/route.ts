@@ -8,14 +8,14 @@ export async function POST(req: NextRequest) {
     process.env.SERDIPAY_CALLBACK_SECRET &&
     secret !== process.env.SERDIPAY_CALLBACK_SECRET
   ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Non autorise" }, { status: 401 });
   }
 
   let body: { message?: string; payment?: { status?: string; transactionId?: string } };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
   const payoutId = body.message;
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const transactionId = body.payment?.transactionId;
 
   if (!payoutId || !paymentStatus) {
-    return NextResponse.json({ error: "message and payment.status are required" }, { status: 400 });
+    return NextResponse.json({ error: "message et payment.status sont obligatoires" }, { status: 400 });
   }
 
   const admin = getAdminClient();
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!payout) {
-    return NextResponse.json({ message: "unknown payout, ignored" }, { status: 200 });
+    return NextResponse.json({ message: "versement inconnu, ignore" }, { status: 200 });
   }
 
   const isSuccess = paymentStatus === "success";

@@ -42,7 +42,7 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Failed to submit withdrawal request");
+        setError(data.error ?? "La demande de retrait a echoue");
         return;
       }
 
@@ -56,21 +56,21 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
   if (success) {
     return (
       <div className="rounded-lg border p-4 text-sm text-green-700 bg-green-50">
-        Withdrawal request submitted. You will receive an email once it is processed.
+        Demande de retrait envoyee. Vous recevrez un email une fois traitee.
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border p-4">
-      <h2 className="font-semibold text-sm">Request Withdrawal</h2>
+      <h2 className="font-semibold text-sm">Demander un retrait</h2>
 
       <p className="text-xs text-gray-500">
-        Available balance: {availableBalance.toLocaleString()} {currency}
+        Solde disponible : {availableBalance.toLocaleString("fr-FR")} {currency}
       </p>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium">Amount ({currency})</label>
+        <label className="text-xs font-medium">Montant ({currency})</label>
         <input
           type="number"
           min={1000}
@@ -78,13 +78,13 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="w-full rounded border px-3 py-2 text-sm"
-          placeholder="Minimum 1,000"
+          placeholder="Minimum 1 000"
           required
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium">Mobile Money Phone</label>
+        <label className="text-xs font-medium">Telephone Mobile Money</label>
         <input
           type="tel"
           value={phone}
@@ -96,14 +96,14 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium">Provider</label>
+        <label className="text-xs font-medium">Operateur</label>
         <select
           value={telecom}
           onChange={(e) => setTelecom(e.target.value)}
           className="w-full rounded border px-3 py-2 text-sm"
           required
         >
-          <option value="">Select provider</option>
+          <option value="">Choisir un operateur</option>
           {TELECOM_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -121,7 +121,7 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
         disabled={isInvalid || loading}
         className="w-full rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
       >
-        {loading ? "Submitting…" : "Request Withdrawal"}
+        {loading ? "Envoi…" : "Demander un retrait"}
       </button>
     </form>
   );

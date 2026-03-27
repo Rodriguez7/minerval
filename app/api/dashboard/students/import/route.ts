@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   if (!plan.can_bulk_ops) {
     return NextResponse.json(
-      { error: "CSV import requires a Pro plan." },
+      { error: "L'import CSV exige un plan Pro." },
       { status: 403 }
     );
   }
@@ -27,13 +27,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation error" },
+      { error: parsed.error.issues[0]?.message ?? "Erreur de validation" },
       { status: 400 }
     );
   }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     if (current + rowCount > plan.max_students) {
       return NextResponse.json(
         {
-          error: `Student limit reached. Your plan allows ${plan.max_students} students (currently ${current}).`,
+          error: `Limite d'eleves atteinte. Votre plan autorise ${plan.max_students} eleves (actuellement ${current}).`,
         },
         { status: 400 }
       );
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     .rpc("increment_student_seq", { p_school_id: school.id, p_count: rowCount }) as { data: { prefix: string; new_seq: number } | null; error: unknown };
 
   if (seqError || !seq) {
-    return NextResponse.json({ error: "Failed to generate student IDs." }, { status: 500 });
+    return NextResponse.json({ error: "Impossible de generer les identifiants eleves." }, { status: 500 });
   }
 
   const startSeq = seq.new_seq - rowCount + 1;

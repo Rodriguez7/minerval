@@ -16,6 +16,56 @@ import type { Telecom } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+function Badge({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: "yellow" | "red" | "amber" | "green";
+}) {
+  const toneClasses = {
+    yellow: "bg-amber-50 text-amber-700 border border-amber-200",
+    red: "bg-red-50 text-red-700 border border-red-200",
+    amber: "bg-orange-50 text-orange-700 border border-orange-200",
+    green: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  } as const;
+
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${toneClasses[tone]}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: number;
+  sub: string;
+  tone: "yellow" | "red" | "amber" | "green";
+}) {
+  const accent = {
+    yellow: "text-amber-600",
+    red: "text-red-600",
+    amber: "text-orange-600",
+    green: "text-emerald-600",
+  } as const;
+
+  return (
+    <div className="bg-white rounded-xl border border-zinc-200 p-5">
+      <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{label}</p>
+      <p className={`text-3xl font-bold font-mono mt-2 ${accent[tone]}`}>{value}</p>
+      <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>
+    </div>
+  );
+}
+
 export default async function ReconciliationPage({
   searchParams,
 }: {
@@ -53,138 +103,146 @@ export default async function ReconciliationPage({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="space-y-8">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Reconciliation</h1>
-          <p className="text-sm text-gray-500">
-            Review stale pending requests, flag exceptions, and close discrepancies with
-            an audit trail.
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Rapprochement</h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            Analysez les exceptions, signalez les ecarts et gardez une trace d&apos;audit
           </p>
         </div>
         <Link
           href="/dashboard/reports"
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
         >
-          Open reporting dashboard
+          Ouvrir le tableau de bord des rapports
         </Link>
       </div>
 
-      <form className="bg-white rounded-xl shadow p-5 grid gap-4 md:grid-cols-5">
-        <div>
-          <label className="block text-sm font-medium mb-1">From</label>
+      {/* Filters */}
+      <form className="bg-white rounded-xl border border-zinc-200 p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Du</label>
           <input
             type="date"
             name="from"
             defaultValue={filters.from}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">To</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Au</label>
           <input
             type="date"
             name="to"
             defaultValue={filters.to}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Payment status</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Statut du paiement</label>
           <select
             name="paymentStatus"
             defaultValue={filters.paymentStatus}
-            className="w-full rounded-lg border px-3 py-2 text-sm bg-white"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="success">Success</option>
-            <option value="failed">Failed</option>
+            <option value="all">Tous</option>
+            <option value="pending">En attente</option>
+            <option value="success">Succes</option>
+            <option value="failed">Echec</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Reconciliation</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Rapprochement</label>
           <select
             name="reconciliationStatus"
             defaultValue={filters.reconciliationStatus}
-            className="w-full rounded-lg border px-3 py-2 text-sm bg-white"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">All</option>
-            <option value="pending_review">Pending review</option>
-            <option value="reconciled">Reconciled</option>
-            <option value="needs_review">Needs review</option>
-            <option value="manual_override">Manual override</option>
+            <option value="all">Tous</option>
+            <option value="pending_review">En attente de verification</option>
+            <option value="reconciled">Rapproche</option>
+            <option value="needs_review">A verifier</option>
+            <option value="manual_override">Resolution manuelle</option>
           </select>
         </div>
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-lg bg-gray-900 text-white py-2 text-sm font-medium"
+            className="w-full rounded-lg bg-zinc-900 text-white py-2 text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
           >
-            Apply filters
+            Appliquer les filtres
           </button>
         </div>
       </form>
 
+      {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <SummaryCard
-          label="Stale Pending"
+          label="En attente expire"
           value={summary.stalePending.length}
           tone="yellow"
-          sub={`${summary.stalePending.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
+          sub={`${summary.stalePending.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
         <SummaryCard
-          label="Needs Review"
+          label="A verifier"
           value={summary.needsReview.length}
           tone="red"
-          sub={`${summary.needsReview.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
+          sub={`${summary.needsReview.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
         <SummaryCard
-          label="Manual Override"
+          label="Resolution manuelle"
           value={summary.overrides.length}
           tone="amber"
-          sub={`${summary.overrides.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
+          sub={`${summary.overrides.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
         <SummaryCard
-          label="Reconciled"
+          label="Rapproche"
           value={summary.reconciled.length}
           tone="green"
-          sub={`${summary.reconciled.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString()} ${school.currency}`}
+          sub={`${summary.reconciled.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold">Exception Queue</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Payments in this list are stale pending requests or items manually flagged for
-            investigation.
+      {/* Exception queue */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">File d&apos;exceptions</h2>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Demandes en attente expirees et elements signales a examiner
           </p>
         </div>
 
         {exceptions.length === 0 ? (
-          <p className="p-5 text-sm text-gray-500">No reconciliation exceptions for this filter range.</p>
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm text-zinc-400">Aucune exception de rapprochement pour cette plage de filtres.</p>
+          </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-zinc-100">
             {exceptions.map((row) => {
               const student = takeJoined(row.students);
               const stale = row.status === "pending" && row.created_at < staleCutoff;
               return (
-                <div key={row.id} className="p-5 space-y-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div key={row.id} className="px-6 py-5 space-y-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
                     <div>
-                      <p className="font-medium">{student?.full_name ?? "Unknown student"}</p>
-                      <p className="text-sm text-gray-500">
-                        {student?.external_id ?? "—"} · {Number(row.amount).toLocaleString()} {school.currency} ·{" "}
-                        {TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom}
+                      <p className="text-sm font-medium text-zinc-900">
+                        {student?.full_name ?? "Eleve inconnu"}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Requested {new Date(row.created_at).toLocaleString()}
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        {student?.external_id ?? "—"} ·{" "}
+                        <span className="font-mono">
+                          {Number(row.amount).toLocaleString("fr-FR")} {school.currency}
+                        </span>{" "}
+                        · {TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom}
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Demande le {new Date(row.created_at).toLocaleString("fr-FR")}
                         {row.reconciliation_updated_at &&
-                          ` · Last review ${new Date(row.reconciliation_updated_at).toLocaleString()}`}
+                          ` · Derniere revue ${new Date(row.reconciliation_updated_at).toLocaleString("fr-FR")}`}
                       </p>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap shrink-0">
                       <Badge tone={row.status === "pending" ? "yellow" : row.status === "success" ? "green" : "red"}>
                         {row.status}
                       </Badge>
@@ -201,24 +259,27 @@ export default async function ReconciliationPage({
                       >
                         {RECONCILIATION_LABELS[row.reconciliation_status]}
                       </Badge>
-                      {stale && <Badge tone="yellow">callback overdue</Badge>}
+                      {stale && <Badge tone="yellow">callback en retard</Badge>}
                     </div>
                   </div>
 
                   {row.reconciliation_note && (
-                    <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
+                    <p className="text-sm text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2 border border-zinc-100">
                       {row.reconciliation_note}
                     </p>
                   )}
 
-                  <form action={updateReconciliationStatus} className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <form
+                    action={updateReconciliationStatus}
+                    className="grid gap-3 grid-cols-1 md:grid-cols-[1fr_auto]"
+                  >
                     <div>
                       <input type="hidden" name="paymentId" value={row.id} />
                       <input
                         name="note"
                         defaultValue={row.reconciliation_note ?? ""}
-                        placeholder="Add reconciliation note"
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                        placeholder="Ajouter une note de rapprochement"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -226,26 +287,26 @@ export default async function ReconciliationPage({
                         type="submit"
                         name="nextStatus"
                         value="needs_review"
-                        className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                        className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors"
                       >
-                        Needs review
+                        A verifier
                       </button>
                       <button
                         type="submit"
                         name="nextStatus"
                         value="manual_override"
-                        className="rounded-lg border border-amber-200 px-3 py-2 text-sm text-amber-700 hover:bg-amber-50"
+                        className="rounded-lg border border-orange-200 px-3 py-2 text-sm text-orange-700 hover:bg-orange-50 transition-colors"
                       >
-                        Manual override
+                        Resolution manuelle
                       </button>
                       {row.status !== "pending" && (
                         <button
                           type="submit"
                           name="nextStatus"
                           value="reconciled"
-                          className="rounded-lg border border-green-200 px-3 py-2 text-sm text-green-700 hover:bg-green-50"
+                          className="rounded-lg border border-emerald-200 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors"
                         >
-                          Mark reconciled
+                          Marquer comme rapproche
                         </button>
                       )}
                     </div>
@@ -257,55 +318,5 @@ export default async function ReconciliationPage({
         )}
       </div>
     </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: number;
-  sub: string;
-  tone: "yellow" | "red" | "amber" | "green";
-}) {
-  const toneClasses = {
-    yellow: "bg-yellow-50 text-yellow-700",
-    red: "bg-red-50 text-red-700",
-    amber: "bg-amber-50 text-amber-700",
-    green: "bg-green-50 text-green-700",
-  } as const;
-
-  return (
-    <div className="bg-white rounded-xl shadow p-5">
-      <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneClasses[tone]}`}>
-        {label}
-      </div>
-      <p className="text-3xl font-bold mt-3">{value}</p>
-      <p className="text-sm text-gray-500 mt-1">{sub}</p>
-    </div>
-  );
-}
-
-function Badge({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: "yellow" | "red" | "amber" | "green";
-}) {
-  const toneClasses = {
-    yellow: "bg-yellow-100 text-yellow-700",
-    red: "bg-red-100 text-red-700",
-    amber: "bg-amber-100 text-amber-700",
-    green: "bg-green-100 text-green-700",
-  } as const;
-
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${toneClasses[tone]}`}>
-      {children}
-    </span>
   );
 }

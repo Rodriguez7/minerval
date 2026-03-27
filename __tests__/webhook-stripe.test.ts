@@ -18,7 +18,6 @@ vi.mock("@/lib/supabase", () => ({
 import { POST } from "@/app/api/webhooks/stripe/route";
 import { priceIdToPlanCode } from "@/lib/stripe";
 import { getAdminClient } from "@/lib/supabase";
-import { NextResponse } from "next/server";
 
 function makeRequest(body: string, signature = "valid-sig") {
   return new Request("http://localhost/api/webhooks/stripe", {

@@ -17,8 +17,8 @@ export async function sendPayoutCompletedEmail(opts: {
   await resend.emails.send({
     from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.app>",
     to: opts.to,
-    subject: "Your withdrawal has been sent",
-    text: `${opts.amount} ${opts.currency} has been sent to ${opts.phone} (${opts.telecom}). It should arrive shortly.`,
+    subject: "Votre retrait a ete envoye",
+    text: `${opts.amount} ${opts.currency} a ete envoye vers ${opts.phone} (${opts.telecom}). Le montant devrait arriver sous peu.`,
   });
 }
 
@@ -33,7 +33,7 @@ export async function sendPayoutFailedEmail(opts: {
   await resend.emails.send({
     from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.app>",
     to: opts.to,
-    subject: "Your withdrawal could not be processed",
-    text: `Your withdrawal request of ${opts.amount} ${opts.currency} to ${opts.phone} (${opts.telecom}) failed. Please contact support.`,
+    subject: "Votre retrait n'a pas pu etre traite",
+    text: `Votre demande de retrait de ${opts.amount} ${opts.currency} vers ${opts.phone} (${opts.telecom}) a echoue. Veuillez contacter le support.`,
   });
 }

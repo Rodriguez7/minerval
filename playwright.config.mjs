@@ -22,7 +22,7 @@ export default defineConfig({
   },
   webServer: {
     command: "node scripts/run-next-dev-with-env.mjs",
-    url: "http://127.0.0.1:3000/login",
+    url: "http://127.0.0.1:3000/fr/login",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

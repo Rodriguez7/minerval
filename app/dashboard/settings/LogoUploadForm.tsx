@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 interface Props {
@@ -29,12 +30,12 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error ?? "Upload failed");
+        setError(json.error ?? "L'envoi du logo a echoue");
       } else {
         setLogoUrl(json.logo_url);
       }
     } catch {
-      setError("Upload failed. Please try again.");
+      setError("L'envoi du logo a echoue. Reessayez.");
     } finally {
       setUploading(false);
       // Reset input so the same file can be re-uploaded if needed
@@ -43,13 +44,15 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="font-semibold text-lg mb-4">School Logo</h2>
+      <div className="bg-white rounded-xl shadow p-6">
+      <h2 className="font-semibold text-lg mb-4">Logo de l&apos;ecole</h2>
 
       {logoUrl && (
-        <img
+        <Image
           src={logoUrl}
-          alt="School logo"
+          alt="Logo de l'ecole"
+          width={256}
+          height={64}
           className="h-16 w-auto mb-4 rounded object-contain"
         />
       )}
@@ -61,7 +64,7 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
               uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-700"
             }`}
           >
-            {uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
+            {uploading ? "Envoi…" : logoUrl ? "Remplacer le logo" : "Importer le logo"}
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif"
@@ -71,7 +74,7 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
             />
           </label>
 
-          <p className="text-gray-400 text-xs mt-2">PNG, JPEG, WebP or GIF — max 2 MB</p>
+          <p className="text-gray-400 text-xs mt-2">PNG, JPEG, WebP ou GIF - 2 Mo max</p>
         </>
       )}
 

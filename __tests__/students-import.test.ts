@@ -33,7 +33,7 @@ beforeEach(() => {
 });
 
 describe("POST /api/dashboard/students/import", () => {
-  it("returns 403 when can_bulk_ops is false", async () => {
+  it("returns French 403 when can_bulk_ops is false", async () => {
     vi.mocked(getTenantContext).mockResolvedValue({
       ...PRO_CONTEXT,
       plan: { can_bulk_ops: false, max_students: null },
@@ -43,10 +43,10 @@ describe("POST /api/dashboard/students/import", () => {
 
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toMatch(/pro plan/i);
+    expect(body.error).toBe("L'import CSV exige un plan Pro.");
   });
 
-  it("returns 400 when max_students cap is exceeded on bulk import", async () => {
+  it("returns French 400 when max_students cap is exceeded on bulk import", async () => {
     vi.mocked(getTenantContext).mockResolvedValue({
       ...PRO_CONTEXT,
       plan: { can_bulk_ops: true, max_students: 5 },
@@ -64,7 +64,9 @@ describe("POST /api/dashboard/students/import", () => {
 
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/student limit/i);
+    expect(body.error).toBe(
+      "Limite d'eleves atteinte. Votre plan autorise 5 eleves (actuellement 4)."
+    );
   });
 
   it("proceeds when max_students is null (unlimited)", async () => {

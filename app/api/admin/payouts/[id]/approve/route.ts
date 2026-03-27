@@ -12,7 +12,7 @@ export async function POST(
   const { user } = await getTenantContext();
 
   if (user.email !== process.env.SUPER_ADMIN_EMAIL) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Interdit" }, { status: 403 });
   }
 
   const admin = getAdminClient();
@@ -32,7 +32,7 @@ export async function POST(
 
   if (!payout) {
     return NextResponse.json(
-      { error: "Payout not found or already processed" },
+      { error: "Versement introuvable ou deja traite" },
       { status: 409 }
     );
   }
@@ -51,7 +51,7 @@ export async function POST(
 
     return NextResponse.json({ id: payout.id, status: "processing" });
   } catch (err) {
-    const reason = err instanceof ProxyError ? err.message : "Unexpected proxy error";
+    const reason = err instanceof ProxyError ? err.message : "Erreur proxy inattendue";
 
     const { data: profile } = await admin
       .from("profiles")

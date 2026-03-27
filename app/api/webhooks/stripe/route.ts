@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    return NextResponse.json({ error: "Signature invalide" }, { status: 400 });
   }
 
   const admin = getAdminClient();
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     if (insertError && insertError.code !== "23505") {
       console.error("[stripe-webhook] billing_events insert failed", event.id, insertError.message);
-      return NextResponse.json({ error: "Internal error" }, { status: 500 });
+      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
     }
     if (insertError?.code === "23505") {
       return NextResponse.json({ received: true });
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
 
   if (insertError && insertError.code !== "23505") {
     console.error("[stripe-webhook] billing_events insert failed", event.id, insertError.message);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
   }
   if (insertError?.code === "23505") {
     return NextResponse.json({ received: true });
