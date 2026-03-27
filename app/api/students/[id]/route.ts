@@ -20,7 +20,7 @@ export async function GET(
     return NextResponse.json({ error: "Lien de paiement introuvable" }, { status: 404 });
   }
 
-  const rateLimit = consumeRateLimit({
+  const rateLimit = await consumeRateLimit({
     key: `students-api:${school.id}:${getClientIp(req.headers)}`,
     limit: 15,
     windowMs: 60_000,

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Lien de paiement introuvable" }, { status: 404 });
   }
 
-  const rateLimit = consumeRateLimit({
+  const rateLimit = await consumeRateLimit({
     key: `payment-initiate:${school.id}:${getClientIp(req.headers)}`,
     limit: 5,
     windowMs: 300_000,
@@ -85,6 +85,23 @@ export async function POST(req: NextRequest) {
     student.amount_due,
     policy?.parent_fee_bps ?? 275
   );
+
+  // Idempotency: if there's already a pending payment for this student created
+  // within the last 2 minutes, return it instead of creating a duplicate.
+  const idempotencyWindow = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { data: existingPayment } = await admin
+    .from("payment_requests")
+    .select("id")
+    .eq("student_id", student.id)
+    .eq("status", "pending")
+    .gte("created_at", idempotencyWindow)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingPayment) {
+    return NextResponse.json({ payment_request_id: existingPayment.id, status: "pending" });
+  }
 
   const { data: paymentRequest, error: insertErr } = await admin
     .from("payment_requests")

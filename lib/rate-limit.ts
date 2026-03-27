@@ -1,3 +1,5 @@
+import { getAdminClient } from "@/lib/supabase";
+
 type RateLimitOptions = {
   key: string;
   limit: number;
@@ -10,49 +12,57 @@ type RateLimitResult = {
   retryAfterSeconds: number;
 };
 
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
-
-const globalForRateLimit = globalThis as typeof globalThis & {
-  __minervalRateLimitStore?: Map<string, RateLimitEntry>;
-};
-
-const rateLimitStore =
-  globalForRateLimit.__minervalRateLimitStore ??
-  (globalForRateLimit.__minervalRateLimitStore = new Map<string, RateLimitEntry>());
-
-export function consumeRateLimit({
+export async function consumeRateLimit({
   key,
   limit,
   windowMs,
-}: RateLimitOptions): RateLimitResult {
-  const now = Date.now();
-  const existing = rateLimitStore.get(key);
+}: RateLimitOptions): Promise<RateLimitResult> {
+  const admin = getAdminClient();
+  const windowStart = new Date(Date.now() - windowMs).toISOString();
 
-  if (!existing || existing.resetAt <= now) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return {
-      allowed: true,
-      remaining: limit - 1,
-      retryAfterSeconds: 0,
-    };
-  }
+  const { count } = await admin
+    .from("rate_limit_attempts")
+    .select("*", { count: "exact", head: true })
+    .eq("key", key)
+    .gte("created_at", windowStart);
 
-  if (existing.count >= limit) {
+  const currentCount = count ?? 0;
+
+  if (currentCount >= limit) {
+    const { data: oldest } = await admin
+      .from("rate_limit_attempts")
+      .select("created_at")
+      .eq("key", key)
+      .gte("created_at", windowStart)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const resetAt = oldest
+      ? new Date(oldest.created_at).getTime() + windowMs
+      : Date.now() + windowMs;
+
     return {
       allowed: false,
       remaining: 0,
-      retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
+      retryAfterSeconds: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)),
     };
   }
 
-  existing.count += 1;
+  await admin.from("rate_limit_attempts").insert({ key });
+
+  // Prune stale entries for this key (fire-and-forget)
+  admin
+    .from("rate_limit_attempts")
+    .delete()
+    .eq("key", key)
+    .lt("created_at", windowStart)
+    .then(() => {})
+    .catch(() => {});
 
   return {
     allowed: true,
-    remaining: limit - existing.count,
+    remaining: limit - currentCount - 1,
     retryAfterSeconds: 0,
   };
 }
