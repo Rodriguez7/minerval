@@ -52,13 +52,11 @@ export async function consumeRateLimit({
   await admin.from("rate_limit_attempts").insert({ key });
 
   // Prune stale entries for this key (fire-and-forget)
-  admin
+  void admin
     .from("rate_limit_attempts")
     .delete()
     .eq("key", key)
-    .lt("created_at", windowStart)
-    .then(() => {})
-    .catch(() => {});
+    .lt("created_at", windowStart);
 
   return {
     allowed: true,

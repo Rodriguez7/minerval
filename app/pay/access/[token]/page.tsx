@@ -37,7 +37,7 @@ export default async function PayAccessPage({
   let feeDisplayMode: "visible_line_item" | "hidden" = "hidden";
 
   if (studentExternalId) {
-    const rateLimit = consumeRateLimit({
+    const rateLimit = await consumeRateLimit({
       key: `student-lookup:${school.id}:${getClientIp(await headers())}`,
       limit: 15,
       windowMs: 60_000,
