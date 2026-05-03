@@ -194,6 +194,23 @@ test.describe.serial("Minerval smoke", () => {
     }
   });
 
+  test("landing page is usable on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/fr");
+
+    await expect(page.getByRole("heading", { name: /Arretez de courir/i })).toBeVisible();
+    await expect(page.getByRole("navigation").getByText("Comment ca marche")).toBeHidden();
+    await expect(page.getByRole("link", { name: "Creer votre ecole — gratuit" }).first()).toBeVisible();
+    await expect(page.getByText("Trois etapes entre l'inscription")).toBeVisible();
+
+    const metrics = await page.evaluate(() => ({
+      innerWidth: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+
+    expect(metrics.scrollWidth).toBe(metrics.innerWidth);
+  });
+
   test("loads dashboard, reconciliation, reports, export, and public payment lookup", async ({
     page,
   }) => {

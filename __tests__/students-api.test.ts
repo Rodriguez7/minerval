@@ -19,6 +19,24 @@ function asAdminClient(client: { from: unknown }) {
   return client as unknown as AdminClient;
 }
 
+function makeAllowedRateLimitQueries() {
+  return [
+    {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    {
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    },
+    {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockResolvedValue({ error: null }),
+    },
+  ];
+}
+
 describe("GET /api/students/[id]", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -42,11 +60,16 @@ describe("GET /api/students/[id]", () => {
   });
 
   it("returns 404 if student not found", async () => {
-    const mockFrom = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: { message: "not found" } }),
-    });
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: "not found" } }),
+      });
     vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
 
     const res = await GET(
@@ -57,10 +80,15 @@ describe("GET /api/students/[id]", () => {
   });
 
   it("returns student info with school name and amount_due", async () => {
-    const mockFrom = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
         data: {
           external_id: "STU-001",
           full_name: "Jean Kabila",
@@ -86,3 +114,4 @@ describe("GET /api/students/[id]", () => {
     });
   });
 });
+

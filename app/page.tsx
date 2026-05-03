@@ -270,7 +270,7 @@ function DashboardCard({ locale, copy }: { locale: PageLocale; copy: (typeof HOM
         </span>
       </div>
       {/* stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+      <div className="dashboard-stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>{copy.card.collectedToday}</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.5px" }}>{formatMoney(collected, "FC", locale)}</div>
@@ -316,6 +316,10 @@ function useReveal() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      setVisible(true);
+      return;
+    }
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(el); } }, { threshold: 0.12 });
     obs.observe(el);
     return () => obs.disconnect();
@@ -340,6 +344,9 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 export default function HomePage() {
   const locale = useLocale();
   const copy = HOME_COPY[locale];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <>
@@ -347,7 +354,7 @@ export default function HomePage() {
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; overflow-x: hidden; }
-        body { font-family: 'Outfit', system-ui, sans-serif !important; background: #fff !important; color: #0f172a; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Outfit', system-ui, sans-serif !important; background: #fff !important; color: #0f172a; -webkit-font-smoothing: antialiased; overflow-x:hidden; }
 
         @keyframes navSlideDown { from { transform: translateY(-100%); opacity:0; } to { transform: translateY(0); opacity:1; } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
@@ -361,6 +368,11 @@ export default function HomePage() {
         @keyframes pulseDot { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:0.6; } }
 
         .landing-nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(255,255,255,0.92); backdrop-filter:blur(12px); border-bottom:1px solid #e2e8f0; padding:0 48px; height:60px; display:flex; align-items:center; justify-content:space-between; animation:navSlideDown 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+        .desktop-nav-links { display:flex; align-items:center; gap:32px; }
+        .mobile-menu-button { display:none; align-items:center; justify-content:center; width:40px; height:40px; border:1px solid #e2e8f0; border-radius:10px; background:white; color:#0f172a; }
+        .mobile-menu { display:none; position:fixed; top:60px; left:12px; right:12px; z-index:99; background:rgba(255,255,255,0.98); border:1px solid #e2e8f0; border-radius:18px; box-shadow:0 20px 50px rgba(15,23,42,0.14); padding:14px; }
+        .mobile-menu a { display:block; padding:12px 14px; border-radius:12px; color:#475569; text-decoration:none; font-size:15px; font-weight:600; }
+        .mobile-menu a:hover { background:#f8fafc; color:#1d4ed8; }
         .landing-hero { min-height:100dvh; padding-top:60px; display:grid; grid-template-columns:1fr 1fr; max-width:1400px; margin:0 auto; padding-left:64px; padding-right:48px; align-items:center; gap:64px; }
         .hero-left { padding-top:24px; }
         .hero-badge { display:inline-flex; align-items:center; gap:8px; background:#eff6ff; border:1px solid #bfdbfe; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:500; color:#1d4ed8; margin-bottom:28px; animation:fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.10s both; }
@@ -432,7 +444,7 @@ export default function HomePage() {
         .land-footer { background:#0f172a; padding:32px 64px; display:flex; justify-content:space-between; align-items:center; }
 
         @media (max-width: 900px) {
-          .landing-hero { grid-template-columns:1fr; padding-left:24px; padding-right:24px; padding-top:80px; gap:40px; }
+          .landing-hero { grid-template-columns:1fr; min-height:auto; padding-left:24px; padding-right:24px; padding-top:96px; padding-bottom:56px; gap:40px; }
           .hero-right { justify-content:center; }
           .land-section { padding:64px 24px; }
           .steps-grid { grid-template-columns:1fr; }
@@ -443,20 +455,75 @@ export default function HomePage() {
           .cta-section { padding:64px 24px; }
           .land-footer { flex-direction:column; gap:12px; padding:24px; }
           .landing-nav { padding:0 24px; }
+          .desktop-nav-links { display:none; }
+          .mobile-menu-button { display:flex; }
+          .mobile-menu.open { display:block; }
+          .mobile-menu .btn-primary { text-align:center; margin-top:8px; color:white; }
+          .mobile-language { display:flex; justify-content:center; padding:10px 0 2px; }
+          .hero-h1 { font-size:clamp(34px,10vw,48px); letter-spacing:-1.1px; }
+          .hero-actions { flex-direction:column; align-items:stretch; gap:10px; margin-bottom:28px; }
+          .hero-actions .btn-primary { text-align:center; width:100%; }
+          .hero-actions .btn-ghost { justify-content:center; width:100%; }
+          .hero-badge { font-size:12px; padding:6px 12px; margin-bottom:22px; }
+          .hero-sub { font-size:16px; margin-bottom:28px; }
+          .marquee-wrapper::before,.marquee-wrapper::after { width:44px; }
+          .marquee-wrapper::before,.marquee-wrapper::after { display:none; }
+          .marquee-track,.marquee-track-reverse { width:auto; flex-wrap:wrap; justify-content:center; padding:0 18px; animation:none; }
+          .m-pill { padding:10px 16px; font-size:13px; }
+          .activity-chip { padding:8px 14px; }
+        }
+
+        @media (max-width: 560px) {
+          .landing-nav { padding:0 16px; }
+          .landing-hero { padding-left:18px; padding-right:18px; }
+          .hero-left { padding-top:0; }
+          .hero-note { align-items:flex-start; line-height:1.45; }
+          .land-section { padding:56px 18px; }
+          .section-title br { display:none; }
+          .features-grid { margin-top:32px; border-radius:16px; }
+          .feature { padding:28px; }
+          .step { padding:28px 0; }
+          .steps-grid { margin-top:32px; }
+          .cta-section { padding:56px 18px; }
+          .land-footer { text-align:center; }
+        }
+
+        @media (max-width: 360px) {
+          .dashboard-stats-grid { grid-template-columns:1fr !important; }
+          .hero-h1 { font-size:32px; }
         }
       `}</style>
 
       {/* Nav */}
       <nav className="landing-nav">
         <span style={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8", letterSpacing: "-0.5px" }}>Minerval</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+        <div className="desktop-nav-links">
           <a href="#how-it-works" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>{copy.nav.howItWorks}</a>
           <a href="#features" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>{copy.nav.forSchools}</a>
           <LocalizedLink href="/login" style={{ fontSize: 14, color: "#475569", textDecoration: "none", fontWeight: 500 }}>{copy.nav.login}</LocalizedLink>
           <LocalizedLink href="/signup" className="btn-primary" style={{ padding: "9px 20px", fontSize: 14, borderRadius: 8 }}>{copy.nav.signup}</LocalizedLink>
           <LanguageSwitcher />
         </div>
+        <button
+          type="button"
+          className="mobile-menu-button"
+          aria-label="Menu"
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            {mobileMenuOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+          </svg>
+        </button>
       </nav>
+
+      <div className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
+        <a href="#how-it-works" onClick={closeMobileMenu}>{copy.nav.howItWorks}</a>
+        <a href="#features" onClick={closeMobileMenu}>{copy.nav.forSchools}</a>
+        <LocalizedLink href="/login" onClick={closeMobileMenu}>{copy.nav.login}</LocalizedLink>
+        <LocalizedLink href="/signup" className="btn-primary" onClick={closeMobileMenu}>{copy.nav.signup}</LocalizedLink>
+        <div className="mobile-language"><LanguageSwitcher /></div>
+      </div>
 
       {/* Hero */}
       <section className="landing-hero">
@@ -596,3 +663,4 @@ export default function HomePage() {
     </>
   );
 }
+

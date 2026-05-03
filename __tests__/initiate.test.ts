@@ -46,6 +46,35 @@ const mockStudent = {
   external_id: "STU-001",
 };
 
+function makeAllowedRateLimitQueries() {
+  return [
+    {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    {
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    },
+    {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockResolvedValue({ error: null }),
+    },
+  ];
+}
+
+function makeNoExistingPaymentQuery() {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+}
+
 describe("POST /api/payments/initiate", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -102,11 +131,16 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("returns 404 if student not found", async () => {
-    const mockFrom = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: { message: "not found" } }),
-    });
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: "not found" } }),
+      });
     vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
 
     const res = await POST(
@@ -121,11 +155,16 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("returns French 400 message when amount_due is 0", async () => {
-    const mockFrom = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { ...mockStudent, amount_due: 0 }, error: null }),
-    });
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { ...mockStudent, amount_due: 0 }, error: null }),
+      });
     vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
 
     const res = await POST(
@@ -142,7 +181,11 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("creates payment_request with telecom, calls proxy, returns pending", async () => {
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -153,6 +196,7 @@ describe("POST /api/payments/initiate", () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
       })
+      .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
@@ -180,7 +224,11 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("returns 409 with SerdiPay duplicate message", async () => {
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -191,6 +239,7 @@ describe("POST /api/payments/initiate", () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
       })
+      .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
@@ -221,3 +270,5 @@ describe("POST /api/payments/initiate", () => {
     expect(body.error).toMatch(/2 minutes/i);
   });
 });
+
+
