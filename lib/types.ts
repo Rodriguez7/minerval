@@ -49,6 +49,8 @@ export interface PaymentRequest {
 
 export type Currency = "FC" | "USD";
 
+export type SchoolVerificationStatus = "unverified" | "pending" | "verified" | "rejected";
+
 export interface School {
   id: string;
   name: string;
@@ -66,6 +68,18 @@ export interface School {
   support_tier: string;
   // Added by migration 010
   logo_url: string | null;
+  // Added by migration 015
+  verification_status: SchoolVerificationStatus;
+  legal_name: string | null;
+  registration_number: string | null;
+  school_address: string | null;
+  director_name: string | null;
+  director_phone: string | null;
+  payout_account_name: string | null;
+  payout_account_phone: string | null;
+  verification_submitted_at: string | null;
+  verification_reviewed_at: string | null;
+  verification_rejection_reason: string | null;
 }
 
 export interface Student {

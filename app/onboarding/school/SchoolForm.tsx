@@ -39,7 +39,7 @@ export function SchoolForm() {
       <form action={action} className="space-y-4">
         <input type="hidden" name="locale" value={locale} />
         <div>
-          <label className="block text-sm font-medium mb-1">{copy.school.nameLabel}</label>
+          <label className="block text-sm font-medium mb-1">Nom de l&apos;ecole</label>
           <input
             name="schoolName"
             type="text"
@@ -49,6 +49,44 @@ export function SchoolForm() {
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={(e) => handleNameChange(e.target.value)}
           />
+        </div>
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-blue-950">Verification ecole</p>
+            <p className="text-xs text-blue-700 mt-1">
+              Ces informations permettent de verifier l&apos;ecole avant le premier versement.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nom legal</label>
+              <input name="legalName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Numero d&apos;enregistrement</label>
+              <input name="registrationNumber" maxLength={100} placeholder="Optionnel" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Adresse de l&apos;ecole</label>
+              <input name="schoolAddress" required minLength={5} maxLength={300} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Nom du directeur</label>
+              <input name="directorName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Telephone du directeur</label>
+              <input name="directorPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Nom du compte de versement</label>
+              <input name="payoutAccountName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Numero de versement</label>
+              <input name="payoutAccountPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{copy.school.codeLabel}</label>

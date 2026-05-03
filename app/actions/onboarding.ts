@@ -14,6 +14,13 @@ export async function createSchool(_: unknown, formData: FormData) {
   const copy = getOnboardingCopy(locale);
   const schoolSchema = z.object({
     schoolName: z.string().min(2).max(200),
+    legalName: z.string().min(2).max(200),
+    registrationNumber: z.string().max(100).optional(),
+    schoolAddress: z.string().min(5).max(300),
+    directorName: z.string().min(2).max(200),
+    directorPhone: z.string().regex(/^\+?[0-9\s().-]{9,20}$/, "Numero du directeur invalide"),
+    payoutAccountName: z.string().min(2).max(200),
+    payoutAccountPhone: z.string().regex(/^\+?[0-9\s().-]{9,20}$/, "Numero de versement invalide"),
     schoolCode: z
       .string()
       .regex(/^[a-z0-9-]+$/, copy.actions.invalidSchoolCode)
@@ -26,6 +33,13 @@ export async function createSchool(_: unknown, formData: FormData) {
   });
   const parsed = schoolSchema.safeParse({
     schoolName: formData.get("schoolName"),
+    legalName: formData.get("legalName"),
+    registrationNumber: formData.get("registrationNumber")?.toString() || undefined,
+    schoolAddress: formData.get("schoolAddress"),
+    directorName: formData.get("directorName"),
+    directorPhone: formData.get("directorPhone"),
+    payoutAccountName: formData.get("payoutAccountName"),
+    payoutAccountPhone: formData.get("payoutAccountPhone"),
     schoolCode: formData.get("schoolCode"),
     studentIdPrefix: formData.get("studentIdPrefix"),
     currency: formData.get("currency"),
@@ -56,6 +70,15 @@ export async function createSchool(_: unknown, formData: FormData) {
       admin_email: user.email!,
       student_id_prefix: parsed.data.studentIdPrefix,
       currency: parsed.data.currency,
+      legal_name: parsed.data.legalName,
+      registration_number: parsed.data.registrationNumber ?? null,
+      school_address: parsed.data.schoolAddress,
+      director_name: parsed.data.directorName,
+      director_phone: parsed.data.directorPhone,
+      payout_account_name: parsed.data.payoutAccountName,
+      payout_account_phone: parsed.data.payoutAccountPhone,
+      verification_status: "pending",
+      verification_submitted_at: new Date().toISOString(),
     })
     .select("id")
     .single();

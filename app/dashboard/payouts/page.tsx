@@ -50,7 +50,8 @@ export default async function PayoutsPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const canWithdraw = membership.role === "owner";
+  const canWithdraw = membership.role === "owner" && school.verification_status === "verified";
+  const needsVerification = membership.role === "owner" && school.verification_status !== "verified";
   const gross = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const fees = payments.reduce((sum, p) => sum + Number(p.fee_amount ?? 0), 0);
   const net = gross - fees;
@@ -124,6 +125,14 @@ export default async function PayoutsPage() {
           </div>
           {canWithdraw && (
             <WithdrawForm availableBalance={availableBalance} currency={currency} />
+          )}
+          {needsVerification && (
+            <div className="max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <p className="font-semibold">Verification requise</p>
+              <p className="mt-1">
+                Votre dossier ecole est {school.verification_status === "pending" ? "en cours de verification" : "a completer"}. Les versements seront actives apres validation.
+              </p>
+            </div>
           )}
         </div>
       </div>

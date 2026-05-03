@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Seul le proprietaire de l'ecole peut demander un versement" }, { status: 403 });
   }
 
+  if (school.verification_status !== "verified") {
+    return NextResponse.json(
+      { error: "La verification de l'ecole est requise avant de demander un versement" },
+      { status: 403 }
+    );
+  }
+
   let body: { amount?: unknown; phone?: unknown; telecom?: unknown };
   try {
     body = await req.json();

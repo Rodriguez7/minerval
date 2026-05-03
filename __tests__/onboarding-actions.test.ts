@@ -18,6 +18,13 @@ function makeFormData(data: Record<string, string>) {
 
 const validSchoolData = {
   schoolName: "Ecole Saint Michel",
+  legalName: "Ecole Saint Michel SARL",
+  registrationNumber: "REG-12345",
+  schoolAddress: "12 Avenue Lumumba, Kinshasa",
+  directorName: "Jean Kabila",
+  directorPhone: "243812345678",
+  payoutAccountName: "Ecole Saint Michel",
+  payoutAccountPhone: "243812345679",
   schoolCode: "saint-michel",
   studentIdPrefix: "ESM",
   currency: "FC",
@@ -86,6 +93,17 @@ describe("createSchool action", () => {
 
     await expect(createSchool(null, makeFormData(validSchoolData))).rejects.toThrow("REDIRECT:/onboarding/billing-contact");
 
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      legal_name: "Ecole Saint Michel SARL",
+      registration_number: "REG-12345",
+      school_address: "12 Avenue Lumumba, Kinshasa",
+      director_name: "Jean Kabila",
+      director_phone: "243812345678",
+      payout_account_name: "Ecole Saint Michel",
+      payout_account_phone: "243812345679",
+      verification_status: "pending",
+      verification_submitted_at: expect.any(String),
+    }));
     expect(fromMock).toHaveBeenCalledWith("school_memberships");
     expect(fromMock).toHaveBeenCalledWith("school_subscriptions");
     expect(fromMock).toHaveBeenCalledWith("school_pricing_policies");

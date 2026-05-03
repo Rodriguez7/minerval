@@ -24,7 +24,7 @@ function asAdminClient(client: { rpc: unknown }) {
 
 const mockContext = {
   user: { id: "user-uuid", email: "owner@test.com" },
-  school: { id: "school-uuid", name: "Test School", currency: "FC" },
+  school: { id: "school-uuid", name: "Test School", currency: "FC", verification_status: "verified" },
   membership: { role: "owner" },
 };
 
