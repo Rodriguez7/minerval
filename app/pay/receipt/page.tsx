@@ -13,13 +13,13 @@ import { getRequestLocale } from "@/lib/i18n/server";
 export default async function ReceiptPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const locale = await getRequestLocale();
   const copy = getPaymentsCopy(locale);
-  const { ref } = await searchParams;
+  const { token } = await searchParams;
 
-  if (!ref) notFound();
+  if (!token) notFound();
 
   const admin = getAdminClient();
 
@@ -27,6 +27,7 @@ export default async function ReceiptPage({
     .from("payment_requests")
     .select(
       `id, amount, fee_amount, status, settled_at, telecom, phone,
+       receipt_access_token,
        serdipay_transaction_id,
        students(full_name, external_id, class_name),
        schools!inner(
@@ -36,7 +37,7 @@ export default async function ReceiptPage({
          )
        )`
     )
-    .eq("id", ref)
+    .eq("receipt_access_token", token)
     .single();
 
   // Fallback: retry without logo_url if PostgREST schema cache doesn't have it yet.
@@ -46,6 +47,7 @@ export default async function ReceiptPage({
       .from("payment_requests")
       .select(
         `id, amount, fee_amount, status, settled_at, telecom, phone,
+         receipt_access_token,
          serdipay_transaction_id,
          students(full_name, external_id, class_name),
          schools!inner(
@@ -55,7 +57,7 @@ export default async function ReceiptPage({
            )
          )`
       )
-      .eq("id", ref)
+      .eq("receipt_access_token", token)
       .single();
     payment = fallback as unknown as typeof paymentData;
   }

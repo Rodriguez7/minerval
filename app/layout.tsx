@@ -1,18 +1,8 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getRequestLocale, getRequestMessages } from "@/lib/i18n/server";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const messages = await getRequestMessages();
@@ -34,7 +24,15 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
+        style={
+          {
+            "--font-geist-sans":
+              '"Inter", "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif',
+            "--font-geist-mono":
+              '"SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          } as CSSProperties
+        }
       >
         <I18nProvider locale={locale} messages={messages}>
           {children}

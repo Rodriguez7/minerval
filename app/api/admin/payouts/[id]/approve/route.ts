@@ -3,6 +3,7 @@ import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { callProxyPayout, ProxyError } from "@/lib/proxy";
 import { sendPayoutFailedEmail } from "@/lib/email";
+import { buildSerdiPayCallbackUrl } from "@/lib/serdipay";
 
 export async function POST(
   _req: NextRequest,
@@ -37,8 +38,20 @@ export async function POST(
     );
   }
 
-  const secret = process.env.SERDIPAY_CALLBACK_SECRET ?? "";
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/serdipay/payout-callback?secret=${encodeURIComponent(secret)}`;
+  let callbackUrl: string;
+  try {
+    callbackUrl = buildSerdiPayCallbackUrl("/api/serdipay/payout-callback");
+  } catch {
+    await admin
+      .from("school_payouts")
+      .update({ status: "failed", failure_reason: "Configuration du callback de versement manquante" })
+      .eq("id", payout.id);
+
+    return NextResponse.json(
+      { error: "Configuration du callback de versement manquante" },
+      { status: 503 }
+    );
+  }
 
   try {
     await callProxyPayout({

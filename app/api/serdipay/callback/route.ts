@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
+import { verifySerdiPayCallback } from "@/lib/serdipay";
 
 interface SerdiPayCallback {
   message?: string;
@@ -13,6 +14,11 @@ interface SerdiPayCallback {
 }
 
 export async function POST(req: NextRequest) {
+  const authorization = verifySerdiPayCallback(req);
+  if (!authorization.ok) {
+    return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+  }
+
   let body: SerdiPayCallback;
   try {
     body = await req.json();

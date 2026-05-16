@@ -32,6 +32,7 @@ export interface PaymentRequest {
   id: string;
   student_id: string;
   school_id: string;
+  receipt_access_token: string;
   amount: number;
   phone: string;
   telecom: Telecom;

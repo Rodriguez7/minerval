@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "@/lib/email";
+import { verifySerdiPayCallback } from "@/lib/serdipay";
 
 export async function POST(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("secret");
-  if (
-    process.env.SERDIPAY_CALLBACK_SECRET &&
-    secret !== process.env.SERDIPAY_CALLBACK_SECRET
-  ) {
-    return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+  const authorization = verifySerdiPayCallback(req);
+  if (!authorization.ok) {
+    return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   }
 
   let body: { message?: string; payment?: { status?: string; transactionId?: string } };
@@ -37,6 +35,10 @@ export async function POST(req: NextRequest) {
 
   if (!payout) {
     return NextResponse.json({ message: "versement inconnu, ignore" }, { status: 200 });
+  }
+
+  if (payout.status === "completed" || payout.status === "failed") {
+    return NextResponse.json({ message: "deja traite" }, { status: 200 });
   }
 
   const isSuccess = paymentStatus === "success";

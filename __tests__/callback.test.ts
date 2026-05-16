@@ -10,12 +10,15 @@ import { getAdminClient } from "../lib/supabase";
 
 type AdminClient = ReturnType<typeof getAdminClient>;
 
-function makeRequest(body: object) {
-  return new NextRequest("http://localhost/api/serdipay/callback", {
-    method: "POST",
-    body: JSON.stringify(body),
-    headers: { "content-type": "application/json" },
-  });
+function makeRequest(body: object, secret = "test-callback-secret") {
+  return new NextRequest(
+    `http://localhost/api/serdipay/callback?secret=${encodeURIComponent(secret)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "content-type": "application/json" },
+    }
+  );
 }
 
 function asAdminClient(client: { from: unknown }) {
@@ -43,7 +46,21 @@ const failedCallback = {
 };
 
 describe("POST /api/serdipay/callback", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.env.SERDIPAY_CALLBACK_SECRET = "test-callback-secret";
+  });
+
+  it("returns 401 if callback secret is wrong", async () => {
+    const res = await POST(makeRequest(successCallback, "wrong-secret"));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 503 if callback secret is not configured", async () => {
+    delete process.env.SERDIPAY_CALLBACK_SECRET;
+    const res = await POST(makeRequest(successCallback));
+    expect(res.status).toBe(503);
+  });
 
   it("returns 400 if message or payment is missing", async () => {
     vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: vi.fn() }));

@@ -43,7 +43,12 @@ const mockPayout = {
 };
 
 describe("POST /api/admin/payouts/[id]/approve", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.env.NEXT_PUBLIC_APP_URL = "https://www.minerval.org";
+    process.env.SERDIPAY_CALLBACK_SECRET = "test-callback-secret";
+    process.env.SUPER_ADMIN_EMAIL = "admin@test.com";
+  });
 
   it("returns 403 if user is not super admin", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce({
@@ -94,7 +99,13 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
     const res = await POST(makeRequest("payout-uuid"), { params: Promise.resolve({ id: "payout-uuid" }) });
     expect(res.status).toBe(200);
     expect(callProxyPayout).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 5000, phone: "0812345678", telecom: "OM" })
+      expect.objectContaining({
+        amount: 5000,
+        phone: "0812345678",
+        telecom: "OM",
+        callback_url:
+          "https://www.minerval.org/api/serdipay/payout-callback?secret=test-callback-secret",
+      })
     );
   });
 
@@ -133,5 +144,32 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
     const res = await POST(makeRequest("payout-uuid"), { params: Promise.resolve({ id: "payout-uuid" }) });
     expect(res.status).toBe(502);
     expect(sendPayoutFailedEmail).toHaveBeenCalled();
+  });
+
+  it("returns 503 when payout callback secret is missing", async () => {
+    delete process.env.SERDIPAY_CALLBACK_SECRET;
+
+    vi.mocked(getTenantContext).mockResolvedValueOnce({
+      user: { id: "user-uuid", email: "admin@test.com" },
+      school: { id: "school-uuid", currency: "FC" },
+      membership: { role: "owner" },
+    } as never);
+
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockPayout, error: null }),
+      })
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      });
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
+
+    const res = await POST(makeRequest("payout-uuid"), { params: Promise.resolve({ id: "payout-uuid" }) });
+    expect(res.status).toBe(503);
+    expect(callProxyPayout).not.toHaveBeenCalled();
   });
 });

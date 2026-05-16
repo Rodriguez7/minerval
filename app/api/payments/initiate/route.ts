@@ -4,6 +4,7 @@ import { callProxy, ProxyError } from "@/lib/proxy";
 import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
 import { getClientIp } from "@/lib/request";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { buildSerdiPayCallbackUrl, generateReceiptAccessToken } from "@/lib/serdipay";
 import { computeFee } from "@/lib/fee";
 import type { Telecom } from "@/lib/types";
 
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
   const idempotencyWindow = new Date(Date.now() - 2 * 60 * 1000).toISOString();
   const { data: existingPayment } = await admin
     .from("payment_requests")
-    .select("id")
+    .select("id, receipt_access_token")
     .eq("student_id", student.id)
     .eq("status", "pending")
     .gte("created_at", idempotencyWindow)
@@ -100,7 +101,11 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (existingPayment) {
-    return NextResponse.json({ payment_request_id: existingPayment.id, status: "pending" });
+    return NextResponse.json({
+      payment_request_id: existingPayment.id,
+      receipt_access_token: existingPayment.receipt_access_token,
+      status: "pending",
+    });
   }
 
   const { data: paymentRequest, error: insertErr } = await admin
@@ -108,6 +113,7 @@ export async function POST(req: NextRequest) {
     .insert({
       student_id: student.id,
       school_id: school.id,
+      receipt_access_token: generateReceiptAccessToken(),
       amount: totalAmount,
       fee_amount: feeAmount,
       phone,
@@ -124,7 +130,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Impossible de creer le paiement" }, { status: 500 });
   }
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/serdipay/callback`;
+  let callbackUrl: string;
+  try {
+    callbackUrl = buildSerdiPayCallbackUrl("/api/serdipay/callback");
+  } catch {
+    await admin
+      .from("payment_requests")
+      .update({ status: "failed" })
+      .eq("id", paymentRequest.id);
+
+    return NextResponse.json(
+      { error: "Configuration du callback de paiement manquante" },
+      { status: 503 }
+    );
+  }
 
   try {
     await callProxy({
@@ -141,7 +160,11 @@ export async function POST(req: NextRequest) {
       payload: { phone, telecom, amount: totalAmount, fee_amount: feeAmount },
     });
 
-    return NextResponse.json({ payment_request_id: paymentRequest.id, status: "pending" });
+    return NextResponse.json({
+      payment_request_id: paymentRequest.id,
+      receipt_access_token: paymentRequest.receipt_access_token,
+      status: "pending",
+    });
   } catch (err) {
     await admin
       .from("payment_requests")
