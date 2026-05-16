@@ -77,7 +77,8 @@ describe("POST /api/serdipay/callback", () => {
       })
       .mockReturnValueOnce({
         update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null }),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({ data: [{ id: "pay-uuid" }], error: null }),
       })
       .mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),
@@ -117,7 +118,8 @@ describe("POST /api/serdipay/callback", () => {
       })
       .mockReturnValueOnce({
         update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null }),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({ data: [{ id: "pay-uuid" }], error: null }),
       })
       .mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),

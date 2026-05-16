@@ -11,6 +11,8 @@ import { takeJoined } from "@/lib/supabase-joins";
 import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
 
+const EXPORT_ROW_LIMIT = 50_000;
+
 export async function GET(req: Request) {
   const { school, plan } = await getTenantContext();
 
@@ -32,10 +34,12 @@ export async function GET(req: Request) {
       "id, amount, phone, telecom, status, created_at, settled_at, reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by, serdipay_transaction_id, students(full_name, external_id)"
     )
     .eq("school_id", school.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(EXPORT_ROW_LIMIT);
 
   const { data } = await buildReportQuery(baseQuery, filters);
   const rows = (data ?? []) as PaymentReportRow[];
+  const truncated = rows.length === EXPORT_ROW_LIMIT;
 
   const header = [
     "reference",
@@ -89,6 +93,7 @@ export async function GET(req: Request) {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="${school.code}-rapport-paiements.csv"`,
       "cache-control": "no-store",
+      ...(truncated ? { "x-export-truncated": "true" } : {}),
     },
   });
 }

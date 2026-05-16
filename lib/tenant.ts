@@ -1,9 +1,10 @@
 // minerval/lib/tenant.ts
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSSRClient } from "./supabase";
 import type { School, TenantContext } from "./types";
 
-export async function getTenantContext(): Promise<TenantContext> {
+export const getTenantContext = cache(async function getTenantContext(): Promise<TenantContext> {
   const supabase = await createSSRClient();
   const {
     data: { user },
@@ -72,4 +73,4 @@ export async function getTenantContext(): Promise<TenantContext> {
       stripe_customer_id: sub.stripe_customer_id,
     },
   };
-}
+});

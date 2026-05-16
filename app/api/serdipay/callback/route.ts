@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
 
   const isSuccess = paymentStatus === "success";
 
-  await admin
+  // Atomic conditional update — only succeeds if status is still "pending".
+  // Guards against duplicate callbacks arriving concurrently.
+  const { data: updated } = await admin
     .from("payment_requests")
     .update({
       status: isSuccess ? "success" : "failed",
@@ -57,7 +59,13 @@ export async function POST(req: NextRequest) {
       serdipay_transaction_id: transactionId ?? null,
       ...(isSuccess ? { settled_at: new Date().toISOString() } : {}),
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id)
+    .eq("status", "pending")
+    .select("id");
+
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ message: "Deja traite" }, { status: 200 });
+  }
 
   await admin.from("payment_events").insert({
     payment_request_id: payment.id,
