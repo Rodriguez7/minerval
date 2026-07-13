@@ -1,10 +1,13 @@
 // minerval/app/invite/accept/page.tsx
 import { redirect } from "next/navigation";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
+import { localizePathname } from "@/lib/i18n/config";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 type Props = { searchParams: Promise<Record<string, string | undefined>> };
 
 export default async function AcceptInvitePage({ searchParams }: Props) {
+  const locale = await getRequestLocale();
   const { token } = await searchParams;
 
   if (!token) {
@@ -23,7 +26,10 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
   if (!user) {
     // encodeURIComponent is required — the second `?` in the URL would be misinterpreted
     // by the login page's URL parser without it
-    redirect(`/login?redirectTo=${encodeURIComponent(`/invite/accept?token=${token}`)}`);
+    const acceptPath = `${localizePathname(locale, "/invite/accept")}?token=${encodeURIComponent(token)}`;
+    redirect(
+      `${localizePathname(locale, "/login")}?redirectTo=${encodeURIComponent(acceptPath)}`
+    );
   }
 
   const admin = getAdminClient();
@@ -46,7 +52,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
   }
 
   if (invite.accepted_at) {
-    redirect("/dashboard");
+    redirect(localizePathname(locale, "/dashboard"));
   }
 
   if (new Date(invite.expires_at) < new Date()) {
@@ -98,5 +104,5 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
     .update({ accepted_at: new Date().toISOString() })
     .eq("id", invite.id);
 
-  redirect("/dashboard");
+  redirect(localizePathname(locale, "/dashboard"));
 }

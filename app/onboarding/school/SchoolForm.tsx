@@ -6,7 +6,6 @@ import { useLocale } from "@/lib/i18n/client";
 import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
 import {
   EDUCATION_LEVELS,
-  EDUCATION_LEVEL_LABELS,
   type EducationLevel,
 } from "@/lib/congo-education";
 
@@ -84,45 +83,45 @@ export function SchoolForm() {
                   checked={educationLevels.includes(level)}
                   onChange={() => toggleEducationLevel(level)}
                 />
-                {EDUCATION_LEVEL_LABELS[level]}
+                {copy.school.educationLevelLabels[level]}
               </label>
             ))}
           </div>
         </fieldset>
         <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 space-y-4">
           <div>
-            <p className="text-sm font-semibold text-blue-950">Vérification de l&apos;établissement</p>
+            <p className="text-sm font-semibold text-blue-950">{copy.school.verificationTitle}</p>
             <p className="text-xs text-blue-700 mt-1">
-              Ces informations permettent de vérifier l&apos;établissement avant le premier versement.
+              {copy.school.verificationDescription}
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Nom légal</label>
+              <label className="block text-sm font-medium mb-1">{copy.school.legalNameLabel}</label>
               <input name="legalName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Numéro d&apos;enregistrement</label>
-              <input name="registrationNumber" maxLength={100} placeholder="Optionnel" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">{copy.school.registrationNumberLabel}</label>
+              <input name="registrationNumber" maxLength={100} placeholder={copy.school.optionalPlaceholder} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Adresse de l&apos;établissement</label>
+              <label className="block text-sm font-medium mb-1">{copy.school.addressLabel}</label>
               <input name="schoolAddress" required minLength={5} maxLength={300} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Nom du responsable</label>
+              <label className="block text-sm font-medium mb-1">{copy.school.directorNameLabel}</label>
               <input name="directorName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Téléphone du responsable</label>
+              <label className="block text-sm font-medium mb-1">{copy.school.directorPhoneLabel}</label>
               <input name="directorPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Nom du compte de versement</label>
+              <label className="block text-sm font-medium mb-1">{copy.school.payoutAccountNameLabel}</label>
               <input name="payoutAccountName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Numéro de versement</label>
+              <label className="block text-sm font-medium mb-1">{copy.school.payoutAccountPhoneLabel}</label>
               <input name="payoutAccountPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>

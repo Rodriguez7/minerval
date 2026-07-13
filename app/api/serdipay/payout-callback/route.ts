@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "message et payment.status sont obligatoires" }, { status: 400 });
   }
 
+  if (paymentStatus !== "success" && paymentStatus !== "failed") {
+    return NextResponse.json({ error: "payment.status invalide" }, { status: 400 });
+  }
+
   const admin = getAdminClient();
 
   // 1. Lookup payout
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   // 4. Update payout status
   if (isSuccess) {
-    await admin
+    const { error: updateError } = await admin
       .from("school_payouts")
       .update({
         status: "completed",
@@ -70,6 +74,13 @@ export async function POST(req: NextRequest) {
         serdipay_transaction_id: transactionId ?? null,
       })
       .eq("id", payoutId);
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: "Impossible de finaliser le versement" },
+        { status: 500 }
+      );
+    }
 
     if (ownerEmail) {
       await Promise.resolve(sendPayoutCompletedEmail({
@@ -81,13 +92,20 @@ export async function POST(req: NextRequest) {
       })).catch(console.error);
     }
   } else {
-    await admin
+    const { error: updateError } = await admin
       .from("school_payouts")
       .update({
         status: "failed",
         failure_reason: paymentStatus,
       })
       .eq("id", payoutId);
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: "Impossible de finaliser le versement" },
+        { status: 500 }
+      );
+    }
 
     if (ownerEmail) {
       await Promise.resolve(sendPayoutFailedEmail({

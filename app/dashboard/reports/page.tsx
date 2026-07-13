@@ -11,7 +11,7 @@ import { getAdminClient } from "@/lib/supabase";
 import { takeJoined } from "@/lib/supabase-joins";
 import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
-import Link from "next/link";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -39,12 +39,12 @@ export default async function ReportsPage({
           <p className="text-sm text-zinc-500">
             Les rapports avances sont disponibles avec les plans Growth et Pro.
           </p>
-          <a
+          <LocalizedLink
             href="/dashboard/billing"
             className="inline-flex bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors"
           >
             Voir les plans
-          </a>
+          </LocalizedLink>
         </div>
       </div>
     );
@@ -120,18 +120,18 @@ export default async function ReportsPage({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Link
+          <LocalizedLink
             href={`/dashboard/reports/export?${exportParams.toString()}`}
             className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
           >
             Exporter en CSV
-          </Link>
-          <Link
+          </LocalizedLink>
+          <LocalizedLink
             href="/dashboard/reconciliation"
             className="text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
         >
             File de rapprochement
-          </Link>
+          </LocalizedLink>
         </div>
       </div>
 

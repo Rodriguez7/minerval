@@ -10,13 +10,18 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature") ?? "";
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    return NextResponse.json({ error: "Webhook non configure" }, { status: 503 });
+  }
 
   let event: Stripe.Event;
   try {
     event = getStripe().webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     );
   } catch {
     return NextResponse.json({ error: "Signature invalide" }, { status: 400 });
@@ -53,22 +58,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    // Insert billing event for idempotency
-    const { error: insertError } = await admin.from("billing_events").insert({
-      school_id: schoolId,
-      stripe_event_id: event.id,
-      event_type: billingEventType,
-      payload: event.data.object,
-    });
-
-    if (insertError && insertError.code !== "23505") {
-      console.error("[stripe-webhook] billing_events insert failed", event.id, insertError.message);
-      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
-    }
-    if (insertError?.code === "23505") {
-      return NextResponse.json({ received: true });
-    }
-
     const { error: updateError1 } = await admin
       .from("school_subscriptions")
       .update({
@@ -78,9 +67,10 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError1) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError1.message);
+      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
     }
 
-    return NextResponse.json({ received: true });
+    return recordBillingEvent(admin, event, schoolId, billingEventType);
   }
 
   // For all other event types: look up school_id first, then insert billing_events, then process
@@ -107,23 +97,7 @@ export async function POST(request: Request) {
 
   if (!schoolId) {
     console.warn("[stripe-webhook] Could not resolve school_id for event", event.id);
-    return NextResponse.json({ received: true });
-  }
-
-  // Insert billing event for idempotency (2nd DB call)
-  const { error: insertError } = await admin.from("billing_events").insert({
-    school_id: schoolId,
-    stripe_event_id: event.id,
-    event_type: billingEventType,
-    payload: event.data.object,
-  });
-
-  if (insertError && insertError.code !== "23505") {
-    console.error("[stripe-webhook] billing_events insert failed", event.id, insertError.message);
-    return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
-  }
-  if (insertError?.code === "23505") {
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ error: "Ecole introuvable" }, { status: 500 });
   }
 
   if (event.type === "customer.subscription.updated") {
@@ -138,7 +112,7 @@ export async function POST(request: Request) {
     const planCode = priceIdToPlanCode(priceId);
     if (!planCode) {
       console.warn("[stripe-webhook] Unknown price ID, skipping plan update", priceId, event.id);
-      return NextResponse.json({ received: true });
+      return NextResponse.json({ error: "Tarif Stripe inconnu" }, { status: 500 });
     }
 
     const { error: updateError2 } = await admin
@@ -156,6 +130,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError2) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError2.message);
+      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
     }
   }
 
@@ -166,6 +141,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError3) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError3.message);
+      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
     }
   }
 
@@ -182,6 +158,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError4) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError4.message);
+      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
     }
   }
 
@@ -192,7 +169,29 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError5) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError5.message);
+      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
     }
+  }
+
+  return recordBillingEvent(admin, event, schoolId, billingEventType);
+}
+
+async function recordBillingEvent(
+  admin: ReturnType<typeof getAdminClient>,
+  event: Stripe.Event,
+  schoolId: string,
+  eventType: string
+) {
+  const { error } = await admin.from("billing_events").insert({
+    school_id: schoolId,
+    stripe_event_id: event.id,
+    event_type: eventType,
+    payload: event.data.object,
+  });
+
+  if (error && error.code !== "23505") {
+    console.error("[stripe-webhook] billing_events insert failed", event.id, error.message);
+    return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

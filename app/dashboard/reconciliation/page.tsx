@@ -10,7 +10,7 @@ import {
 import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
 import { createSSRClient } from "@/lib/supabase";
 import { takeJoined } from "@/lib/supabase-joins";
-import Link from "next/link";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { updateReconciliationStatus } from "../actions";
 import type { Telecom } from "@/lib/types";
 
@@ -111,12 +111,12 @@ export default async function ReconciliationPage({
             Analysez les exceptions, signalez les ecarts et gardez une trace d&apos;audit
           </p>
         </div>
-        <Link
+        <LocalizedLink
           href="/dashboard/reports"
           className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
         >
           Ouvrir le tableau de bord des rapports
-        </Link>
+        </LocalizedLink>
       </div>
 
       {/* Filters */}

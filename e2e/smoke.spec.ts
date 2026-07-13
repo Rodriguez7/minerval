@@ -276,6 +276,13 @@ test.describe.serial("Minerval smoke", () => {
     }));
 
     expect(metrics.scrollWidth).toBe(metrics.innerWidth);
+
+    const response = await page.request.get("/fr");
+    expect(response.headers()["strict-transport-security"]).toContain("max-age=63072000");
+    expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers()["x-frame-options"]).toBe("DENY");
+    expect(response.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(response.headers()["permissions-policy"]).toContain("camera=()");
   });
 
   test("loads dashboard, reconciliation, reports, export, and public payment lookup", async ({
@@ -321,6 +328,11 @@ test.describe.serial("Minerval smoke", () => {
     await page.goto(`/fr/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("button", { name: /Payer .*1.*500 FC/ })).toBeVisible();
+
+    await page.goto(`/fr/pay/access/${seed.paymentToken}?student=UNKNOWN-STUDENT`);
+    await expect(page.getByText("Eleve introuvable")).toBeVisible();
+    await expect(page.getByLabel("Entrez votre ID eleve")).toHaveValue("UNKNOWN-STUDENT");
+    await expect(page.getByRole("button", { name: "Rechercher" })).toBeVisible();
 
     // Receipt page — publicly accessible, branded (pro_monthly has can_branded_receipts)
     await page.context().clearCookies();

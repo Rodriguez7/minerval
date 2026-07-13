@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { ApproveButton } from "./ApproveButton";
+import { localizePathname } from "@/lib/i18n/config";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "En attente",
@@ -28,13 +30,14 @@ const statusBadge = (status: string) => {
 };
 
 export default async function AdminPayoutsPage() {
+  const locale = await getRequestLocale();
   const ssr = await createSSRClient();
   const {
     data: { user },
   } = await ssr.auth.getUser();
 
   if (!user || user.email !== process.env.SUPER_ADMIN_EMAIL) {
-    redirect("/dashboard");
+    redirect(localizePathname(locale, "/dashboard"));
   }
 
   const admin = getAdminClient();

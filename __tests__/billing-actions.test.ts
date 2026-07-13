@@ -9,6 +9,7 @@ const { mockStripe } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/tenant", () => ({ getTenantContext: vi.fn() }));
+vi.mock("@/lib/i18n/server", () => ({ getRequestLocale: vi.fn().mockResolvedValue("fr") }));
 vi.mock("@/lib/stripe", () => ({
   getStripe: () => mockStripe,
   PLAN_PRICE_IDS: {

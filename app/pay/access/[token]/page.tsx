@@ -102,7 +102,14 @@ export default async function PayAccessPage({
           <p className="text-gray-500 text-sm">{copy.access.pageSubtitle}</p>
         </div>
 
-        {!studentExternalId && <StudentSearch label={copy.access.searchLabel} placeholder={copy.access.searchPlaceholder} buttonLabel={copy.access.searchButton} />}
+        {!student && (
+          <StudentSearch
+            label={copy.access.searchLabel}
+            placeholder={copy.access.searchPlaceholder}
+            buttonLabel={copy.access.searchButton}
+            initialValue={studentExternalId ?? ""}
+          />
+        )}
 
         {studentExternalId && studentError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -162,18 +169,24 @@ function StudentSearch({
   label,
   placeholder,
   buttonLabel,
+  initialValue,
 }: {
   label: string;
   placeholder: string;
   buttonLabel: string;
+  initialValue: string;
 }) {
   return (
     <form method="GET" className="bg-white rounded-xl shadow p-6">
-      <label className="block text-sm font-medium mb-2">{label}</label>
+      <label htmlFor="student-id" className="block text-sm font-medium mb-2">
+        {label}
+      </label>
       <input
+        id="student-id"
         name="student"
         type="text"
         required
+        defaultValue={initialValue}
         placeholder={placeholder}
         className="w-full border rounded-lg px-3 py-2 mb-4"
       />

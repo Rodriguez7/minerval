@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { callProxyPayout, ProxyError } from "@/lib/proxy";
-import { sendPayoutFailedEmail } from "@/lib/email";
 import { buildSerdiPayCallbackUrl } from "@/lib/serdipay";
 
 export async function POST(
@@ -65,40 +64,35 @@ export async function POST(
     return NextResponse.json({ id: payout.id, status: "processing" });
   } catch (err) {
     const reason = err instanceof ProxyError ? err.message : "Erreur proxy inattendue";
+    const isDefinitiveRejection =
+      err instanceof ProxyError && err.status >= 400 && err.status < 500;
 
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("email")
-      .eq("id", payout.requested_by)
-      .single();
+    if (isDefinitiveRejection) {
+      await admin
+        .from("school_payouts")
+        .update({ status: "failed", failure_reason: reason })
+        .eq("id", payout.id);
 
-    const { data: school } = await admin
-      .from("schools")
-      .select("currency")
-      .eq("id", payout.school_id)
-      .single();
-
-    await admin
-      .from("school_payouts")
-      .update({ status: "failed", failure_reason: reason })
-      .eq("id", payout.id);
-
-    const ownerEmail = (profile as { email?: string } | null)?.email;
-    const currency = (school as { currency?: string } | null)?.currency ?? "";
-
-    if (ownerEmail) {
-      await Promise.resolve(
-        sendPayoutFailedEmail({
-          to: ownerEmail,
-          amount: payout.net_amount,
-          currency,
-          phone: payout.phone,
-          telecom: payout.telecom,
-        })
-      ).catch(console.error);
+      return NextResponse.json({ error: reason }, { status: err.status });
     }
 
-    const status = err instanceof ProxyError ? err.status : 500;
-    return NextResponse.json({ error: reason }, { status });
+    // Timeouts and upstream failures are ambiguous: the payout may have been
+    // accepted already. Keep the balance reserved until the signed callback or
+    // a manual reconciliation confirms the final outcome.
+    await admin
+      .from("school_payouts")
+      .update({
+        failure_reason: `Confirmation SerdiPay requise: ${reason}`,
+      })
+      .eq("id", payout.id);
+
+    return NextResponse.json(
+      {
+        id: payout.id,
+        status: "processing",
+        error: "Reponse SerdiPay incertaine; le versement reste reserve pour verification.",
+      },
+      { status: 202 }
+    );
   }
 }

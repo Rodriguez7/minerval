@@ -71,7 +71,17 @@ const INVOICE_PAYMENT_FAILED_EVENT = {
 };
 
 describe("POST /api/webhooks/stripe", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+  });
+
+  it("returns 503 when the webhook secret is missing", async () => {
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    const res = await POST(makeRequest("{}"));
+    expect(res.status).toBe(503);
+    expect(mockStripe.webhooks.constructEvent).not.toHaveBeenCalled();
+  });
 
   it("returns 400 for invalid signature", async () => {
     mockStripe.webhooks.constructEvent.mockImplementation(() => {
@@ -86,12 +96,12 @@ describe("POST /api/webhooks/stripe", () => {
   it("processes checkout.session.completed — links customer/subscription to school", async () => {
     mockStripe.webhooks.constructEvent.mockReturnValue(CHECKOUT_COMPLETED_EVENT as never);
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events
       .mockReturnValueOnce({  // school_subscriptions update
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      });
+      })
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }); // billing_events
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
 
     const req = makeRequest(JSON.stringify(CHECKOUT_COMPLETED_EVENT));
@@ -108,12 +118,12 @@ describe("POST /api/webhooks/stripe", () => {
 
     // metadata.school_id is present → no school lookup DB call
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events (1st)
-      .mockReturnValueOnce({ // school_subscriptions update (2nd)
+      .mockReturnValueOnce({ // school_subscriptions update (1st)
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      });
+      })
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }); // billing_events (2nd)
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
 
     const req = makeRequest(JSON.stringify(SUBSCRIPTION_UPDATED_EVENT));
@@ -132,12 +142,12 @@ describe("POST /api/webhooks/stripe", () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { school_id: "school1" }, error: null }),
       })
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events (2nd)
-      .mockReturnValueOnce({ // school_subscriptions update (3rd)
+      .mockReturnValueOnce({ // school_subscriptions update (2nd)
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      });
+      })
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }); // billing_events (3rd)
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
 
     const req = makeRequest(JSON.stringify(INVOICE_PAYMENT_FAILED_EVENT));
@@ -156,12 +166,12 @@ describe("POST /api/webhooks/stripe", () => {
 
     // metadata.school_id present → no school lookup
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }) // billing_events (1st)
-      .mockReturnValueOnce({ // school_subscriptions update (2nd)
+      .mockReturnValueOnce({ // school_subscriptions update (1st)
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      });
+      })
+      .mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) }); // billing_events (2nd)
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
 
     const req = makeRequest(JSON.stringify(deletedEvent));
@@ -171,12 +181,17 @@ describe("POST /api/webhooks/stripe", () => {
     expect(fromMock).toHaveBeenCalledTimes(2);
   });
 
-  it("returns 200 without update for duplicate non-checkout event", async () => {
+  it("accepts a duplicate non-checkout event after an idempotent update", async () => {
     // SUBSCRIPTION_UPDATED_EVENT has metadata.school_id → no DB school lookup
     mockStripe.webhooks.constructEvent.mockReturnValue(SUBSCRIPTION_UPDATED_EVENT as never);
 
     const fromMock = vi.fn()
-      .mockReturnValueOnce({ // billing_events insert returns duplicate (1st — no school lookup)
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      })
+      .mockReturnValueOnce({ // billing_events insert returns duplicate
         insert: vi.fn().mockResolvedValue({ error: { code: "23505" } }),
       });
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
@@ -185,10 +200,10 @@ describe("POST /api/webhooks/stripe", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    expect(fromMock).toHaveBeenCalledTimes(1); // billing_events only, no update
+    expect(fromMock).toHaveBeenCalledTimes(2);
   });
 
-  it("returns 200 without processing when school not found for non-checkout event (no metadata fallback)", async () => {
+  it("returns 500 so Stripe retries when school resolution is not ready", async () => {
     // invoice.payment_failed has no metadata — exercises DB lookup fallback path
     mockStripe.webhooks.constructEvent.mockReturnValue(INVOICE_PAYMENT_FAILED_EVENT as never);
 
@@ -203,16 +218,19 @@ describe("POST /api/webhooks/stripe", () => {
     const req = makeRequest(JSON.stringify(INVOICE_PAYMENT_FAILED_EVENT));
     const res = await POST(req);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(500);
     expect(fromMock).toHaveBeenCalledTimes(1); // only the lookup — no insert, no update
   });
 
-  it("returns 200 without processing for duplicate stripe_event_id", async () => {
-    // Use checkout.session.completed — school_id comes from metadata (no prior DB lookup),
-    // so fromMock is called exactly once (the billing_events insert) before early return.
+  it("accepts a duplicate checkout event after an idempotent update", async () => {
     mockStripe.webhooks.constructEvent.mockReturnValue(CHECKOUT_COMPLETED_EVENT as never);
 
     const fromMock = vi.fn()
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      })
       .mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: { code: "23505" } }), // unique violation
       });
@@ -222,7 +240,21 @@ describe("POST /api/webhooks/stripe", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    // Only billing_events insert was attempted — no school_subscriptions update
+    expect(fromMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns 500 when subscription persistence fails and does not record the event", async () => {
+    mockStripe.webhooks.constructEvent.mockReturnValue(CHECKOUT_COMPLETED_EVENT as never);
+    const fromMock = vi.fn().mockReturnValueOnce({
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: { message: "database unavailable" } }),
+      }),
+    });
+    vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
+
+    const res = await POST(makeRequest(JSON.stringify(CHECKOUT_COMPLETED_EVENT)));
+
+    expect(res.status).toBe(500);
     expect(fromMock).toHaveBeenCalledTimes(1);
   });
 });

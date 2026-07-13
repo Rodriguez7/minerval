@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getTenantContext } from "@/lib/tenant";
 import { getStripe, PLAN_PRICE_IDS } from "@/lib/stripe";
+import { localizePathname } from "@/lib/i18n/config";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 const PAID_PLAN_CODES = ["growth_monthly", "pro_monthly"] as const;
 
@@ -24,6 +26,7 @@ export async function createCheckoutSession(planCode: string) {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const locale = await getRequestLocale();
 
   const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
@@ -34,8 +37,8 @@ export async function createCheckoutSession(planCode: string) {
       trial_period_days: 14,
       metadata: { school_id: school.id },
     },
-    success_url: `${appUrl}/dashboard/billing?checkout=success`,
-    cancel_url: `${appUrl}/dashboard/billing`,
+    success_url: `${appUrl}${localizePathname(locale, "/dashboard/billing")}?checkout=success`,
+    cancel_url: `${appUrl}${localizePathname(locale, "/dashboard/billing")}`,
   });
 
   if (!session.url) {
@@ -57,10 +60,11 @@ export async function createPortalSession() {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const locale = await getRequestLocale();
 
   const session = await getStripe().billingPortal.sessions.create({
     customer: subscription.stripe_customer_id,
-    return_url: `${appUrl}/dashboard/billing`,
+    return_url: `${appUrl}${localizePathname(locale, "/dashboard/billing")}`,
   });
 
   redirect(session.url);

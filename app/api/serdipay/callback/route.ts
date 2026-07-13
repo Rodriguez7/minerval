@@ -34,11 +34,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "message et payment.status sont obligatoires" }, { status: 400 });
   }
 
+  if (paymentStatus !== "success" && paymentStatus !== "failed") {
+    return NextResponse.json({ error: "payment.status invalide" }, { status: 400 });
+  }
+
   const admin = getAdminClient();
 
   const { data: payment, error: lookupErr } = await admin
     .from("payment_requests")
-    .select("id, student_id, amount, status")
+    .select("id, student_id, amount, fee_amount, status")
     .eq("id", reference)
     .single();
 
@@ -52,7 +56,36 @@ export async function POST(req: NextRequest) {
 
   const isSuccess = paymentStatus === "success";
 
-  await admin
+  if (isSuccess) {
+    const { data: student, error: studentLookupError } = await admin
+      .from("students")
+      .select("amount_due")
+      .eq("id", payment.student_id)
+      .single();
+
+    if (studentLookupError || !student) {
+      return NextResponse.json(
+        { error: "Impossible de lire le solde eleve" },
+        { status: 500 }
+      );
+    }
+
+    const schoolFeePaid = Math.max(0, payment.amount - (payment.fee_amount ?? 0));
+    const remainingDue = Math.max(0, Number(student.amount_due) - schoolFeePaid);
+    const { error: studentUpdateError } = await admin
+      .from("students")
+      .update({ amount_due: remainingDue })
+      .eq("id", payment.student_id);
+
+    if (studentUpdateError) {
+      return NextResponse.json(
+        { error: "Impossible de mettre a jour le solde eleve" },
+        { status: 500 }
+      );
+    }
+  }
+
+  const { error: paymentUpdateError } = await admin
     .from("payment_requests")
     .update({
       status: isSuccess ? "success" : "failed",
@@ -65,17 +98,21 @@ export async function POST(req: NextRequest) {
     })
     .eq("id", payment.id);
 
-  await admin.from("payment_events").insert({
+  if (paymentUpdateError) {
+    return NextResponse.json(
+      { error: "Impossible de finaliser le paiement" },
+      { status: 500 }
+    );
+  }
+
+  const { error: eventError } = await admin.from("payment_events").insert({
     payment_request_id: payment.id,
     event_type: isSuccess ? "callback_success" : "callback_failed",
     payload: body as Record<string, unknown>,
   });
 
-  if (isSuccess) {
-    await admin
-      .from("students")
-      .update({ amount_due: 0 })
-      .eq("id", payment.student_id);
+  if (eventError) {
+    console.error("[serdipay-callback] payment event insert failed", payment.id, eventError.message);
   }
 
   return NextResponse.json({ message: "OK" });

@@ -87,9 +87,9 @@ export async function POST(req: NextRequest) {
     policy?.parent_fee_bps ?? DEFAULT_PARENT_FEE_BPS
   );
 
-  // Idempotency: if there's already a pending payment for this student created
-  // within the last 2 minutes, return it instead of creating a duplicate.
-  const idempotencyWindow = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  // Keep one payment attempt active long enough for delayed mobile-money callbacks.
+  // This prevents a timeout followed by a retry from charging the parent twice.
+  const idempotencyWindow = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   const { data: existingPayment } = await admin
     .from("payment_requests")
     .select("id, receipt_access_token")
@@ -166,23 +166,38 @@ export async function POST(req: NextRequest) {
       status: "pending",
     });
   } catch (err) {
-    await admin
-      .from("payment_requests")
-      .update({ status: "failed" })
-      .eq("id", paymentRequest.id);
-
     if (err instanceof ProxyError) {
-      if (err.status === 409) {
-        return NextResponse.json({ error: err.message }, { status: 409 });
-      }
-      if (err.status === 400) {
-        return NextResponse.json({ error: err.message }, { status: 400 });
+      if (err.status >= 400 && err.status < 500) {
+        await admin
+          .from("payment_requests")
+          .update({ status: "failed" })
+          .eq("id", paymentRequest.id);
+
+        return NextResponse.json({ error: err.message }, { status: err.status });
       }
     }
 
+    // A timeout or upstream 5xx is ambiguous: SerdiPay may already have accepted
+    // the transaction. Keep it pending so a signed callback can settle it, and
+    // flag it for reconciliation instead of enabling an unsafe duplicate retry.
+    await admin
+      .from("payment_requests")
+      .update({
+        reconciliation_status: "needs_review",
+        reconciliation_note: "Reponse SerdiPay incertaine; en attente du callback signe.",
+        reconciliation_updated_at: new Date().toISOString(),
+        reconciliation_updated_by: "payment_initiation",
+      })
+      .eq("id", paymentRequest.id);
+
     return NextResponse.json(
-      { error: "Service de paiement indisponible, reessayez" },
-      { status: 503 }
+      {
+        error: "Confirmation du paiement en attente. Verifiez le recu avant de reessayer.",
+        payment_request_id: paymentRequest.id,
+        receipt_access_token: paymentRequest.receipt_access_token,
+        status: "pending",
+      },
+      { status: 202 }
     );
   }
 }

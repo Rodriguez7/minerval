@@ -23,13 +23,7 @@ export default async function PayoutsPage() {
 
   const payments = data ?? [];
   const currency = school.currency ?? "FC";
-
-  const collectedData = data ?? [];
-  const collected = collectedData.reduce(
-    (sum: number, r: { amount: number; fee_amount: number | null }) =>
-      sum + (r.amount - (r.fee_amount ?? 0)),
-    0
-  );
+  const totals = await getCollectedTotals(admin, school.id);
 
   const { data: inFlightData } = await admin
     .from("school_payouts")
@@ -41,7 +35,7 @@ export default async function PayoutsPage() {
     (sum: number, r: { amount: number }) => sum + r.amount,
     0
   );
-  const availableBalance = Math.max(0, collected - inFlight);
+  const availableBalance = Math.max(0, totals.net - inFlight);
 
   const { data: payoutHistory } = await admin
     .from("school_payouts")
@@ -52,9 +46,7 @@ export default async function PayoutsPage() {
 
   const canWithdraw = membership.role === "owner" && school.verification_status === "verified";
   const needsVerification = membership.role === "owner" && school.verification_status !== "verified";
-  const gross = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const fees = payments.reduce((sum, p) => sum + Number(p.fee_amount ?? 0), 0);
-  const net = gross - fees;
+  const { gross, fees, net } = totals;
 
   const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -235,4 +227,37 @@ export default async function PayoutsPage() {
       </div>
     </div>
   );
+}
+
+async function getCollectedTotals(
+  admin: ReturnType<typeof getAdminClient>,
+  schoolId: string
+) {
+  const pageSize = 1_000;
+  let offset = 0;
+  let gross = 0;
+  let fees = 0;
+
+  while (true) {
+    const { data, error } = await admin
+      .from("payment_requests")
+      .select("amount, fee_amount")
+      .eq("school_id", schoolId)
+      .eq("status", "success")
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw error;
+
+    const rows = data ?? [];
+    for (const row of rows) {
+      gross += Number(row.amount);
+      fees += Number(row.fee_amount ?? 0);
+    }
+
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return { gross, fees, net: gross - fees };
 }

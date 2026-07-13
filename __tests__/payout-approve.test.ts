@@ -17,7 +17,6 @@ import { POST } from "../app/api/admin/payouts/[id]/approve/route";
 import { NextRequest } from "next/server";
 import { getAdminClient } from "../lib/supabase";
 import { callProxyPayout, ProxyError } from "../lib/proxy";
-import { sendPayoutFailedEmail } from "../lib/email";
 import { getTenantContext } from "../lib/tenant";
 
 type AdminClient = ReturnType<typeof getAdminClient>;
@@ -112,7 +111,7 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
     );
   });
 
-  it("marks failed and sends email when proxy throws", async () => {
+  it("keeps an ambiguous upstream failure reserved for callback reconciliation", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce({
       user: { id: "user-uuid", email: "admin@test.com" },
       school: { id: "school-uuid", currency: "FC" },
@@ -127,16 +126,6 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
         single: vi.fn().mockResolvedValue({ data: mockPayout, error: null }),
       })
       .mockReturnValueOnce({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { email: "owner@test.com" }, error: null }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { currency: "FC" }, error: null }),
-      })
-      .mockReturnValueOnce({
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({ error: null }),
       });
@@ -145,8 +134,38 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
     vi.mocked(callProxyPayout).mockRejectedValueOnce(new PE("SerdiPay error", 502));
 
     const res = await POST(makeRequest("payout-uuid"), { params: Promise.resolve({ id: "payout-uuid" }) });
-    expect(res.status).toBe(502);
-    expect(sendPayoutFailedEmail).toHaveBeenCalled();
+    expect(res.status).toBe(202);
+    expect(await res.json()).toMatchObject({ status: "processing" });
+  });
+
+  it("releases a payout only after an explicit SerdiPay rejection", async () => {
+    vi.mocked(getTenantContext).mockResolvedValueOnce({
+      user: { id: "user-uuid", email: "admin@test.com" },
+      school: { id: "school-uuid", currency: "FC" },
+      membership: { role: "owner" },
+    } as never);
+
+    const updateQuery = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockPayout, error: null }),
+      })
+      .mockReturnValueOnce(updateQuery);
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
+    const PE = ProxyError as unknown as new (msg: string, status: number) => InstanceType<typeof ProxyError>;
+    vi.mocked(callProxyPayout).mockRejectedValueOnce(new PE("Invalid payout", 400));
+
+    const res = await POST(makeRequest("payout-uuid"), { params: Promise.resolve({ id: "payout-uuid" }) });
+    expect(res.status).toBe(400);
+    expect(updateQuery.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" })
+    );
   });
 
   it("returns 503 when payout callback secret is missing", async () => {

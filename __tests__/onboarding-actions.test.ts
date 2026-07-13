@@ -95,7 +95,7 @@ describe("createSchool action", () => {
     vi.mocked(getAdminClient).mockReturnValue({ from: fromMock } as never);
     vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
 
-    await expect(createSchool(null, makeFormData(validSchoolData))).rejects.toThrow("REDIRECT:/onboarding/billing-contact");
+    await expect(createSchool(null, makeFormData(validSchoolData))).rejects.toThrow("REDIRECT:/fr/onboarding/billing-contact");
 
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
       legal_name: "Ecole Saint Michel SARL",
@@ -120,7 +120,7 @@ describe("createSchool action", () => {
     } as never);
     vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
 
-    await expect(createSchool(null, makeFormData(validSchoolData))).rejects.toThrow("REDIRECT:/login");
+    await expect(createSchool(null, makeFormData(validSchoolData))).rejects.toThrow("REDIRECT:/fr/login");
   });
 });
 
@@ -144,7 +144,7 @@ describe("updateBillingContact action", () => {
 
     await expect(
       updateBillingContact(null, makeFormData({ billingEmail: "a@b.com", billingContact: "Admin", timezone: "UTC" }))
-    ).rejects.toThrow("REDIRECT:/login");
+    ).rejects.toThrow("REDIRECT:/fr/login");
   });
 
   it("updates school billing fields and redirects to /onboarding/import", async () => {
@@ -170,7 +170,7 @@ describe("updateBillingContact action", () => {
 
     await expect(
       updateBillingContact(null, makeFormData({ billingEmail: "billing@school.com", billingContact: "Jean Kabila", timezone: "Africa/Kinshasa" }))
-    ).rejects.toThrow("REDIRECT:/onboarding/import");
+    ).rejects.toThrow("REDIRECT:/fr/onboarding/import");
 
     expect(updateMock).toHaveBeenCalledWith({
       billing_email: "billing@school.com",

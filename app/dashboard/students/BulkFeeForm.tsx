@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 
 interface Props {
   canBulkOps: boolean;
@@ -80,9 +81,9 @@ export function BulkFeeForm({ canBulkOps }: Props) {
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
           <p>
             Les mises a jour groupees sont disponibles avec le{" "}
-            <a href="/dashboard/billing" className="font-medium text-gray-900 underline">
+            <LocalizedLink href="/dashboard/billing" className="font-medium text-gray-900 underline">
               plan Pro
-            </a>
+            </LocalizedLink>
             .
           </p>
         </div>

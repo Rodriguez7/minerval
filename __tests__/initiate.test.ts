@@ -286,6 +286,59 @@ describe("POST /api/payments/initiate", () => {
     expect(body.error).toMatch(/2 minutes/i);
   });
 
+  it("keeps an ambiguous proxy failure pending and returns the receipt", async () => {
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
+    const updateQuery = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockStudent, error: null }),
+      })
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
+      })
+      .mockReturnValueOnce(makeNoExistingPaymentQuery())
+      .mockReturnValueOnce({
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: "pay-uuid", receipt_access_token: "receipt-token" },
+          error: null,
+        }),
+      })
+      .mockReturnValueOnce(updateQuery);
+
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
+    mockCallProxy.mockRejectedValueOnce(new Error("network timeout"));
+
+    const res = await POST(
+      makeRequest({
+        student_id: "STU-001",
+        phone: "243812345678",
+        telecom: "AM",
+        payment_token: "school-token",
+      })
+    );
+
+    expect(res.status).toBe(202);
+    expect(await res.json()).toMatchObject({
+      status: "pending",
+      receipt_access_token: "receipt-token",
+    });
+    expect(updateQuery.update).toHaveBeenCalledWith(
+      expect.objectContaining({ reconciliation_status: "needs_review" })
+    );
+  });
+
   it("returns 503 when payment callback secret is missing", async () => {
     delete process.env.SERDIPAY_CALLBACK_SECRET;
 

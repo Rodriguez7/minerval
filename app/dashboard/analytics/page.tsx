@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
-import Link from "next/link";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 
 export default async function AnalyticsPage() {
   const { school, plan } = await getTenantContext();
@@ -15,12 +15,12 @@ export default async function AnalyticsPage() {
           <p className="text-sm text-zinc-500">
             L&apos;analytique avancee est disponible avec le plan Pro.
           </p>
-          <Link
+          <LocalizedLink
             href="/dashboard/billing"
             className="inline-flex bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors"
           >
             Voir les plans
-          </Link>
+          </LocalizedLink>
         </div>
       </div>
     );

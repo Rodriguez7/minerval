@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
-import { getPreferredLocale } from "@/lib/i18n/config";
+import { getPreferredLocale, localizePathname } from "@/lib/i18n/config";
 import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { EDUCATION_LEVELS } from "@/lib/congo-education";
@@ -55,7 +55,7 @@ export async function createSchool(_: unknown, formData: FormData) {
 
   const supabase = await createSSRClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(localizePathname(locale, "/login"));
 
   const admin = getAdminClient();
   const { data: existing, error: lookupError } = await admin
@@ -96,7 +96,10 @@ export async function createSchool(_: unknown, formData: FormData) {
     role: "owner",
     status: "active",
   });
-  if (membershipError) return { error: copy.actions.failedCompleteSetup };
+  if (membershipError) {
+    await cleanupIncompleteSchool(admin, newSchool.id);
+    return { error: copy.actions.failedCompleteSetup };
+  }
 
   const { error: subscriptionError } = await admin.from("school_subscriptions").insert({
     school_id: newSchool.id,
@@ -104,7 +107,10 @@ export async function createSchool(_: unknown, formData: FormData) {
     status: "active",
     billing_exempt: false,
   });
-  if (subscriptionError) return { error: copy.actions.failedCompleteSetup };
+  if (subscriptionError) {
+    await cleanupIncompleteSchool(admin, newSchool.id);
+    return { error: copy.actions.failedCompleteSetup };
+  }
 
   const { error: pricingError } = await admin.from("school_pricing_policies").insert({
     school_id: newSchool.id,
@@ -112,9 +118,12 @@ export async function createSchool(_: unknown, formData: FormData) {
     fee_display_mode: "visible_line_item",
     active: true,
   });
-  if (pricingError) return { error: copy.actions.failedCompleteSetup };
+  if (pricingError) {
+    await cleanupIncompleteSchool(admin, newSchool.id);
+    return { error: copy.actions.failedCompleteSetup };
+  }
 
-  redirect("/onboarding/billing-contact");
+  redirect(localizePathname(locale, "/onboarding/billing-contact"));
 }
 
 export async function updateBillingContact(_: unknown, formData: FormData) {
@@ -137,7 +146,7 @@ export async function updateBillingContact(_: unknown, formData: FormData) {
 
   const supabase = await createSSRClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(localizePathname(locale, "/login"));
 
   // Get the user's school via membership (SSR client — RLS enforced)
   const { data: membership } = await supabase
@@ -146,7 +155,7 @@ export async function updateBillingContact(_: unknown, formData: FormData) {
     .eq("status", "active")
     .single();
 
-  if (!membership) redirect("/onboarding/school");
+  if (!membership) redirect(localizePathname(locale, "/onboarding/school"));
 
   const { error } = await supabase
     .from("schools")
@@ -159,5 +168,15 @@ export async function updateBillingContact(_: unknown, formData: FormData) {
 
   if (error) return { error: copy.actions.failedUpdateBilling };
 
-  redirect("/onboarding/import");
+  redirect(localizePathname(locale, "/onboarding/import"));
+}
+
+async function cleanupIncompleteSchool(
+  admin: ReturnType<typeof getAdminClient>,
+  schoolId: string
+) {
+  const { error } = await admin.from("schools").delete().eq("id", schoolId);
+  if (error) {
+    console.error("[onboarding] failed to clean up incomplete school", schoolId, error.message);
+  }
 }

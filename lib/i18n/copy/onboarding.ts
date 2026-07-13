@@ -1,4 +1,5 @@
 import type { AppLocale } from "../config";
+import type { EducationLevel } from "@/lib/congo-education";
 
 type OnboardingCopy = {
   actions: {
@@ -18,6 +19,17 @@ type OnboardingCopy = {
     nameLabel: string;
     educationLevelsLabel: string;
     educationLevelsHint: string;
+    educationLevelLabels: Record<EducationLevel, string>;
+    verificationTitle: string;
+    verificationDescription: string;
+    legalNameLabel: string;
+    registrationNumberLabel: string;
+    optionalPlaceholder: string;
+    addressLabel: string;
+    directorNameLabel: string;
+    directorPhoneLabel: string;
+    payoutAccountNameLabel: string;
+    payoutAccountPhoneLabel: string;
     codeLabel: string;
     codeHint: string;
     studentIdLabel: string;
@@ -97,6 +109,23 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
       educationLevelsLabel: "Niveaux organisés",
       educationLevelsHint:
         "Sélectionnez tous les niveaux proposés par votre établissement.",
+      educationLevelLabels: {
+        preschool: "Maternelle / préscolaire",
+        primary: "Primaire",
+        secondary: "Secondaire / humanités",
+        university: "Supérieur / université",
+      },
+      verificationTitle: "Vérification de l'établissement",
+      verificationDescription:
+        "Ces informations permettent de vérifier l'établissement avant le premier versement.",
+      legalNameLabel: "Nom légal",
+      registrationNumberLabel: "Numéro d'enregistrement",
+      optionalPlaceholder: "Optionnel",
+      addressLabel: "Adresse de l'établissement",
+      directorNameLabel: "Nom du responsable",
+      directorPhoneLabel: "Téléphone du responsable",
+      payoutAccountNameLabel: "Nom du compte de versement",
+      payoutAccountPhoneLabel: "Numéro de versement",
       codeLabel: "Code établissement",
       codeHint:
         "Lettres minuscules, chiffres, tirets. Utilise dans l'URL de paiement.",
@@ -181,6 +210,23 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
       educationLevelsLabel: "Education levels",
       educationLevelsHint:
         "Select every level offered by your institution.",
+      educationLevelLabels: {
+        preschool: "Preschool / kindergarten",
+        primary: "Primary",
+        secondary: "Secondary / humanities",
+        university: "Higher education / university",
+      },
+      verificationTitle: "Institution verification",
+      verificationDescription:
+        "This information is used to verify your institution before its first payout.",
+      legalNameLabel: "Legal name",
+      registrationNumberLabel: "Registration number",
+      optionalPlaceholder: "Optional",
+      addressLabel: "Institution address",
+      directorNameLabel: "Responsible person",
+      directorPhoneLabel: "Responsible person's phone",
+      payoutAccountNameLabel: "Payout account name",
+      payoutAccountPhoneLabel: "Payout phone number",
       codeLabel: "Institution code",
       codeHint:
         "Lowercase letters, numbers, hyphens. Used in your payment link URL.",

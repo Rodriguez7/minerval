@@ -38,7 +38,7 @@ export function InviteForm() {
         disabled={isPending}
         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
       >
-        {isPending ? "Envoi…" : "Envoyer l&apos;invitation"}
+        {isPending ? "Envoi…" : "Envoyer l’invitation"}
       </button>
 
       {state?.error && (
@@ -48,7 +48,7 @@ export function InviteForm() {
         <div className="w-full text-sm">
           <p className="text-green-700 font-medium">Invitation envoyee !</p>
           <p className="text-gray-500 mt-1">
-            Partagez ce lien si l&apos;email n&apos;arrive pas :{" "}
+            Partagez ce lien si l’email n’arrive pas :{" "}
             <a href={state.inviteLink} className="text-blue-600 hover:underline break-all">
               {state.inviteLink}
             </a>

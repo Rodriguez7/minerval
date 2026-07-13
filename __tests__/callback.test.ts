@@ -28,7 +28,8 @@ function asAdminClient(client: { from: unknown }) {
 const mockPendingPayment = {
   id: "pay-uuid",
   student_id: "student-uuid",
-  amount: 15000,
+  amount: 15450,
+  fee_amount: 450,
   status: "pending",
 };
 
@@ -85,7 +86,7 @@ describe("POST /api/serdipay/callback", () => {
     expect(body.message).toBe("Deja traite");
   });
 
-  it("stores transactionId and sets amount_due to 0 on success", async () => {
+  it("stores transactionId and subtracts only the settled school fee on success", async () => {
     const mockFrom = vi.fn()
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
@@ -93,15 +94,20 @@ describe("POST /api/serdipay/callback", () => {
         single: vi.fn().mockResolvedValue({ data: mockPendingPayment, error: null }),
       })
       .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { amount_due: 20000 }, error: null }),
+      })
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      })
+      .mockReturnValueOnce({
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({ error: null }),
       })
       .mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),
-      })
-      .mockReturnValueOnce({
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null }),
       });
 
     vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
@@ -109,8 +115,8 @@ describe("POST /api/serdipay/callback", () => {
     const res = await POST(makeRequest(successCallback));
     expect(res.status).toBe(200);
 
-    // payment_requests update (index 1) includes transactionId
-    const paymentUpdate = mockFrom.mock.results[1].value;
+    // payment_requests update (index 3) includes transactionId
+    const paymentUpdate = mockFrom.mock.results[3].value;
     expect(paymentUpdate.update).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "success",
@@ -118,10 +124,10 @@ describe("POST /api/serdipay/callback", () => {
       })
     );
 
-    // student update (index 3) sets amount_due to 0
-    const studentUpdate = mockFrom.mock.results[3].value;
+    // Only this payment's school-fee portion is subtracted; newer charges remain.
+    const studentUpdate = mockFrom.mock.results[2].value;
     expect(studentUpdate.update).toHaveBeenCalledWith(
-      expect.objectContaining({ amount_due: 0 })
+      expect.objectContaining({ amount_due: 5000 })
     );
   });
 
