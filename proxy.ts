@@ -111,6 +111,15 @@ export async function proxy(request: NextRequest) {
     return setLocaleCookie(NextResponse.redirect(url), locale);
   }
 
+  // The operational dashboard is currently French-first. Do not expose a
+  // partially translated English shell around French financial workflows.
+  // Public, authentication, payment and onboarding routes remain bilingual.
+  if (locale === "en" && pathname.startsWith("/dashboard")) {
+    const url = request.nextUrl.clone();
+    url.pathname = localizePathname("fr", pathname);
+    return setLocaleCookie(NextResponse.redirect(url), "fr");
+  }
+
   // Check subscription status for dashboard routes (except billing itself)
   if (
     pathname.startsWith("/dashboard") &&
