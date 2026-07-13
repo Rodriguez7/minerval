@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   // 1. Lookup payout
   const { data: payout } = await admin
     .from("school_payouts")
-    .select("id, school_id, requested_by, amount, phone, telecom, status")
+    .select("id, school_id, requested_by, amount, fee_amount, net_amount, phone, telecom, status")
     .eq("id", payoutId)
     .single();
 
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     if (ownerEmail) {
       await Promise.resolve(sendPayoutCompletedEmail({
         to: ownerEmail,
-        amount: payout.amount,
+        amount: payout.net_amount,
         currency,
         phone: payout.phone,
         telecom: payout.telecom,
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     if (ownerEmail) {
       await Promise.resolve(sendPayoutFailedEmail({
         to: ownerEmail,
-        amount: payout.amount,
+        amount: payout.net_amount,
         currency,
         phone: payout.phone,
         telecom: payout.telecom,

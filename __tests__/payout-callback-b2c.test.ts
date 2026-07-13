@@ -31,6 +31,9 @@ const mockPayout = {
   school_id: "school-uuid",
   requested_by: "user-uuid",
   amount: 5000,
+  fee_bps: 300,
+  fee_amount: 150,
+  net_amount: 4850,
   phone: "0812345678",
   telecom: "OM",
   status: "processing",
@@ -94,7 +97,7 @@ describe("POST /api/serdipay/payout-callback", () => {
     }));
     expect(res.status).toBe(200);
     expect(sendPayoutCompletedEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "owner@test.com", amount: 5000 })
+      expect.objectContaining({ to: "owner@test.com", amount: 4850 })
     );
   });
 

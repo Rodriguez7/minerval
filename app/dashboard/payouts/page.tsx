@@ -35,7 +35,7 @@ export default async function PayoutsPage() {
     .from("school_payouts")
     .select("amount")
     .eq("school_id", school.id)
-    .in("status", ["pending", "processing"]);
+    .neq("status", "failed");
 
   const inFlight = (inFlightData ?? []).reduce(
     (sum: number, r: { amount: number }) => sum + r.amount,
@@ -45,7 +45,7 @@ export default async function PayoutsPage() {
 
   const { data: payoutHistory } = await admin
     .from("school_payouts")
-    .select("id, amount, phone, telecom, status, created_at")
+    .select("id, amount, fee_amount, net_amount, phone, telecom, status, created_at")
     .eq("school_id", school.id)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -121,7 +121,7 @@ export default async function PayoutsPage() {
             <p className="text-3xl font-bold font-mono text-zinc-950 mt-1">
               {availableBalance.toLocaleString("fr-FR")} {currency}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">Apres deduction des demandes de retrait en cours</p>
+            <p className="text-xs text-zinc-400 mt-1">Apres deduction de tous les retraits non echoues</p>
           </div>
           {canWithdraw && (
             <WithdrawForm availableBalance={availableBalance} currency={currency} />
@@ -146,7 +146,7 @@ export default async function PayoutsPage() {
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Montant", "Telephone", "Operateur", "Statut", "Demande le"].map((h) => (
+                {["Demande", "Commission", "Verse a l'ecole", "Telephone", "Operateur", "Statut", "Demande le"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -158,6 +158,12 @@ export default async function PayoutsPage() {
                 <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
                   <td className="px-4 py-3 text-sm font-mono text-zinc-900">
                     {p.amount.toLocaleString("fr-FR")} {school.currency}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-red-600">
+                    − {p.fee_amount.toLocaleString("fr-FR")} {school.currency}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono font-semibold text-emerald-700">
+                    {p.net_amount.toLocaleString("fr-FR")} {school.currency}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.telecom}</td>

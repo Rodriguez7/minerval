@@ -55,7 +55,7 @@ export async function POST(
 
   try {
     await callProxyPayout({
-      amount: payout.amount,
+      amount: payout.net_amount,
       phone: payout.phone,
       telecom: payout.telecom,
       reference: payout.id,
@@ -90,7 +90,7 @@ export async function POST(
       await Promise.resolve(
         sendPayoutFailedEmail({
           to: ownerEmail,
-          amount: payout.amount,
+          amount: payout.net_amount,
           currency,
           phone: payout.phone,
           telecom: payout.telecom,

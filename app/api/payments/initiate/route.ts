@@ -5,7 +5,7 @@ import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
 import { getClientIp } from "@/lib/request";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { buildSerdiPayCallbackUrl, generateReceiptAccessToken } from "@/lib/serdipay";
-import { computeFee } from "@/lib/fee";
+import { computeFee, DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import type { Telecom } from "@/lib/types";
 
 const VALID_TELECOMS: Telecom[] = ["AM", "OM", "MP", "AF"];
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   const { feeAmount, totalAmount } = computeFee(
     student.amount_due,
-    policy?.parent_fee_bps ?? 275
+    policy?.parent_fee_bps ?? DEFAULT_PARENT_FEE_BPS
   );
 
   // Idempotency: if there's already a pending payment for this student created

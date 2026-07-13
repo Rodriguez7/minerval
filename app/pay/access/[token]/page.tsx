@@ -8,7 +8,7 @@ import { PayForm } from "../../[schoolCode]/PayForm";
 import { getSchoolByPaymentAccessToken } from "@/lib/payment-access";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
-import { computeFee } from "@/lib/fee";
+import { computeFee, DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 import { getPaymentsCopy } from "@/lib/i18n/copy/payments";
 import { formatMoney } from "@/lib/i18n/format";
@@ -69,7 +69,7 @@ export default async function PayAccessPage({
 
         const computed = computeFee(
           student.amount_due,
-          policy?.parent_fee_bps ?? 275
+          policy?.parent_fee_bps ?? DEFAULT_PARENT_FEE_BPS
         );
         feeAmount = computed.feeAmount;
         totalAmount = computed.totalAmount;

@@ -196,7 +196,7 @@ describe("POST /api/payments/initiate", () => {
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
       })
       .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
@@ -225,6 +225,7 @@ describe("POST /api/payments/initiate", () => {
     expect(res.status).toBe(200);
     expect(mockCallProxy).toHaveBeenCalledWith(
       expect.objectContaining({
+        amount: 15450,
         telecom: "AM",
         phone: "243812345678",
         callback_url:
@@ -249,7 +250,7 @@ describe("POST /api/payments/initiate", () => {
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
       })
       .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
@@ -301,7 +302,7 @@ describe("POST /api/payments/initiate", () => {
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
       })
       .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
@@ -331,4 +332,3 @@ describe("POST /api/payments/initiate", () => {
     expect(mockCallProxy).not.toHaveBeenCalled();
   });
 });
-

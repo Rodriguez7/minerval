@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
+import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import { updatePricingPolicy } from "@/app/actions/settings";
 import { LogoUploadForm } from "./LogoUploadForm";
 
@@ -66,7 +67,7 @@ export default async function SettingsPage() {
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
               Frais parent
               <span className="text-zinc-400 font-normal ml-2 normal-case">
-                (points de base - 275 = 2.75 %)
+                (points de base - 300 = 3 %)
               </span>
             </label>
             <input
@@ -74,7 +75,7 @@ export default async function SettingsPage() {
               type="number"
               min="0"
               max="1000"
-              defaultValue={policy?.parent_fee_bps ?? 275}
+              defaultValue={policy?.parent_fee_bps ?? DEFAULT_PARENT_FEE_BPS}
               disabled={!canManage}
               className="w-32 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent disabled:bg-zinc-50 disabled:text-zinc-400 transition-shadow"
             />

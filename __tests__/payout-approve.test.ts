@@ -37,6 +37,9 @@ const mockPayout = {
   school_id: "school-uuid",
   requested_by: "user-uuid",
   amount: 5000,
+  fee_bps: 300,
+  fee_amount: 150,
+  net_amount: 4850,
   phone: "0812345678",
   telecom: "OM",
   status: "pending",
@@ -100,7 +103,7 @@ describe("POST /api/admin/payouts/[id]/approve", () => {
     expect(res.status).toBe(200);
     expect(callProxyPayout).toHaveBeenCalledWith(
       expect.objectContaining({
-        amount: 5000,
+        amount: 4850,
         phone: "0812345678",
         telecom: "OM",
         callback_url:

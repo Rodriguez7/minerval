@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  computePayoutFee,
+  MIN_PAYOUT_REQUEST_AMOUNT,
+  PAYOUT_FEE_BPS,
+} from "@/lib/payout-fee";
 
 const TELECOM_OPTIONS = [
   { value: "AM", label: "Airtel Money" },
@@ -25,7 +30,13 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
   const [success, setSuccess] = useState(false);
 
   const amountNum = Number(amount);
-  const isInvalid = !amount || !phone || !telecom || amountNum < 1000 || amountNum > availableBalance;
+  const { feeAmount, netAmount } = computePayoutFee(Number.isFinite(amountNum) ? amountNum : 0);
+  const isInvalid =
+    !amount ||
+    !phone ||
+    !telecom ||
+    amountNum < MIN_PAYOUT_REQUEST_AMOUNT ||
+    amountNum > availableBalance;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,16 +80,27 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
         Solde disponible : {availableBalance.toLocaleString("fr-FR")} {currency}
       </p>
 
+      <div className="rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600 space-y-1">
+        <div className="flex justify-between">
+          <span>Commission Minerval ({PAYOUT_FEE_BPS / 100}%)</span>
+          <span>− {feeAmount.toLocaleString("fr-FR")} {currency}</span>
+        </div>
+        <div className="flex justify-between font-semibold text-zinc-900">
+          <span>Montant envoye a l&apos;ecole</span>
+          <span>{netAmount.toLocaleString("fr-FR")} {currency}</span>
+        </div>
+      </div>
+
       <div className="space-y-1">
         <label className="text-xs font-medium">Montant ({currency})</label>
         <input
           type="number"
-          min={1000}
+          min={MIN_PAYOUT_REQUEST_AMOUNT}
           max={availableBalance}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="w-full rounded border px-3 py-2 text-sm"
-          placeholder="Minimum 1 000"
+          placeholder={`Minimum ${MIN_PAYOUT_REQUEST_AMOUNT.toLocaleString("fr-FR")}`}
           required
         />
       </div>
