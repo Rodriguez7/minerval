@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/tenant";
-import { getAdminClient } from "@/lib/supabase";
+import { createSSRClient } from "@/lib/supabase";
+import { MIN_PAYOUT_REQUEST_AMOUNT } from "@/lib/payout-fee";
 
 const VALID_TELECOMS = new Set(["AM", "OM", "MP", "AF"]);
-const MIN_AMOUNT = 1000;
 
 export async function POST(req: NextRequest) {
   const { user, school, membership } = await getTenantContext();
@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
   const phone = String(body.phone ?? "").trim();
   const telecom = String(body.telecom ?? "").trim().toUpperCase();
 
-  if (!Number.isFinite(amount) || amount < MIN_AMOUNT) {
+  if (!Number.isSafeInteger(amount) || amount < MIN_PAYOUT_REQUEST_AMOUNT) {
     return NextResponse.json(
-      { error: `Le montant minimum est de ${MIN_AMOUNT}` },
+      { error: `Le montant minimum est de ${MIN_PAYOUT_REQUEST_AMOUNT}` },
       { status: 400 }
     );
   }
@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = getAdminClient();
-  const { data, error } = await admin.rpc("request_school_payout", {
+  const supabase = await createSSRClient();
+  const { data, error } = await supabase.rpc("request_school_payout", {
     p_school_id: school.id,
     p_requested_by: user.id,
     p_amount: amount,
@@ -67,6 +67,21 @@ export async function POST(req: NextRequest) {
       { error: "Solde insuffisant", available: data.available },
       { status: 422 }
     );
+  }
+
+  if (data?.error === "unauthorized") {
+    return NextResponse.json({ error: "Versement non autorise" }, { status: 403 });
+  }
+
+  if (data?.error === "below_minimum" || data?.error === "invalid_amount") {
+    return NextResponse.json(
+      { error: `Le montant minimum est de ${MIN_PAYOUT_REQUEST_AMOUNT}` },
+      { status: 400 }
+    );
+  }
+
+  if (data?.error) {
+    return NextResponse.json({ error: "Impossible de creer la demande de versement" }, { status: 500 });
   }
 
   return NextResponse.json(data, { status: 201 });

@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../lib/supabase", () => ({ getAdminClient: vi.fn() }));
+vi.mock("../lib/supabase", () => ({ createSSRClient: vi.fn() }));
 vi.mock("../lib/tenant", () => ({ getTenantContext: vi.fn() }));
 
 import { POST } from "../app/api/dashboard/payouts/request/route";
 import { NextRequest } from "next/server";
-import { getAdminClient } from "../lib/supabase";
+import { createSSRClient } from "../lib/supabase";
 import { getTenantContext } from "../lib/tenant";
-
-type AdminClient = ReturnType<typeof getAdminClient>;
 
 function makeRequest(body: object) {
   return new NextRequest("http://localhost/api/dashboard/payouts/request", {
@@ -16,10 +14,6 @@ function makeRequest(body: object) {
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
   });
-}
-
-function asAdminClient(client: { rpc: unknown }) {
-  return client as unknown as AdminClient;
 }
 
 const mockContext = {
@@ -41,10 +35,17 @@ describe("POST /api/dashboard/payouts/request", () => {
     expect(res.status).toBe(403);
   });
 
-  it("returns 400 if amount < 1000", async () => {
+  it("returns 400 if the net payout would be below SerdiPay's minimum", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
 
-    const res = await POST(makeRequest({ amount: 500, phone: "0812345678", telecom: "OM" }));
+    const res = await POST(makeRequest({ amount: 1030, phone: "0812345678", telecom: "OM" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 if amount is not a whole currency unit", async () => {
+    vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
+
+    const res = await POST(makeRequest({ amount: 5000.5, phone: "0812345678", telecom: "OM" }));
     expect(res.status).toBe(400);
   });
 
@@ -61,7 +62,7 @@ describe("POST /api/dashboard/payouts/request", () => {
       data: { error: "insufficient_balance", available: 2000 },
       error: null,
     });
-    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ rpc: mockRpc }));
+    vi.mocked(createSSRClient).mockResolvedValue({ rpc: mockRpc } as never);
 
     const res = await POST(makeRequest({ amount: 5000, phone: "0812345678", telecom: "OM" }));
     expect(res.status).toBe(422);
@@ -69,18 +70,32 @@ describe("POST /api/dashboard/payouts/request", () => {
     expect(body.error).toBe("Solde insuffisant");
   });
 
+  it("returns 403 if the database rejects payout authorization", async () => {
+    vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
+    const mockRpc = vi.fn().mockResolvedValueOnce({
+      data: { error: "unauthorized" },
+      error: null,
+    });
+    vi.mocked(createSSRClient).mockResolvedValue({ rpc: mockRpc } as never);
+
+    const res = await POST(makeRequest({ amount: 5000, phone: "0812345678", telecom: "OM" }));
+    expect(res.status).toBe(403);
+  });
+
   it("returns 201 with payout id on success", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
     const mockRpc = vi.fn().mockResolvedValueOnce({
-      data: { id: "payout-uuid", status: "pending" },
+      data: { id: "payout-uuid", status: "pending", amount: 5000, fee_amount: 150, net_amount: 4850 },
       error: null,
     });
-    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ rpc: mockRpc }));
+    vi.mocked(createSSRClient).mockResolvedValue({ rpc: mockRpc } as never);
 
     const res = await POST(makeRequest({ amount: 5000, phone: "0812345678", telecom: "OM" }));
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.id).toBe("payout-uuid");
     expect(body.status).toBe("pending");
+    expect(body.fee_amount).toBe(150);
+    expect(body.net_amount).toBe(4850);
   });
 });

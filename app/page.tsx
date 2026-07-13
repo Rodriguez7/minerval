@@ -317,8 +317,8 @@ function useReveal() {
     const el = ref.current;
     if (!el) return;
     if (window.matchMedia("(max-width: 900px)").matches) {
-      setVisible(true);
-      return;
+      const frame = window.requestAnimationFrame(() => setVisible(true));
+      return () => window.cancelAnimationFrame(frame);
     }
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(el); } }, { threshold: 0.12 });
     obs.observe(el);
@@ -351,10 +351,9 @@ export default function HomePage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; overflow-x: hidden; }
-        body { font-family: 'Outfit', system-ui, sans-serif !important; background: #fff !important; color: #0f172a; -webkit-font-smoothing: antialiased; overflow-x:hidden; }
+        body { font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif !important; background: #fff !important; color: #0f172a; -webkit-font-smoothing: antialiased; overflow-x:hidden; }
 
         @keyframes navSlideDown { from { transform: translateY(-100%); opacity:0; } to { transform: translateY(0); opacity:1; } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
@@ -663,4 +662,3 @@ export default function HomePage() {
     </>
   );
 }
-

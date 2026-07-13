@@ -11,6 +11,7 @@ export default async function OnboardingBillingContactPage() {
   const { data: membership } = await supabase
     .from("school_memberships")
     .select("id")
+    .eq("user_id", user.id)
     .eq("status", "active")
     .maybeSingle();
 

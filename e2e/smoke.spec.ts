@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 type SeedContext = {
@@ -12,6 +12,7 @@ type SeedContext = {
   userId: string;
   paymentToken: string;
   paymentRequestId: string;
+  receiptAccessToken: string;
   schoolName: string;
 };
 
@@ -33,6 +34,65 @@ function getAdminClient() {
   });
 }
 
+function getAnonClient() {
+  return createClient(getRequiredEnv("SUPABASE_URL"), getRequiredEnv("SUPABASE_ANON_KEY"), {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+function getSupabaseProjectRef() {
+  const url = new URL(getRequiredEnv("SUPABASE_URL"));
+  return url.hostname.split(".")[0] ?? "";
+}
+
+async function waitForAuthReadiness(email: string, password: string) {
+  const auth = getAnonClient();
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const { error } = await auth.auth.signInWithPassword({ email, password });
+    if (!error) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  throw new Error(`Seeded auth user ${email} was not ready for sign-in`);
+}
+
+async function authenticatePage(page: Page, email: string, password: string) {
+  const auth = getAnonClient();
+  const { data, error } = await auth.auth.signInWithPassword({ email, password });
+
+  if (error || !data.session) {
+    throw new Error(error?.message ?? `Failed to sign in seeded user ${email}`);
+  }
+
+  const cookieValue = `base64-${Buffer.from(JSON.stringify(data.session)).toString("base64")}`;
+  const projectRef = getSupabaseProjectRef();
+
+  await page.context().addCookies([
+    {
+      name: "minerval-locale",
+      value: "fr",
+      domain: "127.0.0.1",
+      path: "/",
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax",
+    },
+    {
+      name: `sb-${projectRef}-auth-token`,
+      value: cookieValue,
+      domain: "127.0.0.1",
+      path: "/",
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax",
+    },
+  ]);
+}
+
 async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
   const suffix = crypto.randomUUID().slice(0, 8);
   const email = `e2e-${suffix}@example.com`;
@@ -50,6 +110,7 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
   }
 
   const user = authResult.data.user as User;
+  await waitForAuthReadiness(email, password);
 
   const { data: school, error: schoolError } = await admin
     .from("schools")
@@ -57,6 +118,9 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
       name: `E2E School ${suffix}`,
       code: schoolCode,
       admin_email: email,
+      billing_email: email,
+      billing_contact: "E2E Billing Contact",
+      timezone: "Africa/Kinshasa",
     })
     .select("id, payment_access_token")
     .single();
@@ -147,7 +211,7 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
         serdipay_transaction_id: `E2E-${suffix.toUpperCase()}`,
       },
     ])
-    .select("id, status");
+    .select("id, status, receipt_access_token");
 
   if (paymentsError) {
     await admin.from("students").delete().eq("id", student.id);
@@ -157,6 +221,8 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
   }
 
   const successPaymentId = paymentRows?.find((p) => p.status === "success")?.id ?? "";
+  const receiptAccessToken =
+    paymentRows?.find((p) => p.status === "success")?.receipt_access_token ?? "";
   const schoolName = `E2E School ${suffix}`;
 
   return {
@@ -169,6 +235,7 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
     userId: user.id,
     paymentToken: school.payment_access_token,
     paymentRequestId: successPaymentId,
+    receiptAccessToken,
     schoolName,
   };
 }
@@ -214,12 +281,10 @@ test.describe.serial("Minerval smoke", () => {
   test("loads dashboard, reconciliation, reports, export, and public payment lookup", async ({
     page,
   }) => {
-    await page.goto("/fr/login");
-    await page.locator('input[name="email"]').fill(seed.email);
-    await page.locator('input[name="password"]').fill(seed.password);
-    await page.getByRole("button", { name: "Se connecter" }).click();
+    await authenticatePage(page, seed.email, seed.password);
 
-    await page.waitForURL("**/fr/dashboard");
+    await page.goto("/fr/dashboard");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Vue d'ensemble" })).toBeVisible();
     await expect(page.getByText("QR de paiement de l'ecole")).toBeVisible();
 
@@ -259,7 +324,7 @@ test.describe.serial("Minerval smoke", () => {
 
     // Receipt page — publicly accessible, branded (pro_monthly has can_branded_receipts)
     await page.context().clearCookies();
-    await page.goto(`/fr/pay/receipt?ref=${seed.paymentRequestId}`);
+    await page.goto(`/fr/pay/receipt?token=${seed.receiptAccessToken}`);
     await expect(page.getByText("Paiement confirme")).toBeVisible();
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("heading", { name: seed.schoolName })).toBeVisible();

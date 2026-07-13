@@ -49,7 +49,10 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
         setError(copy.sharedForm.errors.paymentFailed);
       } else {
         router.push(
-          localizeHref(locale, `/pay/receipt?ref=${data.payment_request_id}`)
+          localizeHref(
+            locale,
+            `/pay/receipt?token=${encodeURIComponent(data.receipt_access_token)}`
+          )
         );
       }
     } catch {

@@ -120,6 +120,27 @@ describe("getTenantContext", () => {
     expect(ctx.subscription.billing_exempt).toBe(false);
   });
 
+  it("normalizes joined school and subscription arrays from Supabase", async () => {
+    const membershipWithArrayJoins = {
+      ...mockMembershipRow,
+      schools: [
+        {
+          ...mockMembershipRow.schools,
+          school_subscriptions: [mockMembershipRow.schools.school_subscriptions],
+        },
+      ],
+    };
+
+    mockSupabaseClient({
+      user: mockUser,
+      membershipData: membershipWithArrayJoins as unknown as typeof mockMembershipRow,
+    });
+
+    const ctx = await getTenantContext();
+    expect(ctx.school.id).toBe("school-1");
+    expect(ctx.plan.code).toBe("starter_free");
+  });
+
   it("redirects to /login when membership exists but subscription is missing", async () => {
     const membershipWithNoSubscription = {
       ...mockMembershipRow,

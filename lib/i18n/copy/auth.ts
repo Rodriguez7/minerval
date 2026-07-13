@@ -4,6 +4,7 @@ type AuthCopy = {
   actions: {
     invalidCredentialsFormat: string;
     invalidCredentials: string;
+    authServiceUnavailable: string;
     validEmail: string;
     resetEmailFailed: string;
     signupValidation: string;
@@ -95,6 +96,8 @@ export const AUTH_COPY: Record<AppLocale, AuthCopy> = {
       invalidCredentialsFormat:
         "Le format de l'email ou du mot de passe est invalide.",
       invalidCredentials: "Email ou mot de passe invalide.",
+      authServiceUnavailable:
+        "Le service d'authentification est temporairement indisponible. Reessayez.",
       validEmail: "Veuillez saisir une adresse email valide.",
       resetEmailFailed:
         "Impossible d'envoyer l'email de reinitialisation. Reessayez.",
@@ -206,6 +209,8 @@ export const AUTH_COPY: Record<AppLocale, AuthCopy> = {
     actions: {
       invalidCredentialsFormat: "Invalid email or password format.",
       invalidCredentials: "Invalid email or password.",
+      authServiceUnavailable:
+        "The authentication service is temporarily unavailable. Please try again.",
       validEmail: "Please enter a valid email address.",
       resetEmailFailed: "Failed to send reset email. Please try again.",
       signupValidation: "Check the information you entered.",

@@ -42,7 +42,7 @@ export default async function AdminPayoutsPage() {
   const { data: payouts } = await admin
     .from("school_payouts")
     .select(
-      "id, school_id, amount, phone, telecom, status, created_at, requested_by, schools(name)"
+      "id, school_id, amount, fee_amount, net_amount, phone, telecom, status, created_at, requested_by, schools(name)"
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -73,7 +73,7 @@ export default async function AdminPayoutsPage() {
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Ecole", "Montant", "Telephone", "Operateur", "Demande le", ""].map((h) => (
+                {["Ecole", "Demande", "Commission", "A envoyer", "Telephone", "Operateur", "Demande le", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -88,6 +88,12 @@ export default async function AdminPayoutsPage() {
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-zinc-900">
                     {p.amount.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-red-600">
+                    − {p.fee_amount.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono font-semibold text-emerald-700">
+                    {p.net_amount.toLocaleString("fr-FR")}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.telecom}</td>
@@ -120,7 +126,7 @@ export default async function AdminPayoutsPage() {
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Ecole", "Montant", "Telephone", "Statut", "Date"].map((h) => (
+                {["Ecole", "Demande", "Commission", "Verse", "Telephone", "Statut", "Date"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -135,6 +141,12 @@ export default async function AdminPayoutsPage() {
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-zinc-900">
                     {p.amount.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-red-600">
+                    − {p.fee_amount.toLocaleString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono font-semibold text-emerald-700">
+                    {p.net_amount.toLocaleString("fr-FR")}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
                   <td className="px-4 py-3">{statusBadge(p.status)}</td>

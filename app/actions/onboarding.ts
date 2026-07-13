@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
 import { getPreferredLocale } from "@/lib/i18n/config";
+import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 
 function getFormLocale(formData: FormData) {
@@ -103,7 +104,7 @@ export async function createSchool(_: unknown, formData: FormData) {
 
   const { error: pricingError } = await admin.from("school_pricing_policies").insert({
     school_id: newSchool.id,
-    parent_fee_bps: 275,
+    parent_fee_bps: DEFAULT_PARENT_FEE_BPS,
     fee_display_mode: "visible_line_item",
     active: true,
   });

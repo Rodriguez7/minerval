@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "@/lib/email";
+import { verifySerdiPayCallback } from "@/lib/serdipay";
 
 export async function POST(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("secret");
-  if (
-    process.env.SERDIPAY_CALLBACK_SECRET &&
-    secret !== process.env.SERDIPAY_CALLBACK_SECRET
-  ) {
-    return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+  const authorization = verifySerdiPayCallback(req);
+  if (!authorization.ok) {
+    return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   }
 
   let body: { message?: string; payment?: { status?: string; transactionId?: string } };
@@ -31,12 +29,16 @@ export async function POST(req: NextRequest) {
   // 1. Lookup payout
   const { data: payout } = await admin
     .from("school_payouts")
-    .select("id, school_id, requested_by, amount, phone, telecom, status")
+    .select("id, school_id, requested_by, amount, fee_amount, net_amount, phone, telecom, status")
     .eq("id", payoutId)
     .single();
 
   if (!payout) {
     return NextResponse.json({ message: "versement inconnu, ignore" }, { status: 200 });
+  }
+
+  if (payout.status === "completed" || payout.status === "failed") {
+    return NextResponse.json({ message: "deja traite" }, { status: 200 });
   }
 
   const isSuccess = paymentStatus === "success";
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest) {
     if (ownerEmail) {
       await Promise.resolve(sendPayoutCompletedEmail({
         to: ownerEmail,
-        amount: payout.amount,
+        amount: payout.net_amount,
         currency,
         phone: payout.phone,
         telecom: payout.telecom,
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
     if (ownerEmail) {
       await Promise.resolve(sendPayoutFailedEmail({
         to: ownerEmail,
-        amount: payout.amount,
+        amount: payout.net_amount,
         currency,
         phone: payout.phone,
         telecom: payout.telecom,

@@ -31,17 +31,29 @@ const mockPayout = {
   school_id: "school-uuid",
   requested_by: "user-uuid",
   amount: 5000,
+  fee_bps: 300,
+  fee_amount: 150,
+  net_amount: 4850,
   phone: "0812345678",
   telecom: "OM",
   status: "processing",
 };
 
 describe("POST /api/serdipay/payout-callback", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.env.SERDIPAY_CALLBACK_SECRET = "test-callback-secret";
+  });
 
   it("returns 401 if callback secret is wrong", async () => {
     const res = await POST(makeRequest({ message: "payout-uuid" }, "wrong-secret"));
     expect(res.status).toBe(401);
+  });
+
+  it("returns 503 if callback secret is not configured", async () => {
+    delete process.env.SERDIPAY_CALLBACK_SECRET;
+    const res = await POST(makeRequest({ message: "payout-uuid", payment: { status: "success" } }));
+    expect(res.status).toBe(503);
   });
 
   it("returns 200 for unknown payout id (idempotent ignore)", async () => {
@@ -85,7 +97,7 @@ describe("POST /api/serdipay/payout-callback", () => {
     }));
     expect(res.status).toBe(200);
     expect(sendPayoutCompletedEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "owner@test.com", amount: 5000 })
+      expect.objectContaining({ to: "owner@test.com", amount: 4850 })
     );
   });
 
@@ -118,5 +130,23 @@ describe("POST /api/serdipay/payout-callback", () => {
     }));
     expect(res.status).toBe(200);
     expect(sendPayoutFailedEmail).toHaveBeenCalled();
+  });
+
+  it("returns 200 without reprocessing an already completed payout", async () => {
+    const mockFrom = vi.fn().mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { ...mockPayout, status: "completed" }, error: null }),
+    });
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
+
+    const res = await POST(makeRequest({
+      message: "payout-uuid",
+      payment: { status: "success", transactionId: "TXN123" },
+    }));
+
+    expect(res.status).toBe(200);
+    expect(sendPayoutCompletedEmail).not.toHaveBeenCalled();
+    expect(sendPayoutFailedEmail).not.toHaveBeenCalled();
   });
 });

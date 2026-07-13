@@ -78,6 +78,8 @@ function makeNoExistingPaymentQuery() {
 describe("POST /api/payments/initiate", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    process.env.SERDIPAY_CALLBACK_SECRET = "test-callback-secret";
+    process.env.NEXT_PUBLIC_APP_URL = "https://www.minerval.org";
     vi.mocked(getSchoolByPaymentAccessToken).mockResolvedValue({
       id: "school-uuid",
       name: "École Test",
@@ -194,13 +196,16 @@ describe("POST /api/payments/initiate", () => {
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
       })
       .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { id: "pay-uuid" }, error: null }),
+        single: vi.fn().mockResolvedValue({
+          data: { id: "pay-uuid", receipt_access_token: "receipt-token" },
+          error: null,
+        }),
       })
       .mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),
@@ -219,8 +224,16 @@ describe("POST /api/payments/initiate", () => {
     );
     expect(res.status).toBe(200);
     expect(mockCallProxy).toHaveBeenCalledWith(
-      expect.objectContaining({ telecom: "AM", phone: "243812345678" })
+      expect.objectContaining({
+        amount: 15450,
+        telecom: "AM",
+        phone: "243812345678",
+        callback_url:
+          "https://www.minerval.org/api/serdipay/callback?secret=test-callback-secret",
+      })
     );
+    const body = await res.json();
+    expect(body.receipt_access_token).toBe("receipt-token");
   });
 
   it("returns 409 with SerdiPay duplicate message", async () => {
@@ -237,13 +250,16 @@ describe("POST /api/payments/initiate", () => {
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 275 }, error: null }),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
       })
       .mockReturnValueOnce(makeNoExistingPaymentQuery())
       .mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { id: "pay-uuid" }, error: null }),
+        single: vi.fn().mockResolvedValue({
+          data: { id: "pay-uuid", receipt_access_token: "receipt-token" },
+          error: null,
+        }),
       })
       .mockReturnValueOnce({
         update: vi.fn().mockReturnThis(),
@@ -269,6 +285,50 @@ describe("POST /api/payments/initiate", () => {
     const body = await res.json();
     expect(body.error).toMatch(/2 minutes/i);
   });
+
+  it("returns 503 when payment callback secret is missing", async () => {
+    delete process.env.SERDIPAY_CALLBACK_SECRET;
+
+    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
+    const mockFrom = vi.fn()
+      .mockReturnValueOnce(rateCount)
+      .mockReturnValueOnce(rateInsert)
+      .mockReturnValueOnce(ratePrune)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockStudent, error: null }),
+      })
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { parent_fee_bps: 300 }, error: null }),
+      })
+      .mockReturnValueOnce(makeNoExistingPaymentQuery())
+      .mockReturnValueOnce({
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: "pay-uuid", receipt_access_token: "receipt-token" },
+          error: null,
+        }),
+      })
+      .mockReturnValueOnce({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      });
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: mockFrom }));
+
+    const res = await POST(
+      makeRequest({
+        student_id: "STU-001",
+        phone: "243812345678",
+        telecom: "AM",
+        payment_token: "school-token",
+      })
+    );
+
+    expect(res.status).toBe(503);
+    expect(mockCallProxy).not.toHaveBeenCalled();
+  });
 });
-
-
