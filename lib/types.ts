@@ -1,3 +1,5 @@
+import type { EducationLevel } from "./congo-education";
+
 export type PaymentStatus = "pending" | "success" | "failed";
 export type ReconciliationStatus =
   | "pending_review"
@@ -62,6 +64,7 @@ export interface School {
   student_id_seq: number;
   currency: Currency;
   created_at: string;
+  education_levels: EducationLevel[];
   // Added by migration 006
   billing_email: string | null;
   billing_contact: string | null;

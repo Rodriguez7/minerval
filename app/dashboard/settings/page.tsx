@@ -3,8 +3,12 @@ export const dynamic = "force-dynamic";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
-import { updatePricingPolicy } from "@/app/actions/settings";
+import { updateEducationLevels, updatePricingPolicy } from "@/app/actions/settings";
 import { LogoUploadForm } from "./LogoUploadForm";
+import {
+  EDUCATION_LEVELS,
+  EDUCATION_LEVEL_LABELS,
+} from "@/lib/congo-education";
 
 export default async function SettingsPage() {
   const { school, membership, plan } = await getTenantContext();
@@ -49,6 +53,45 @@ export default async function SettingsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Système d&apos;enseignement</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            Adapte les classes et le vocabulaire au contexte congolais de votre établissement.
+          </p>
+        </div>
+        <form
+          action={async (fd: FormData) => { "use server"; await updateEducationLevels(undefined, fd); }}
+          className="space-y-4"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {EDUCATION_LEVELS.map((level) => (
+              <label
+                key={level}
+                className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700"
+              >
+                <input
+                  type="checkbox"
+                  name="educationLevels"
+                  value={level}
+                  defaultChecked={school.education_levels.includes(level)}
+                  disabled={!canManage}
+                />
+                {EDUCATION_LEVEL_LABELS[level]}
+              </label>
+            ))}
+          </div>
+          {canManage && (
+            <button
+              type="submit"
+              className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800"
+            >
+              Enregistrer les niveaux
+            </button>
+          )}
+        </form>
       </div>
 
       {/* Pricing policy */}

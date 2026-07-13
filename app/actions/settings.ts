@@ -3,6 +3,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
+import { EDUCATION_LEVELS } from "@/lib/congo-education";
 
 const PricingSchema = z.object({
   parentFeeBps: z.coerce.number().int().min(0).max(1000),
@@ -10,6 +11,39 @@ const PricingSchema = z.object({
 });
 
 type State = { error?: string; success?: boolean } | undefined;
+
+const EducationLevelsSchema = z
+  .array(z.enum(EDUCATION_LEVELS))
+  .min(1, "Selectionnez au moins un niveau d'enseignement.");
+
+export async function updateEducationLevels(
+  _: State,
+  formData: FormData
+): Promise<State> {
+  const { school, membership } = await getTenantContext();
+  if (!['owner', 'admin'].includes(membership.role)) {
+    return { error: "Non autorise" };
+  }
+
+  const parsed = EducationLevelsSchema.safeParse(
+    formData.getAll("educationLevels")
+  );
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Erreur de validation" };
+  }
+
+  const admin = getAdminClient();
+  const { error } = await admin
+    .from("schools")
+    .update({ education_levels: parsed.data })
+    .eq("id", school.id);
+
+  if (error) return { error: "Impossible de mettre a jour les niveaux." };
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/students");
+  return { success: true };
+}
 
 export async function updatePricingPolicy(
   _: State,

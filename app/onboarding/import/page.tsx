@@ -1,26 +1,14 @@
-import { createSSRClient } from "@/lib/supabase";
-import { redirect } from "next/navigation";
 import { CsvImportForm } from "@/app/dashboard/students/CsvImportForm";
 import Link from "next/link";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
 import { localizePathname } from "@/lib/i18n/config";
+import { getTenantContext } from "@/lib/tenant";
 
 export default async function OnboardingImportPage() {
   const locale = await getRequestLocale();
   const copy = getOnboardingCopy(locale);
-  const supabase = await createSSRClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: membership } = await supabase
-    .from("school_memberships")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (!membership) redirect("/onboarding/school");
+  const { school } = await getTenantContext();
 
   return (
     <div className="space-y-4">
@@ -31,7 +19,7 @@ export default async function OnboardingImportPage() {
           {copy.import.description}
         </p>
       </div>
-      <CsvImportForm />
+      <CsvImportForm educationLevels={school.education_levels} />
       <div className="flex justify-end">
         <Link
           href={localizePathname(locale, "/onboarding/done")}

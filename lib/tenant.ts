@@ -19,6 +19,7 @@ const TENANT_SUBSCRIPTION_SELECT = `
 const TENANT_SCHOOL_SELECT = `
   id, name, code, admin_email, payment_access_token,
   student_id_prefix, student_id_seq, currency, created_at,
+  education_levels,
   billing_email, billing_contact, timezone, support_tier,
   logo_url, verification_status, legal_name, registration_number,
   school_address, director_name, director_phone, payout_account_name,
@@ -80,6 +81,7 @@ export async function getTenantContext(): Promise<TenantContext> {
           schools: takeJoined(fallbackResult.data.schools as MaybeJoined<Record<string, unknown>>)
             ? ({
                 support_tier: "standard",
+                education_levels: ["preschool", "primary", "secondary"],
                 logo_url: null,
                 verification_status: "unverified",
                 legal_name: null,

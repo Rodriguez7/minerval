@@ -5,9 +5,15 @@ import { createSSRClient } from "@/lib/supabase";
 import { addStudent } from "./actions";
 import { CsvImportForm } from "./CsvImportForm";
 import { BulkFeeForm } from "./BulkFeeForm";
+import { getClassSuggestions, isUniversityOnly } from "@/lib/congo-education";
 
 export default async function StudentsPage() {
   const { school, plan } = await getTenantContext();
+  const classSuggestions = getClassSuggestions(school.education_levels);
+  const universityOnly = isUniversityOnly(school.education_levels);
+  const learnerSingular = universityOnly ? "étudiant" : "élève";
+  const learnerPlural = universityOnly ? "étudiants" : "élèves";
+  const classLabel = universityOnly ? "Promotion / auditoire" : "Classe / promotion";
 
   const supabase = await createSSRClient();
   const { data: students } = await supabase
@@ -20,15 +26,15 @@ export default async function StudentsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Eleves</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 capitalize">{learnerPlural}</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Gere les eleves inscrits et leurs soldes de frais
+          Gérez les {learnerPlural} inscrits et leurs soldes de frais
         </p>
       </div>
 
       {/* Add student */}
       <div className="bg-white rounded-xl border border-zinc-200 p-6">
-        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Ajouter un eleve</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Ajouter un {learnerSingular}</h2>
         <form
           action={addStudent.bind(null, null) as (formData: FormData) => void}
           className="grid grid-cols-1 md:grid-cols-3 gap-3"
@@ -46,17 +52,23 @@ export default async function StudentsPage() {
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Classe
+              {classLabel}
             </label>
             <input
               name="class_name"
-              placeholder="ex. 5eme A"
+              list="congolese-class-suggestions"
+              placeholder={universityOnly ? "ex. Licence 2 Économie" : "ex. 5e Primaire A"}
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
             />
+            <datalist id="congolese-class-suggestions">
+              {classSuggestions.map((className) => (
+                <option key={className} value={className} />
+              ))}
+            </datalist>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Montant du <span className="text-red-500">*</span>
+              Montant dû <span className="text-red-500">*</span>
             </label>
             <input
               name="amount_due"
@@ -73,14 +85,14 @@ export default async function StudentsPage() {
               type="submit"
               className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
             >
-              Ajouter l&apos;eleve
+              Ajouter {universityOnly ? "l'étudiant" : "l'élève"}
             </button>
           </div>
         </form>
       </div>
 
       {/* CSV import */}
-      <CsvImportForm />
+      <CsvImportForm educationLevels={school.education_levels} />
 
       {/* Bulk fee update */}
       <BulkFeeForm canBulkOps={plan.can_bulk_ops} />
@@ -89,7 +101,7 @@ export default async function StudentsPage() {
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Tous les eleves
+            Tous les {learnerPlural}
             <span className="ml-2 text-xs font-normal text-zinc-400">
               {students?.length ?? 0}
             </span>
@@ -99,7 +111,7 @@ export default async function StudentsPage() {
           <table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Nom", "ID", "Classe", "Montant du", "Ajoute le"].map((h) => (
+                {["Nom", "ID", classLabel, "Montant dû", "Ajouté le"].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide"
@@ -129,7 +141,7 @@ export default async function StudentsPage() {
           </table>
           {!students?.length && (
             <div className="px-6 py-12 text-center">
-              <p className="text-sm text-zinc-400">Aucun eleve pour le moment. Ajoutez-en un ci-dessus ou importez un CSV.</p>
+              <p className="text-sm text-zinc-400">Aucun {learnerSingular} pour le moment. Ajoutez-en un ci-dessus ou importez un CSV.</p>
             </div>
           )}
         </div>

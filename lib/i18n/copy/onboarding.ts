@@ -16,6 +16,8 @@ type OnboardingCopy = {
     title: string;
     description: string;
     nameLabel: string;
+    educationLevelsLabel: string;
+    educationLevelsHint: string;
     codeLabel: string;
     codeHint: string;
     studentIdLabel: string;
@@ -88,14 +90,17 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
     },
     school: {
       step: "Etape 1 sur 3",
-      title: "Configurez votre ecole",
+      title: "Configurez votre établissement",
       description:
-        "Ces informations apparaitront sur les recus et les rapports.",
-      nameLabel: "Nom de l'ecole",
-      codeLabel: "Code ecole",
+        "Ces informations apparaîtront sur les reçus et les rapports.",
+      nameLabel: "Nom de l'établissement",
+      educationLevelsLabel: "Niveaux organisés",
+      educationLevelsHint:
+        "Sélectionnez tous les niveaux proposés par votre établissement.",
+      codeLabel: "Code établissement",
       codeHint:
         "Lettres minuscules, chiffres, tirets. Utilise dans l'URL de paiement.",
-      studentIdLabel: "Prefixe ID eleve",
+      studentIdLabel: "Préfixe ID apprenant",
       studentIdHint:
         "2 a 6 lettres majuscules ou chiffres. Exemple : ESM-0001.",
       currencyLabel: "Devise",
@@ -118,25 +123,25 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
     },
     import: {
       step: "Etape 3 sur 3",
-      title: "Importez vos eleves",
+      title: "Importez vos apprenants",
       description:
-        "Importez un CSV pour ajouter votre liste d'eleves. Vous pourrez aussi le faire plus tard depuis la page Eleves.",
-      skip: "Passer, j'ajouterai les eleves plus tard →",
+        "Importez un CSV pour ajouter votre liste d'apprenants. Vous pourrez aussi le faire plus tard depuis le tableau de bord.",
+      skip: "Passer, j'ajouterai les apprenants plus tard →",
     },
     done: {
       title: "Tout est pret !",
       description:
-        "Votre ecole est configuree. Partagez votre QR code ou lien de paiement pour commencer a collecter les frais.",
+        "Votre établissement est configuré. Partagez votre QR code ou lien de paiement pour commencer à collecter les frais.",
       cta: "Ouvrir le tableau de bord",
     },
     csvImport: {
-      title: "Importer des eleves depuis Excel / CSV",
+      title: "Importer des apprenants depuis Excel / CSV",
       description:
-        "Ajoutez plusieurs eleves a la fois en important un fichier tableur.",
+        "Ajoutez plusieurs apprenants à la fois en important un fichier tableur.",
       downloadTemplate: "Telecharger le modele",
       steps: [
         "Telechargez le modele",
-        "Renseignez les noms et frais des eleves",
+        "Renseignez les noms, promotions et frais",
         "Importez le fichier ci-dessous",
       ],
       selectedFileHint: "Cliquez pour choisir un autre fichier",
@@ -144,14 +149,14 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
       uploadSubprompt: "ou glissez-deposez-le ici",
       errorSummary: "Certaines lignes n'ont pas pu etre lues ({count}) :",
       moreErrors: "…et {count} de plus",
-      readyToImport: "{count} eleve(s) pret(s) a importer",
+      readyToImport: "{count} apprenant(s) prêt(s) à importer",
       importPending: "Import en cours…",
       importNow: "Importer maintenant",
-      successAlert: "{count} eleve(s) importe(s) avec succes.",
+      successAlert: "{count} apprenant(s) importé(s) avec succès.",
       importFailed: "Echec de l'import",
       networkError: "Erreur reseau. Reessayez.",
       linePrefix: "Ligne",
-      templateFileName: "modele_eleves.csv",
+      templateFileName: "modele_apprenants.csv",
     },
   },
   en: {
@@ -169,11 +174,14 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
     },
     school: {
       step: "Step 1 of 3",
-      title: "Set up your school",
+      title: "Set up your institution",
       description:
         "This information appears on receipts and reports.",
-      nameLabel: "School name",
-      codeLabel: "School code",
+      nameLabel: "Institution name",
+      educationLevelsLabel: "Education levels",
+      educationLevelsHint:
+        "Select every level offered by your institution.",
+      codeLabel: "Institution code",
       codeHint:
         "Lowercase letters, numbers, hyphens. Used in your payment link URL.",
       studentIdLabel: "Student ID prefix",

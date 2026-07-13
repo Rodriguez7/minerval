@@ -10,9 +10,12 @@ import { createSchool, updateBillingContact } from "@/app/actions/onboarding";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 
-function makeFormData(data: Record<string, string>) {
+function makeFormData(data: Record<string, string | string[]>) {
   const fd = new FormData();
-  Object.entries(data).forEach(([k, v]) => fd.append(k, v));
+  Object.entries(data).forEach(([k, value]) => {
+    const values = Array.isArray(value) ? value : [value];
+    values.forEach((v) => fd.append(k, v));
+  });
   return fd;
 }
 
@@ -29,6 +32,7 @@ const validSchoolData = {
   studentIdPrefix: "ESM",
   currency: "FC",
   locale: "fr",
+  educationLevels: ["primary", "secondary"],
 };
 
 function mockAuth(userId = "uid1", email = "admin@school.com") {
@@ -102,6 +106,7 @@ describe("createSchool action", () => {
       payout_account_name: "Ecole Saint Michel",
       payout_account_phone: "243812345679",
       verification_status: "pending",
+      education_levels: ["primary", "secondary"],
       verification_submitted_at: expect.any(String),
     }));
     expect(fromMock).toHaveBeenCalledWith("school_memberships");

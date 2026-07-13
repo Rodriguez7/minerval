@@ -4,7 +4,7 @@ vi.mock("@/lib/tenant", () => ({ getTenantContext: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({ getAdminClient: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { updatePricingPolicy } from "@/app/actions/settings";
+import { updateEducationLevels, updatePricingPolicy } from "@/app/actions/settings";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import type { TenantContext } from "@/lib/types";
@@ -94,5 +94,44 @@ describe("updatePricingPolicy", () => {
     const fd = makeFormData({ parentFeeBps: "275", feeDisplayMode: "visible_line_item" });
     const result = await updatePricingPolicy(undefined, fd);
     expect(result?.error).toBeTruthy();
+  });
+});
+
+describe("updateEducationLevels", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("requires at least one recognized Congolese education level", async () => {
+    mockTenant("owner");
+    const result = await updateEducationLevels(undefined, new FormData());
+    expect(result?.error).toBeTruthy();
+  });
+
+  it("updates multiple levels for a school complex", async () => {
+    mockTenant("owner");
+    const update = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    });
+    vi.mocked(getAdminClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update }),
+    } as never);
+    const formData = new FormData();
+    formData.append("educationLevels", "preschool");
+    formData.append("educationLevels", "primary");
+    formData.append("educationLevels", "secondary");
+
+    const result = await updateEducationLevels(undefined, formData);
+
+    expect(result?.success).toBe(true);
+    expect(update).toHaveBeenCalledWith({
+      education_levels: ["preschool", "primary", "secondary"],
+    });
+  });
+
+  it("rejects finance users", async () => {
+    mockTenant("finance");
+    const formData = new FormData();
+    formData.append("educationLevels", "university");
+    const result = await updateEducationLevels(undefined, formData);
+    expect(result?.error).toBe("Non autorise");
   });
 });

@@ -5,6 +5,7 @@ import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
 import { getPreferredLocale } from "@/lib/i18n/config";
 import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
+import { EDUCATION_LEVELS } from "@/lib/congo-education";
 
 function getFormLocale(formData: FormData) {
   return getPreferredLocale(formData.get("locale")?.toString());
@@ -31,6 +32,7 @@ export async function createSchool(_: unknown, formData: FormData) {
       .string()
       .regex(/^[A-Z0-9]{2,6}$/, copy.actions.invalidStudentIdPrefix),
     currency: z.enum(["FC", "USD"]),
+    educationLevels: z.array(z.enum(EDUCATION_LEVELS)).min(1),
   });
   const parsed = schoolSchema.safeParse({
     schoolName: formData.get("schoolName"),
@@ -44,6 +46,7 @@ export async function createSchool(_: unknown, formData: FormData) {
     schoolCode: formData.get("schoolCode"),
     studentIdPrefix: formData.get("studentIdPrefix"),
     currency: formData.get("currency"),
+    educationLevels: formData.getAll("educationLevels"),
   });
   if (!parsed.success) {
     const msg = parsed.error.issues[0]?.message ?? copy.actions.validationError;
@@ -71,6 +74,7 @@ export async function createSchool(_: unknown, formData: FormData) {
       admin_email: user.email!,
       student_id_prefix: parsed.data.studentIdPrefix,
       currency: parsed.data.currency,
+      education_levels: parsed.data.educationLevels,
       legal_name: parsed.data.legalName,
       registration_number: parsed.data.registrationNumber ?? null,
       school_address: parsed.data.schoolAddress,

@@ -33,6 +33,7 @@ const mockMembershipRow = {
     student_id_seq: 0,
     currency: "USD",
     created_at: "2024-01-01",
+    education_levels: ["primary", "secondary"],
     billing_email: null,
     billing_contact: null,
     timezone: "UTC",

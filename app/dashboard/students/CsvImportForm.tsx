@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "@/lib/i18n/client";
 import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
 import { renderTemplate } from "@/lib/i18n/template";
+import {
+  DEFAULT_EDUCATION_LEVELS,
+  getClassSuggestions,
+  type EducationLevel,
+} from "@/lib/congo-education";
 
 const RowSchema = z.object({
   full_name: z.string().min(1),
@@ -15,10 +20,9 @@ const RowSchema = z.object({
 
 type ValidRow = z.infer<typeof RowSchema>;
 
-const TEMPLATE_CSV = "full_name,class_name,amount_due\nJean Kabila,6ème A,15000\nMarie Mutombo,,12000\n";
-
-function downloadTemplate(fileName: string) {
-  const blob = new Blob([TEMPLATE_CSV], { type: "text/csv" });
+function downloadTemplate(fileName: string, classExample: string) {
+  const template = `full_name,class_name,amount_due\nJean Kabila,${classExample},15000\nMarie Mutombo,,12000\n`;
+  const blob = new Blob([template], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -27,7 +31,11 @@ function downloadTemplate(fileName: string) {
   URL.revokeObjectURL(url);
 }
 
-export function CsvImportForm() {
+export function CsvImportForm({
+  educationLevels = DEFAULT_EDUCATION_LEVELS,
+}: {
+  educationLevels?: EducationLevel[];
+}) {
   const locale = useLocale();
   const copy = getOnboardingCopy(locale);
   const router = useRouter();
@@ -37,6 +45,7 @@ export function CsvImportForm() {
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [dragging, setDragging] = useState(false);
+  const classExample = getClassSuggestions(educationLevels)[0] ?? "1re Primaire";
 
   function parseFile(file: File) {
     setFileName(file.name);
@@ -114,7 +123,7 @@ export function CsvImportForm() {
           </p>
         </div>
         <button
-          onClick={() => downloadTemplate(copy.csvImport.templateFileName)}
+          onClick={() => downloadTemplate(copy.csvImport.templateFileName, classExample)}
           className="text-sm text-blue-600 hover:underline whitespace-nowrap ml-4 mt-0.5"
         >
           {copy.csvImport.downloadTemplate}

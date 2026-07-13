@@ -4,6 +4,11 @@ import { createSchool } from "@/app/actions/onboarding";
 import { useState } from "react";
 import { useLocale } from "@/lib/i18n/client";
 import { getOnboardingCopy } from "@/lib/i18n/copy/onboarding";
+import {
+  EDUCATION_LEVELS,
+  EDUCATION_LEVEL_LABELS,
+  type EducationLevel,
+} from "@/lib/congo-education";
 
 export function SchoolForm() {
   const locale = useLocale();
@@ -11,6 +16,15 @@ export function SchoolForm() {
   const [state, action, isPending] = useActionState(createSchool, null);
   const [schoolCode, setSchoolCode] = useState("");
   const [studentIdPrefix, setStudentIdPrefix] = useState("");
+  const [educationLevels, setEducationLevels] = useState<EducationLevel[]>([]);
+
+  function toggleEducationLevel(level: EducationLevel) {
+    setEducationLevels((current) =>
+      current.includes(level)
+        ? current.filter((item) => item !== level)
+        : [...current, level]
+    );
+  }
 
   function handleNameChange(v: string) {
     const derived = v
@@ -39,7 +53,7 @@ export function SchoolForm() {
       <form action={action} className="space-y-4">
         <input type="hidden" name="locale" value={locale} />
         <div>
-          <label className="block text-sm font-medium mb-1">Nom de l&apos;ecole</label>
+          <label className="block text-sm font-medium mb-1">{copy.school.nameLabel}</label>
           <input
             name="schoolName"
             type="text"
@@ -50,32 +64,57 @@ export function SchoolForm() {
             onChange={(e) => handleNameChange(e.target.value)}
           />
         </div>
+        <fieldset className="space-y-2">
+          <legend className="block text-sm font-medium mb-1">
+            {copy.school.educationLevelsLabel}
+          </legend>
+          <p className="text-xs text-gray-500">
+            {copy.school.educationLevelsHint}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {EDUCATION_LEVELS.map((level) => (
+              <label
+                key={level}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name="educationLevels"
+                  value={level}
+                  checked={educationLevels.includes(level)}
+                  onChange={() => toggleEducationLevel(level)}
+                />
+                {EDUCATION_LEVEL_LABELS[level]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 space-y-4">
           <div>
-            <p className="text-sm font-semibold text-blue-950">Verification ecole</p>
+            <p className="text-sm font-semibold text-blue-950">Vérification de l&apos;établissement</p>
             <p className="text-xs text-blue-700 mt-1">
-              Ces informations permettent de verifier l&apos;ecole avant le premier versement.
+              Ces informations permettent de vérifier l&apos;établissement avant le premier versement.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Nom legal</label>
+              <label className="block text-sm font-medium mb-1">Nom légal</label>
               <input name="legalName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Numero d&apos;enregistrement</label>
+              <label className="block text-sm font-medium mb-1">Numéro d&apos;enregistrement</label>
               <input name="registrationNumber" maxLength={100} placeholder="Optionnel" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Adresse de l&apos;ecole</label>
+              <label className="block text-sm font-medium mb-1">Adresse de l&apos;établissement</label>
               <input name="schoolAddress" required minLength={5} maxLength={300} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Nom du directeur</label>
+              <label className="block text-sm font-medium mb-1">Nom du responsable</label>
               <input name="directorName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Telephone du directeur</label>
+              <label className="block text-sm font-medium mb-1">Téléphone du responsable</label>
               <input name="directorPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
@@ -83,7 +122,7 @@ export function SchoolForm() {
               <input name="payoutAccountName" required minLength={2} maxLength={200} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Numero de versement</label>
+              <label className="block text-sm font-medium mb-1">Numéro de versement</label>
               <input name="payoutAccountPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
