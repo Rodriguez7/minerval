@@ -12,8 +12,12 @@ import { takeJoined } from "@/lib/supabase-joins";
 import { RECONCILIATION_LABELS, TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { collectAllPages } from "@/lib/paged-query";
+import { clampPage, parsePage } from "@/lib/pagination";
+import { Pagination } from "../Pagination";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const REPORT_PAGE_SIZE = 100;
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
@@ -50,21 +54,26 @@ export default async function ReportsPage({
     );
   }
 
-  const filters = parseReportFilters(await searchParams);
+  const resolvedSearchParams = await searchParams;
+  const filters = parseReportFilters(resolvedSearchParams);
   const admin = getAdminClient();
   const staleCutoff = getStalePendingCutoff();
 
-  const baseQuery = admin
-    .from("payment_requests")
-    .select(
-      "id, amount, phone, telecom, status, created_at, settled_at, reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by, serdipay_transaction_id, students(full_name, external_id)"
+  const rows = await collectAllPages<PaymentReportRow>((from, to) =>
+    buildReportQuery(
+      admin
+        .from("payment_requests")
+        .select(
+          "id, amount, phone, telecom, status, created_at, settled_at, reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by, serdipay_transaction_id, students(full_name, external_id)"
+        )
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false })
+        .range(from, to),
+      filters
     )
-    .eq("school_id", school.id)
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  const { data } = await buildReportQuery(baseQuery, filters);
-  const rows = (data ?? []) as PaymentReportRow[];
+  );
+  const page = clampPage(parsePage(resolvedSearchParams.page), rows.length, REPORT_PAGE_SIZE);
+  const pageRows = rows.slice((page - 1) * REPORT_PAGE_SIZE, page * REPORT_PAGE_SIZE);
 
   const totals = {
     initiated: rows.reduce((sum, row) => sum + Number(row.amount), 0),
@@ -285,7 +294,7 @@ export default async function ReportsPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {rows.slice(0, 100).map((row) => {
+                {pageRows.map((row) => {
                   const student = takeJoined(row.students);
                   return (
                     <tr key={row.id} className="hover:bg-zinc-50 transition-colors">
@@ -326,6 +335,13 @@ export default async function ReportsPage({
             </table>
           </div>
         )}
+        <Pagination
+          basePath="/dashboard/reports"
+          page={page}
+          pageSize={REPORT_PAGE_SIZE}
+          searchParams={resolvedSearchParams}
+          totalItems={rows.length}
+        />
       </div>
     </div>
   );

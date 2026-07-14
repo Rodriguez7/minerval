@@ -6,22 +6,42 @@ import { addStudent } from "./actions";
 import { CsvImportForm } from "./CsvImportForm";
 import { BulkFeeForm } from "./BulkFeeForm";
 import { getClassSuggestions, isUniversityOnly } from "@/lib/congo-education";
+import { clampPage, getPageRange, parsePage } from "@/lib/pagination";
+import { Pagination } from "../Pagination";
 
-export default async function StudentsPage() {
+const STUDENTS_PAGE_SIZE = 50;
+
+export default async function StudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { school, plan } = await getTenantContext();
   const classSuggestions = getClassSuggestions(school.education_levels);
   const universityOnly = isUniversityOnly(school.education_levels);
   const learnerSingular = universityOnly ? "étudiant" : "élève";
   const learnerPlural = universityOnly ? "étudiants" : "élèves";
   const classLabel = universityOnly ? "Promotion / auditoire" : "Classe / promotion";
+  const resolvedSearchParams = await searchParams;
 
   const supabase = await createSSRClient();
+  const { count } = await supabase
+    .from("students")
+    .select("id", { count: "exact", head: true })
+    .eq("school_id", school.id);
+  const totalStudents = count ?? 0;
+  const page = clampPage(
+    parsePage(resolvedSearchParams.page),
+    totalStudents,
+    STUDENTS_PAGE_SIZE
+  );
+  const { from, to } = getPageRange(page, STUDENTS_PAGE_SIZE);
   const { data: students } = await supabase
     .from("students")
     .select("id, external_id, full_name, class_name, amount_due, created_at")
     .eq("school_id", school.id)
     .order("full_name")
-    .limit(200);
+    .range(from, to);
 
   return (
     <div className="space-y-8">
@@ -103,7 +123,7 @@ export default async function StudentsPage() {
           <h2 className="text-sm font-semibold text-zinc-900">
             Tous les {learnerPlural}
             <span className="ml-2 text-xs font-normal text-zinc-400">
-              {students?.length ?? 0}
+              {totalStudents}
             </span>
           </h2>
         </div>
@@ -145,6 +165,13 @@ export default async function StudentsPage() {
             </div>
           )}
         </div>
+        <Pagination
+          basePath="/dashboard/students"
+          page={page}
+          pageSize={STUDENTS_PAGE_SIZE}
+          searchParams={resolvedSearchParams}
+          totalItems={totalStudents}
+        />
       </div>
     </div>
   );

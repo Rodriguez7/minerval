@@ -10,6 +10,7 @@ import QRCode from "qrcode";
 import { markPaymentFailed, regeneratePaymentAccessToken } from "./actions";
 import type { PaymentRequest, Student, Telecom } from "@/lib/types";
 import { TELECOM_LABELS } from "@/lib/types";
+import { collectAllPages } from "@/lib/paged-query";
 
 type DashboardPayment = Pick<
   PaymentRequest,
@@ -27,7 +28,7 @@ async function loadDashboardData() {
   const { school } = await getTenantContext();
   const supabase = await createSSRClient();
 
-  const [studentCountResult, paymentsResult, studentsWithDuesResult] = await Promise.all([
+  const [studentCountResult, paymentsResult, studentsWithDuesResult, studentsWithDuesCountResult, paymentMetrics] = await Promise.all([
     supabase
       .from("students")
       .select("id", { count: "exact", head: true })
@@ -47,11 +48,24 @@ async function loadDashboardData() {
       .gt("amount_due", 0)
       .order("amount_due", { ascending: false })
       .limit(20),
+    supabase
+      .from("students")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .gt("amount_due", 0),
+    collectAllPages<{ amount: number; status: string }>((from, to) =>
+      supabase
+        .from("payment_requests")
+        .select("amount, status")
+        .eq("school_id", school.id)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
   ]);
 
   const allPayments = (paymentsResult.data ?? []) as DashboardPayment[];
-  const pending = allPayments.filter((p) => p.status === "pending");
-  const successful = allPayments.filter((p) => p.status === "success");
+  const pending = paymentMetrics.filter((p) => p.status === "pending");
+  const successful = paymentMetrics.filter((p) => p.status === "success");
   const studentsWithDues = (studentsWithDuesResult.data ?? []) as StudentDueRow[];
   const paymentUrl = getSchoolPaymentUrl(school.payment_access_token);
   const paymentQrCode = await QRCode.toDataURL(paymentUrl, { margin: 1, width: 256 });
@@ -68,7 +82,7 @@ async function loadDashboardData() {
       value: successful.length,
       sub: `${successful.reduce((s, p) => s + p.amount, 0).toLocaleString("fr-FR")} ${school.currency}`,
     },
-    { label: "Avec soldes", value: studentsWithDues.length },
+    { label: "Avec soldes", value: studentsWithDuesCountResult.count ?? 0 },
   ];
 
   const staleCutoff = new Date(Date.now() - 3_600_000).toISOString();

@@ -13,8 +13,12 @@ import { takeJoined } from "@/lib/supabase-joins";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { updateReconciliationStatus } from "../actions";
 import type { Telecom } from "@/lib/types";
+import { collectAllPages } from "@/lib/paged-query";
+import { clampPage, parsePage } from "@/lib/pagination";
+import { Pagination } from "../Pagination";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const EXCEPTIONS_PAGE_SIZE = 50;
 
 function Badge({
   children,
@@ -72,21 +76,24 @@ export default async function ReconciliationPage({
   searchParams: SearchParams;
 }) {
   const { school } = await getTenantContext();
-  const filters = parseReportFilters(await searchParams);
+  const resolvedSearchParams = await searchParams;
+  const filters = parseReportFilters(resolvedSearchParams);
   const supabase = await createSSRClient();
   const staleCutoff = getStalePendingCutoff();
 
-  const baseQuery = supabase
-    .from("payment_requests")
-    .select(
-      "id, amount, phone, telecom, status, created_at, settled_at, reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by, serdipay_transaction_id, students(full_name, external_id)"
+  const rows = await collectAllPages<PaymentReportRow>((from, to) =>
+    buildReportQuery(
+      supabase
+        .from("payment_requests")
+        .select(
+          "id, amount, phone, telecom, status, created_at, settled_at, reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by, serdipay_transaction_id, students(full_name, external_id)"
+        )
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false })
+        .range(from, to),
+      filters
     )
-    .eq("school_id", school.id)
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  const { data } = await buildReportQuery(baseQuery, filters);
-  const rows = (data ?? []) as PaymentReportRow[];
+  );
 
   const exceptions = rows.filter(
     (row) =>
@@ -101,6 +108,15 @@ export default async function ReconciliationPage({
     overrides: rows.filter((row) => row.reconciliation_status === "manual_override"),
     reconciled: rows.filter((row) => row.reconciliation_status === "reconciled"),
   };
+  const page = clampPage(
+    parsePage(resolvedSearchParams.page),
+    exceptions.length,
+    EXCEPTIONS_PAGE_SIZE
+  );
+  const pageExceptions = exceptions.slice(
+    (page - 1) * EXCEPTIONS_PAGE_SIZE,
+    page * EXCEPTIONS_PAGE_SIZE
+  );
 
   return (
     <div className="space-y-8">
@@ -219,7 +235,7 @@ export default async function ReconciliationPage({
           </div>
         ) : (
           <div className="divide-y divide-zinc-100">
-            {exceptions.map((row) => {
+            {pageExceptions.map((row) => {
               const student = takeJoined(row.students);
               const stale = row.status === "pending" && row.created_at < staleCutoff;
               return (
@@ -316,6 +332,13 @@ export default async function ReconciliationPage({
             })}
           </div>
         )}
+        <Pagination
+          basePath="/dashboard/reconciliation"
+          page={page}
+          pageSize={EXCEPTIONS_PAGE_SIZE}
+          searchParams={resolvedSearchParams}
+          totalItems={exceptions.length}
+        />
       </div>
     </div>
   );

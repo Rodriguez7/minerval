@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { collectAllPages } from "@/lib/paged-query";
 
 export default async function AnalyticsPage() {
   const { school, plan } = await getTenantContext();
@@ -45,20 +46,29 @@ export default async function AnalyticsPage() {
 
   const successRate = total > 0 ? Math.round((succeeded / total) * 100) : 0;
 
-  const { data: settledPayments } = await admin
-    .from("payment_requests")
-    .select("amount, students(class_name)")
-    .eq("school_id", school.id)
-    .eq("status", "success");
-
-  const { data: students } = await admin
-    .from("students")
-    .select("class_name, amount_due")
-    .eq("school_id", school.id)
-    .gt("amount_due", 0);
+  const [settledPayments, students] = await Promise.all([
+    collectAllPages<{ amount: number; students: unknown }>((from, to) =>
+      admin
+        .from("payment_requests")
+        .select("amount, students(class_name)")
+        .eq("school_id", school.id)
+        .eq("status", "success")
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
+    collectAllPages<{ class_name: string | null; amount_due: number }>((from, to) =>
+      admin
+        .from("students")
+        .select("class_name, amount_due")
+        .eq("school_id", school.id)
+        .gt("amount_due", 0)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
+  ]);
 
   const collectionsByClass = new Map<string, number>();
-  for (const p of settledPayments ?? []) {
+  for (const p of settledPayments) {
     const className =
       (p.students as unknown as { class_name: string | null } | null)?.class_name ?? "Sans classe";
     collectionsByClass.set(
@@ -68,7 +78,7 @@ export default async function AnalyticsPage() {
   }
 
   const outstandingByClass = new Map<string, number>();
-  for (const s of students ?? []) {
+  for (const s of students) {
     const className = s.class_name ?? "Sans classe";
     outstandingByClass.set(
       className,
