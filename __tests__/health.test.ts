@@ -19,6 +19,7 @@ const requiredEnvironment = {
   STRIPE_PRICE_PRO_MONTHLY: "price_pro",
   RESEND_API_KEY: "re_example",
   EMAIL_FROM: "Minerval <no-reply@minerval.org>",
+  EMAIL_DOMAIN: "minerval.org",
   OPERATIONS_ALERT_EMAIL: "ops@minerval.org",
   HEALTHCHECK_SECRET: "health-secret",
   LEGAL_ENTITY_NAME: "Minerval Test SARL",
@@ -67,6 +68,23 @@ describe("health endpoint", () => {
         database: { ok: true },
         proxy: { ok: true },
         configuration: { ok: true, missing: [] },
+        email: { ok: true, issues: [] },
+      },
+    });
+  });
+
+  it("returns 503 when sender and public contact domains disagree", async () => {
+    process.env.EMAIL_FROM = "Minerval <no-reply@minerval.app>";
+
+    const response = await GET(request(true, "health-secret"));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      status: "degraded",
+      checks: {
+        email: {
+          ok: false,
+          issues: ["EMAIL_FROM does not use EMAIL_DOMAIN"],
+        },
       },
     });
   });

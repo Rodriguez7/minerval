@@ -43,6 +43,7 @@ npm run dev
 | `HEALTHCHECK_SECRET` | Bearer token for `GET /api/health?deep=1` |
 | `OPERATIONS_ALERT_EMAIL` | Recipient for critical financial and webhook alerts |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Transactional email delivery configuration |
+| `EMAIL_DOMAIN` | Verified Resend sender domain; public support/privacy addresses must use it |
 
 Get keys from: **Supabase Dashboard → Settings → API**
 
@@ -56,8 +57,10 @@ Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/
 
 The public legal pages are `/privacy`, `/terms`, and `/refunds` (with `/fr` and `/en` locale prefixes). Production must set `LEGAL_ENTITY_NAME`, `LEGAL_ENTITY_ADDRESS`, `LEGAL_CONTACT_EMAIL`, and `PRIVACY_CONTACT_EMAIL`; the deep health check reports a degraded state when any are missing. Account creation records the accepted legal version in the user's authentication metadata.
 
+Before enabling production email, verify `EMAIL_DOMAIN` in Resend (including its DNS records), set `EMAIL_FROM` to a mailbox on that domain, and create or route the public support and privacy addresses. The deep health check rejects malformed or split-domain sender/contact configuration, but DNS verification and inbox delivery still require a real delivery test.
+
 **Railway env vars to set:**
-- All 6 variables above
+- All variables listed above that apply to the deployed service
 - `NIXPACKS_NODE_VERSION=20`
 
 ### Fixed-IP Proxy

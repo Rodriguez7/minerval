@@ -1,5 +1,6 @@
 import { getTenantContext } from "@/lib/tenant";
 import { createCheckoutSession, createPortalSession } from "@/app/actions/billing";
+import { getLegalOperator } from "@/lib/legal";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export default async function BillingPage({
   searchParams: Promise<{ expired?: string }>;
 }) {
   const { plan, subscription } = await getTenantContext();
+  const supportEmail = getLegalOperator().contactEmail;
 
   const statusBadge: Record<string, string> = {
     active: "bg-emerald-50 text-emerald-700 border border-emerald-200",
@@ -205,8 +207,8 @@ export default async function BillingPage({
         <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6 text-center">
           <p className="text-zinc-500 text-sm">
             Vous etes sur un plan historique. Contactez{" "}
-            <a href="mailto:support@minerval.app" className="text-blue-600 hover:underline">
-              support@minerval.app
+            <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">
+              {supportEmail}
             </a>{" "}
             pour discuter des options de mise a niveau.
           </p>

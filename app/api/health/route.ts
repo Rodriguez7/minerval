@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { secureCompare } from "@/lib/secure-compare";
+import { getEmailConfigurationIssues } from "@/lib/email-config";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ const REQUIRED_PRODUCTION_ENV = [
   "STRIPE_PRICE_PRO_MONTHLY",
   "RESEND_API_KEY",
   "EMAIL_FROM",
+  "EMAIL_DOMAIN",
   "OPERATIONS_ALERT_EMAIL",
   "LEGAL_ENTITY_NAME",
   "LEGAL_ENTITY_ADDRESS",
@@ -48,8 +50,12 @@ async function deepHealth(request: NextRequest) {
   );
 
   const [database, proxy] = await Promise.all([checkDatabase(), checkProxy()]);
+  const emailIssues = getEmailConfigurationIssues();
   const healthy =
-    database.ok && proxy.ok && missingConfiguration.length === 0;
+    database.ok &&
+    proxy.ok &&
+    missingConfiguration.length === 0 &&
+    emailIssues.length === 0;
 
   return NextResponse.json(
     {
@@ -62,6 +68,10 @@ async function deepHealth(request: NextRequest) {
         configuration: {
           ok: missingConfiguration.length === 0,
           missing: missingConfiguration,
+        },
+        email: {
+          ok: emailIssues.length === 0,
+          issues: emailIssues,
         },
       },
     },

@@ -14,9 +14,9 @@ export function getLegalOperator() {
     name: process.env.LEGAL_ENTITY_NAME?.trim() || "Minerval",
     address: process.env.LEGAL_ENTITY_ADDRESS?.trim() || null,
     contactEmail:
-      process.env.LEGAL_CONTACT_EMAIL?.trim() || "support@minerval.app",
+      process.env.LEGAL_CONTACT_EMAIL?.trim() || "support@minerval.org",
     privacyEmail:
-      process.env.PRIVACY_CONTACT_EMAIL?.trim() || "support@minerval.app",
+      process.env.PRIVACY_CONTACT_EMAIL?.trim() || "privacy@minerval.org",
   };
 }
 

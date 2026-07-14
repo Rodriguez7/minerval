@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getEmailSender } from "./email-config";
 
 function getResend() {
   const key = process.env.RESEND_API_KEY;
@@ -15,7 +16,7 @@ export async function sendPayoutCompletedEmail(opts: {
 }) {
   const resend = getResend();
   await resend.emails.send({
-    from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.app>",
+    from: getEmailSender(),
     to: opts.to,
     subject: "Votre retrait a ete envoye",
     text: `${opts.amount} ${opts.currency} a ete envoye vers ${opts.phone} (${opts.telecom}). Le montant devrait arriver sous peu.`,
@@ -31,7 +32,7 @@ export async function sendPayoutFailedEmail(opts: {
 }) {
   const resend = getResend();
   await resend.emails.send({
-    from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.app>",
+    from: getEmailSender(),
     to: opts.to,
     subject: "Votre retrait n'a pas pu etre traite",
     text: `Votre demande de retrait de ${opts.amount} ${opts.currency} vers ${opts.phone} (${opts.telecom}) a echoue. Veuillez contacter le support.`,
@@ -45,7 +46,7 @@ export async function sendOperationalAlert(opts: {
 }) {
   const resend = getResend();
   await resend.emails.send({
-    from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.org>",
+    from: getEmailSender(),
     to: opts.to,
     subject: opts.subject,
     text: opts.text,
