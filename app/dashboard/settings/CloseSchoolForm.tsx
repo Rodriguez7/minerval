@@ -73,7 +73,7 @@ export function CloseSchoolForm({ schoolCode }: { schoolCode: string }) {
         disabled={submitting || confirmation !== schoolCode}
         className="mt-4 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {submitting ? "Fermeture en cours..." : "Fermer definitivement l'ecole"}
+        {submitting ? "Fermeture en cours..." : "Fermer l'ecole"}
       </button>
     </form>
   );
