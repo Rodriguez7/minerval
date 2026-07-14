@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "backup:database": "node scripts/backup-database.mjs",
+    "restore:verify": "node scripts/verify-database-restore.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
