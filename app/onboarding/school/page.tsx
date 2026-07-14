@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SchoolForm } from "./SchoolForm";
 import { localizePathname } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 
 export default async function OnboardingSchoolPage() {
   const locale = await getRequestLocale();
@@ -20,5 +21,14 @@ export default async function OnboardingSchoolPage() {
 
   if (membership) redirect(localizePathname(locale, "/onboarding/billing-contact"));
 
-  return <SchoolForm />;
+  return (
+    <div className="space-y-4">
+      <div className="text-right">
+        <LocalizedLink href="/account" className="text-sm text-zinc-600 hover:underline">
+          {locale === "fr" ? "Gerer mon compte personnel" : "Manage my personal account"}
+        </LocalizedLink>
+      </div>
+      <SchoolForm />
+    </div>
+  );
 }
