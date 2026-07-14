@@ -35,7 +35,13 @@ function makeRequest(body: object) {
 }
 
 function asAdminClient(client: { from: unknown }) {
-  return client as unknown as AdminClient;
+  return {
+    ...client,
+    rpc: vi.fn().mockResolvedValue({
+      data: { allowed: true, remaining: 4, retry_after_seconds: 0 },
+      error: null,
+    }),
+  } as unknown as AdminClient;
 }
 
 const mockStudent = {
@@ -45,24 +51,6 @@ const mockStudent = {
   amount_due: 15000,
   external_id: "STU-001",
 };
-
-function makeAllowedRateLimitQueries() {
-  return [
-    {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      gte: vi.fn().mockResolvedValue({ count: 0 }),
-    },
-    {
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    },
-    {
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      lt: vi.fn().mockResolvedValue({ error: null }),
-    },
-  ];
-}
 
 function makeNoExistingPaymentQuery() {
   return {
@@ -147,11 +135,7 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("returns 404 if student not found", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -171,11 +155,7 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("returns French 400 message when amount_due is 0", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -197,11 +177,7 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("creates payment_request with telecom, calls proxy, returns pending", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -251,11 +227,7 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("returns 409 with SerdiPay duplicate message", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -301,15 +273,11 @@ describe("POST /api/payments/initiate", () => {
   });
 
   it("keeps an ambiguous proxy failure pending and returns the receipt", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const updateQuery = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ error: null }),
     };
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -356,11 +324,7 @@ describe("POST /api/payments/initiate", () => {
   it("returns 503 when payment callback secret is missing", async () => {
     delete process.env.SERDIPAY_CALLBACK_SECRET;
 
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),

@@ -16,25 +16,13 @@ import { getAdminClient } from "../lib/supabase";
 type AdminClient = ReturnType<typeof getAdminClient>;
 
 function asAdminClient(client: { from: unknown }) {
-  return client as unknown as AdminClient;
-}
-
-function makeAllowedRateLimitQueries() {
-  return [
-    {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      gte: vi.fn().mockResolvedValue({ count: 0 }),
-    },
-    {
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    },
-    {
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      lt: vi.fn().mockResolvedValue({ error: null }),
-    },
-  ];
+  return {
+    ...client,
+    rpc: vi.fn().mockResolvedValue({
+      data: { allowed: true, remaining: 14, retry_after_seconds: 0 },
+      error: null,
+    }),
+  } as unknown as AdminClient;
 }
 
 describe("GET /api/students/[id]", () => {
@@ -60,11 +48,7 @@ describe("GET /api/students/[id]", () => {
   });
 
   it("returns 404 if student not found", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -80,11 +64,7 @@ describe("GET /api/students/[id]", () => {
   });
 
   it("returns student info with school name and amount_due", async () => {
-    const [rateCount, rateInsert, ratePrune] = makeAllowedRateLimitQueries();
     const mockFrom = vi.fn()
-      .mockReturnValueOnce(rateCount)
-      .mockReturnValueOnce(rateInsert)
-      .mockReturnValueOnce(ratePrune)
       .mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -114,4 +94,3 @@ describe("GET /api/students/[id]", () => {
     });
   });
 });
-

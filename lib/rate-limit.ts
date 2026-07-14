@@ -17,50 +17,48 @@ export async function consumeRateLimit({
   limit,
   windowMs,
 }: RateLimitOptions): Promise<RateLimitResult> {
+  if (!key || key.length > 500 || !Number.isSafeInteger(limit) || limit < 1) {
+    throw new Error("Invalid rate-limit options");
+  }
+  if (!Number.isFinite(windowMs) || windowMs < 1 || windowMs > 86_400_000) {
+    throw new Error("Invalid rate-limit window");
+  }
+
   const admin = getAdminClient();
-  const windowStart = new Date(Date.now() - windowMs).toISOString();
+  const { data, error } = await admin.rpc("consume_rate_limit", {
+    p_key: key,
+    p_limit: limit,
+    p_window_seconds: Math.ceil(windowMs / 1000),
+  });
 
-  const { count } = await admin
-    .from("rate_limit_attempts")
-    .select("*", { count: "exact", head: true })
-    .eq("key", key)
-    .gte("created_at", windowStart);
-
-  const currentCount = count ?? 0;
-
-  if (currentCount >= limit) {
-    const { data: oldest } = await admin
-      .from("rate_limit_attempts")
-      .select("created_at")
-      .eq("key", key)
-      .gte("created_at", windowStart)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    const resetAt = oldest
-      ? new Date(oldest.created_at).getTime() + windowMs
-      : Date.now() + windowMs;
-
+  if (error || !isRateLimitPayload(data)) {
+    console.error("[rate-limit] atomic limiter unavailable", error?.message ?? "invalid response");
     return {
       allowed: false,
       remaining: 0,
-      retryAfterSeconds: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)),
+      retryAfterSeconds: Math.max(1, Math.ceil(windowMs / 1000)),
     };
   }
 
-  await admin.from("rate_limit_attempts").insert({ key });
-
-  // Prune stale entries for this key (fire-and-forget)
-  void admin
-    .from("rate_limit_attempts")
-    .delete()
-    .eq("key", key)
-    .lt("created_at", windowStart);
-
   return {
-    allowed: true,
-    remaining: limit - currentCount - 1,
-    retryAfterSeconds: 0,
+    allowed: data.allowed,
+    remaining: data.remaining,
+    retryAfterSeconds: data.retry_after_seconds,
   };
+}
+
+function isRateLimitPayload(value: unknown): value is {
+  allowed: boolean;
+  remaining: number;
+  retry_after_seconds: number;
+} {
+  if (!value || typeof value !== "object") return false;
+  const payload = value as Record<string, unknown>;
+  return (
+    typeof payload.allowed === "boolean" &&
+    Number.isSafeInteger(payload.remaining) &&
+    (payload.remaining as number) >= 0 &&
+    Number.isSafeInteger(payload.retry_after_seconds) &&
+    (payload.retry_after_seconds as number) >= 0
+  );
 }
