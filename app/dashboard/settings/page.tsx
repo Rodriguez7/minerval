@@ -166,6 +166,22 @@ export default async function SettingsPage() {
 
       {/* Logo upload */}
       <LogoUploadForm currentLogoUrl={currentLogoUrl} canManage={canManage} />
+
+      {membership.role === "owner" && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-sm font-semibold text-zinc-900">Export des donnees</h2>
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            Telecharge une copie JSON des informations de l&apos;ecole, eleves, paiements,
+            versements, membres et journaux d&apos;audit. Les jetons secrets ne sont pas inclus.
+          </p>
+          <a
+            href="/api/dashboard/account/export"
+            className="mt-4 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+          >
+            Telecharger mes donnees
+          </a>
+        </div>
+      )}
     </div>
   );
 }
