@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe, priceIdToPlanCode } from "@/lib/stripe";
 import { getAdminClient } from "@/lib/supabase";
+import { reportOperationalIssue } from "@/lib/operations";
 
 // Must NOT be cached — webhooks are real-time events
 export const dynamic = "force-dynamic";
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError1) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError1.message);
-      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+      return stripeWebhookFailure(event, "Checkout subscription linkage failed.");
     }
 
     return recordBillingEvent(admin, event, schoolId, billingEventType);
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
 
   if (!schoolId) {
     console.warn("[stripe-webhook] Could not resolve school_id for event", event.id);
-    return NextResponse.json({ error: "Ecole introuvable" }, { status: 500 });
+    return stripeWebhookFailure(event, "School resolution failed for a signed Stripe event.");
   }
 
   if (event.type === "customer.subscription.updated") {
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
     const planCode = priceIdToPlanCode(priceId);
     if (!planCode) {
       console.warn("[stripe-webhook] Unknown price ID, skipping plan update", priceId, event.id);
-      return NextResponse.json({ error: "Tarif Stripe inconnu" }, { status: 500 });
+      return stripeWebhookFailure(event, `Unknown configured Stripe price: ${priceId}`);
     }
 
     const { error: updateError2 } = await admin
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError2) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError2.message);
-      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+      return stripeWebhookFailure(event, "Subscription update persistence failed.");
     }
   }
 
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError3) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError3.message);
-      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+      return stripeWebhookFailure(event, "Subscription cancellation persistence failed.");
     }
   }
 
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError4) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError4.message);
-      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+      return stripeWebhookFailure(event, "Paid invoice persistence failed.");
     }
   }
 
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
       .eq("school_id", schoolId);
     if (updateError5) {
       console.error("[stripe-webhook] school_subscriptions update failed", event.id, updateError5.message);
-      return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+      return stripeWebhookFailure(event, "Failed invoice persistence failed.");
     }
   }
 
@@ -191,8 +192,17 @@ async function recordBillingEvent(
 
   if (error && error.code !== "23505") {
     console.error("[stripe-webhook] billing_events insert failed", event.id, error.message);
-    return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+    return stripeWebhookFailure(event, "Stripe billing audit event persistence failed.");
   }
 
   return NextResponse.json({ received: true });
+}
+
+async function stripeWebhookFailure(event: Stripe.Event, message: string) {
+  await reportOperationalIssue({
+    source: "stripe-webhook",
+    message,
+    reference: event.id,
+  });
+  return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
 }

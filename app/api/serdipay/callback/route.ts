@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { verifySerdiPayCallback } from "@/lib/serdipay";
+import { reportOperationalIssue } from "@/lib/operations";
 
 interface SerdiPayCallback {
   message?: string;
@@ -64,6 +65,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (studentLookupError || !student) {
+      await reportOperationalIssue({
+        source: "serdipay-payment-callback",
+        message: "Student balance lookup failed during successful payment settlement.",
+        reference: payment.id,
+      });
       return NextResponse.json(
         { error: "Impossible de lire le solde eleve" },
         { status: 500 }
@@ -78,6 +84,11 @@ export async function POST(req: NextRequest) {
       .eq("id", payment.student_id);
 
     if (studentUpdateError) {
+      await reportOperationalIssue({
+        source: "serdipay-payment-callback",
+        message: "Student balance update failed during successful payment settlement.",
+        reference: payment.id,
+      });
       return NextResponse.json(
         { error: "Impossible de mettre a jour le solde eleve" },
         { status: 500 }
@@ -99,6 +110,11 @@ export async function POST(req: NextRequest) {
     .eq("id", payment.id);
 
   if (paymentUpdateError) {
+    await reportOperationalIssue({
+      source: "serdipay-payment-callback",
+      message: "Payment finalization could not be persisted.",
+      reference: payment.id,
+    });
     return NextResponse.json(
       { error: "Impossible de finaliser le paiement" },
       { status: 500 }
@@ -112,7 +128,12 @@ export async function POST(req: NextRequest) {
   });
 
   if (eventError) {
-    console.error("[serdipay-callback] payment event insert failed", payment.id, eventError.message);
+    await reportOperationalIssue({
+      source: "serdipay-payment-callback",
+      severity: "warning",
+      message: "Payment settled but its audit event could not be persisted.",
+      reference: payment.id,
+    });
   }
 
   return NextResponse.json({ message: "OK" });

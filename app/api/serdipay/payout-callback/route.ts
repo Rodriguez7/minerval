@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "@/lib/email";
 import { verifySerdiPayCallback } from "@/lib/serdipay";
+import { reportOperationalIssue } from "@/lib/operations";
 
 export async function POST(req: NextRequest) {
   const authorization = verifySerdiPayCallback(req);
@@ -76,6 +77,11 @@ export async function POST(req: NextRequest) {
       .eq("id", payoutId);
 
     if (updateError) {
+      await reportOperationalIssue({
+        source: "serdipay-payout-callback",
+        message: "Successful payout callback could not be persisted.",
+        reference: payoutId,
+      });
       return NextResponse.json(
         { error: "Impossible de finaliser le versement" },
         { status: 500 }
@@ -101,6 +107,11 @@ export async function POST(req: NextRequest) {
       .eq("id", payoutId);
 
     if (updateError) {
+      await reportOperationalIssue({
+        source: "serdipay-payout-callback",
+        message: "Failed payout callback could not be persisted.",
+        reference: payoutId,
+      });
       return NextResponse.json(
         { error: "Impossible de finaliser le versement" },
         { status: 500 }

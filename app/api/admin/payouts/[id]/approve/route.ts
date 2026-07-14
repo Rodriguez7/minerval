@@ -3,6 +3,7 @@ import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { callProxyPayout, ProxyError } from "@/lib/proxy";
 import { buildSerdiPayCallbackUrl } from "@/lib/serdipay";
+import { reportOperationalIssue } from "@/lib/operations";
 
 export async function POST(
   _req: NextRequest,
@@ -45,6 +46,13 @@ export async function POST(
       .from("school_payouts")
       .update({ status: "failed", failure_reason: "Configuration du callback de versement manquante" })
       .eq("id", payout.id);
+
+    await reportOperationalIssue({
+      source: "payout-approval",
+      severity: "warning",
+      message: "SerdiPay response was ambiguous; payout remains reserved for manual verification.",
+      reference: payout.id,
+    });
 
     return NextResponse.json(
       { error: "Configuration du callback de versement manquante" },

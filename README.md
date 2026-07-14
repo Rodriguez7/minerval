@@ -39,6 +39,10 @@ npm run dev
 | `NEXT_PUBLIC_APP_URL` | App base URL (e.g. `https://www.minerval.org`) |
 | `PROXY_URL` | Hetzner proxy URL (e.g. `https://proxy.minerval.org`) |
 | `PROXY_SECRET` | Shared secret for main app → proxy auth |
+| `SERDIPAY_CALLBACK_SECRET` | Shared secret authenticating SerdiPay callbacks |
+| `HEALTHCHECK_SECRET` | Bearer token for `GET /api/health?deep=1` |
+| `OPERATIONS_ALERT_EMAIL` | Recipient for critical financial and webhook alerts |
+| `RESEND_API_KEY` / `EMAIL_FROM` | Transactional email delivery configuration |
 
 Get keys from: **Supabase Dashboard → Settings → API**
 
@@ -48,7 +52,7 @@ An example app env file now exists in [`.env.local.example`](/Users/rod/20%20App
 
 Push to `main` → Railway auto-deploys via GitHub integration.
 
-Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/minerval/railway.toml). The configured healthcheck is `GET /api/health`.
+Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/minerval/railway.toml). The configured liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
 
 **Railway env vars to set:**
 - All 6 variables above

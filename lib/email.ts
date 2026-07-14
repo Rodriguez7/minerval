@@ -37,3 +37,17 @@ export async function sendPayoutFailedEmail(opts: {
     text: `Votre demande de retrait de ${opts.amount} ${opts.currency} vers ${opts.phone} (${opts.telecom}) a echoue. Veuillez contacter le support.`,
   });
 }
+
+export async function sendOperationalAlert(opts: {
+  to: string;
+  subject: string;
+  text: string;
+}) {
+  const resend = getResend();
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? "Minerval <no-reply@minerval.org>",
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+  });
+}

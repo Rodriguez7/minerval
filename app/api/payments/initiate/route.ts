@@ -7,6 +7,7 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import { buildSerdiPayCallbackUrl, generateReceiptAccessToken } from "@/lib/serdipay";
 import { computeFee, DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import type { Telecom } from "@/lib/types";
+import { reportOperationalIssue } from "@/lib/operations";
 
 const VALID_TELECOMS: Telecom[] = ["AM", "OM", "MP", "AF"];
 
@@ -138,6 +139,13 @@ export async function POST(req: NextRequest) {
       .from("payment_requests")
       .update({ status: "failed" })
       .eq("id", paymentRequest.id);
+
+    await reportOperationalIssue({
+      source: "payment-initiation",
+      severity: "warning",
+      message: "SerdiPay response was ambiguous; payment requires callback reconciliation.",
+      reference: paymentRequest.id,
+    });
 
     return NextResponse.json(
       { error: "Configuration du callback de paiement manquante" },
