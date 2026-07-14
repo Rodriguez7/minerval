@@ -7,6 +7,7 @@ import { useLocale } from "@/lib/i18n/client";
 import { getPaymentsCopy } from "@/lib/i18n/copy/payments";
 import { formatMoney } from "@/lib/i18n/format";
 import { localizeHref } from "@/lib/i18n/config";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 interface Props {
   studentId: string;
@@ -46,7 +47,7 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
       } else if (res.status === 429) {
         setError(copy.sharedForm.errors.tooManyAttempts);
       } else if (!res.ok) {
-        setError(copy.sharedForm.errors.paymentFailed);
+        setError(data.error ?? copy.sharedForm.errors.paymentFailed);
       } else {
         router.push(
           localizeHref(
@@ -82,8 +83,14 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
         <label className="block text-sm font-medium mb-1">{copy.sharedForm.numberLabel}</label>
         <input
           type="tel"
+          inputMode="tel"
+          autoComplete="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          onBlur={() => {
+            const normalized = normalizeDrcMobilePhone(phone);
+            if (normalized) setPhone(`+${normalized}`);
+          }}
           placeholder={copy.sharedForm.phonePlaceholder}
           required
           className="w-full border rounded-lg px-3 py-2"
@@ -92,7 +99,7 @@ export function PayForm({ studentId, amountDue, paymentToken, currency = "FC" }:
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <button
         type="submit"
-        disabled={loading || !telecom}
+        disabled={loading || !telecom || !phone}
         className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
       >
         {loading

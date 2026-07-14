@@ -56,6 +56,14 @@ describe("POST /api/dashboard/payouts/request", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 for a non-DRC mobile number", async () => {
+    vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
+
+    const res = await POST(makeRequest({ amount: 5000, phone: "+244812345678", telecom: "OM" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/mobile RDC invalide/i);
+  });
+
   it("returns French 422 if RPC returns insufficient_balance", async () => {
     vi.mocked(getTenantContext).mockResolvedValueOnce(mockContext as never);
     const mockRpc = vi.fn().mockResolvedValueOnce({
@@ -64,7 +72,7 @@ describe("POST /api/dashboard/payouts/request", () => {
     });
     vi.mocked(createSSRClient).mockResolvedValue({ rpc: mockRpc } as never);
 
-    const res = await POST(makeRequest({ amount: 5000, phone: "0812345678", telecom: "OM" }));
+    const res = await POST(makeRequest({ amount: 5000, phone: "+243 812 345 678", telecom: "OM" }));
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.error).toBe("Solde insuffisant");
@@ -97,5 +105,8 @@ describe("POST /api/dashboard/payouts/request", () => {
     expect(body.status).toBe("pending");
     expect(body.fee_amount).toBe(150);
     expect(body.net_amount).toBe(4850);
+    expect(mockRpc).toHaveBeenCalledWith("request_school_payout", expect.objectContaining({
+      p_phone: "243812345678",
+    }));
   });
 });

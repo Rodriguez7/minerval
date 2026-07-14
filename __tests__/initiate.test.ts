@@ -117,13 +117,27 @@ describe("POST /api/payments/initiate", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 for a non-DRC mobile number", async () => {
+    vi.mocked(getAdminClient).mockReturnValue(asAdminClient({ from: vi.fn() }));
+    const res = await POST(
+      makeRequest({
+        student_id: "STU-001",
+        phone: "+244812345678",
+        telecom: "AM",
+        payment_token: "school-token",
+      })
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/mobile RDC invalide/i);
+  });
+
   it("returns 404 if the payment token is invalid", async () => {
     vi.mocked(getSchoolByPaymentAccessToken).mockResolvedValue(null);
 
     const res = await POST(
       makeRequest({
         student_id: "STU-001",
-        phone: "243812345678",
+        phone: "0812 345 678",
         telecom: "AM",
         payment_token: "bad-token",
       })
@@ -217,7 +231,7 @@ describe("POST /api/payments/initiate", () => {
     const res = await POST(
       makeRequest({
         student_id: "STU-001",
-        phone: "243812345678",
+        phone: "0812 345 678",
         telecom: "AM",
         payment_token: "school-token",
       })

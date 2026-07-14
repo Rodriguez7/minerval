@@ -7,6 +7,7 @@ import {
   MIN_PAYOUT_REQUEST_AMOUNT,
   PAYOUT_FEE_BPS,
 } from "@/lib/payout-fee";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 const TELECOM_OPTIONS = [
   { value: "AM", label: "Airtel Money" },
@@ -109,10 +110,16 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
         <label className="text-xs font-medium">Telephone Mobile Money</label>
         <input
           type="tel"
+          inputMode="tel"
+          autoComplete="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          onBlur={() => {
+            const normalized = normalizeDrcMobilePhone(phone);
+            if (normalized) setPhone(`+${normalized}`);
+          }}
           className="w-full rounded border px-3 py-2 text-sm"
-          placeholder="0812345678"
+          placeholder="0812345678 ou +243812345678"
           required
         />
       </div>

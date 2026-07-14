@@ -114,7 +114,7 @@ export function SchoolForm() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{copy.school.directorPhoneLabel}</label>
-              <input name="directorPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input name="directorPhone" required type="tel" inputMode="tel" autoComplete="tel" pattern="\\+?[0-9\\s().-]{9,20}" placeholder="0812345678 ou +243812345678" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{copy.school.payoutAccountNameLabel}</label>
@@ -122,7 +122,7 @@ export function SchoolForm() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{copy.school.payoutAccountPhoneLabel}</label>
-              <input name="payoutAccountPhone" required inputMode="tel" pattern="\\+?[0-9\\s().-]{9,20}" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input name="payoutAccountPhone" required type="tel" inputMode="tel" autoComplete="tel" pattern="\\+?[0-9\\s().-]{9,20}" placeholder="0812345678 ou +243812345678" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
         </div>

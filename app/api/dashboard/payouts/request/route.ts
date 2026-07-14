@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/tenant";
 import { createSSRClient } from "@/lib/supabase";
 import { MIN_PAYOUT_REQUEST_AMOUNT } from "@/lib/payout-fee";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 const VALID_TELECOMS = new Set(["AM", "OM", "MP", "AF"]);
 
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const amount = Number(body.amount);
-  const phone = String(body.phone ?? "").trim();
+  const phone = normalizeDrcMobilePhone(body.phone);
   const telecom = String(body.telecom ?? "").trim().toUpperCase();
 
   if (!Number.isSafeInteger(amount) || amount < MIN_PAYOUT_REQUEST_AMOUNT) {
@@ -37,8 +38,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!/^\d{9,15}$/.test(phone)) {
-    return NextResponse.json({ error: "Le numero doit contenir entre 9 et 15 chiffres" }, { status: 400 });
+  if (!phone) {
+    return NextResponse.json(
+      { error: "Numero mobile RDC invalide. Exemple : 0812345678 ou +243812345678" },
+      { status: 400 }
+    );
   }
 
   if (!VALID_TELECOMS.has(telecom)) {

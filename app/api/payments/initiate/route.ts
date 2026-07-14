@@ -8,6 +8,7 @@ import { buildSerdiPayCallbackUrl, generateReceiptAccessToken } from "@/lib/serd
 import { computeFee, DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import type { Telecom } from "@/lib/types";
 import { reportOperationalIssue } from "@/lib/operations";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 const VALID_TELECOMS: Telecom[] = ["AM", "OM", "MP", "AF"];
 
@@ -36,6 +37,14 @@ export async function POST(req: NextRequest) {
   if (!VALID_TELECOMS.includes(telecom as Telecom)) {
     return NextResponse.json(
       { error: `Operateur invalide. Valeurs autorisees : ${VALID_TELECOMS.join(", ")}` },
+      { status: 400 }
+    );
+  }
+
+  const normalizedPhone = normalizeDrcMobilePhone(phone);
+  if (!normalizedPhone) {
+    return NextResponse.json(
+      { error: "Numero mobile RDC invalide. Exemple : 0812345678 ou +243812345678" },
       { status: 400 }
     );
   }
@@ -117,7 +126,7 @@ export async function POST(req: NextRequest) {
       receipt_access_token: generateReceiptAccessToken(),
       amount: totalAmount,
       fee_amount: feeAmount,
-      phone,
+      phone: normalizedPhone,
       telecom,
       status: "pending",
       reconciliation_status: "pending_review",
@@ -156,7 +165,7 @@ export async function POST(req: NextRequest) {
   try {
     await callProxy({
       amount: totalAmount,
-      phone,
+      phone: normalizedPhone,
       reference: paymentRequest.id,
       telecom: telecom as Telecom,
       callback_url: callbackUrl,
@@ -165,7 +174,7 @@ export async function POST(req: NextRequest) {
     await admin.from("payment_events").insert({
       payment_request_id: paymentRequest.id,
       event_type: "initiated",
-      payload: { phone, telecom, amount: totalAmount, fee_amount: feeAmount },
+      payload: { phone: normalizedPhone, telecom, amount: totalAmount, fee_amount: feeAmount },
     });
 
     return NextResponse.json({

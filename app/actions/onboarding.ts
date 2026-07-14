@@ -6,6 +6,7 @@ import { getPreferredLocale, localizePathname } from "@/lib/i18n/config";
 import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { EDUCATION_LEVELS } from "@/lib/congo-education";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 function getFormLocale(formData: FormData) {
   return getPreferredLocale(formData.get("locale")?.toString());
@@ -20,9 +21,9 @@ export async function createSchool(_: unknown, formData: FormData) {
     registrationNumber: z.string().max(100).optional(),
     schoolAddress: z.string().min(5).max(300),
     directorName: z.string().min(2).max(200),
-    directorPhone: z.string().regex(/^\+?[0-9\s().-]{9,20}$/, "Numero du directeur invalide"),
+    directorPhone: z.string().min(1),
     payoutAccountName: z.string().min(2).max(200),
-    payoutAccountPhone: z.string().regex(/^\+?[0-9\s().-]{9,20}$/, "Numero de versement invalide"),
+    payoutAccountPhone: z.string().min(1),
     schoolCode: z
       .string()
       .regex(/^[a-z0-9-]+$/, copy.actions.invalidSchoolCode)
@@ -53,6 +54,11 @@ export async function createSchool(_: unknown, formData: FormData) {
     return { error: msg };
   }
 
+  const directorPhone = normalizeDrcMobilePhone(parsed.data.directorPhone);
+  if (!directorPhone) return { error: "Numero mobile RDC du responsable invalide." };
+  const payoutAccountPhone = normalizeDrcMobilePhone(parsed.data.payoutAccountPhone);
+  if (!payoutAccountPhone) return { error: "Numero mobile RDC de versement invalide." };
+
   const supabase = await createSSRClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(localizePathname(locale, "/login"));
@@ -79,9 +85,9 @@ export async function createSchool(_: unknown, formData: FormData) {
       registration_number: parsed.data.registrationNumber ?? null,
       school_address: parsed.data.schoolAddress,
       director_name: parsed.data.directorName,
-      director_phone: parsed.data.directorPhone,
+      director_phone: directorPhone,
       payout_account_name: parsed.data.payoutAccountName,
-      payout_account_phone: parsed.data.payoutAccountPhone,
+      payout_account_phone: payoutAccountPhone,
       verification_status: "pending",
       verification_submitted_at: new Date().toISOString(),
     })

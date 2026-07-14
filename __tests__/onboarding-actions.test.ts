@@ -25,9 +25,9 @@ const validSchoolData = {
   registrationNumber: "REG-12345",
   schoolAddress: "12 Avenue Lumumba, Kinshasa",
   directorName: "Jean Kabila",
-  directorPhone: "243812345678",
+  directorPhone: "0812 345 678",
   payoutAccountName: "Ecole Saint Michel",
-  payoutAccountPhone: "243812345679",
+  payoutAccountPhone: "+243 812 345 679",
   schoolCode: "saint-michel",
   studentIdPrefix: "ESM",
   currency: "FC",
@@ -60,6 +60,15 @@ describe("createSchool action", () => {
     mockAuth();
     const result = await createSchool(null, makeFormData({ ...validSchoolData, schoolCode: "Saint-Michel" }));
     expect(result?.error).toBeTruthy();
+  });
+
+  it("rejects a non-DRC payout mobile number before database access", async () => {
+    const result = await createSchool(
+      null,
+      makeFormData({ ...validSchoolData, payoutAccountPhone: "+244812345679" })
+    );
+    expect(result?.error).toMatch(/mobile RDC de versement invalide/i);
+    expect(createSSRClient).not.toHaveBeenCalled();
   });
 
   it("rejects if school code already taken", async () => {
