@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getAuthCopy } from "@/lib/i18n/copy/auth";
 import { getPreferredLocale, localizePathname } from "@/lib/i18n/config";
 import { createSSRClient } from "@/lib/supabase";
+import { LEGAL_VERSION } from "@/lib/legal";
 
 function getFormLocale(formData: FormData) {
   return getPreferredLocale(formData.get("locale")?.toString());
@@ -66,9 +67,11 @@ export async function signup(_: unknown, formData: FormData) {
   const signupSchema = z.object({
     email: z.string().email(copy.actions.validEmail),
     password: z.string().min(8, copy.actions.passwordMin),
+    legalAccepted: z.literal("yes"),
   }).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    legalAccepted: formData.get("legalAccepted"),
   });
   const parsed = signupSchema;
   if (!parsed.success) {
@@ -79,7 +82,16 @@ export async function signup(_: unknown, formData: FormData) {
   const { email, password } = parsed.data;
   try {
     const supabase = await createSSRClient();
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          legal_version: LEGAL_VERSION,
+          legal_accepted_at: new Date().toISOString(),
+        },
+      },
+    });
     if (authError || !authData.user) {
       return { error: authError?.message ?? copy.actions.signupFailed };
     }

@@ -30,21 +30,40 @@ describe("signup action (Phase 1b)", () => {
     expect(result?.error).toBeTruthy();
   });
 
+  it("rejects signup without explicit legal acceptance", async () => {
+    const result = await signup(
+      null,
+      makeFormData({ email: "a@b.com", password: "password123" })
+    );
+    expect(result?.error).toBeTruthy();
+    expect(createSSRClient).not.toHaveBeenCalled();
+  });
+
   it("returns auth error when signUp fails", async () => {
     vi.mocked(createSSRClient).mockResolvedValue({
       auth: { signUp: vi.fn().mockResolvedValue({ data: { user: null }, error: { message: "Email already registered" } }) },
     } as never);
-    const result = await signup(null, makeFormData({ email: "a@b.com", password: "password123" }));
+    const result = await signup(null, makeFormData({ email: "a@b.com", password: "password123", legalAccepted: "yes" }));
     expect(result?.error).toBe("Email already registered");
   });
 
   it("does NOT create school or membership on success", async () => {
+    const signUp = vi.fn().mockResolvedValue({ data: { user: { id: "uid1" } }, error: null });
     vi.mocked(createSSRClient).mockResolvedValue({
-      auth: { signUp: vi.fn().mockResolvedValue({ data: { user: { id: "uid1" } }, error: null }) },
+      auth: { signUp },
     } as never);
     vi.mocked(redirect).mockImplementation(() => { throw new Error("REDIRECT"); });
 
-    await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123" }))).rejects.toThrow("REDIRECT");
+    await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123", legalAccepted: "yes" }))).rejects.toThrow("REDIRECT");
+
+    expect(signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: {
+        data: {
+          legal_version: "2026-07-14",
+          legal_accepted_at: expect.any(String),
+        },
+      },
+    }));
 
     // getAdminClient should never be called — no school creation
     expect(getAdminClient).not.toHaveBeenCalled();
@@ -56,6 +75,6 @@ describe("signup action (Phase 1b)", () => {
     } as never);
     vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
 
-    await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123" }))).rejects.toThrow("REDIRECT:/fr/onboarding/school");
+    await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123", legalAccepted: "yes" }))).rejects.toThrow("REDIRECT:/fr/onboarding/school");
   });
 });

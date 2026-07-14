@@ -18,6 +18,10 @@ const REQUIRED_PRODUCTION_ENV = [
   "RESEND_API_KEY",
   "EMAIL_FROM",
   "OPERATIONS_ALERT_EMAIL",
+  "LEGAL_ENTITY_NAME",
+  "LEGAL_ENTITY_ADDRESS",
+  "LEGAL_CONTACT_EMAIL",
+  "PRIVACY_CONTACT_EMAIL",
 ] as const;
 
 export async function GET(request: NextRequest) {

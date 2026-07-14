@@ -122,6 +122,7 @@ const HOME_COPY = {
       note: "Aucun frais d'installation. Aucune carte requise.",
     },
     footer: "© 2026 Minerval. Concu pour les ecoles du Congo.",
+    legal: { privacy: "Confidentialite", terms: "Conditions", refunds: "Remboursements" },
     card: {
       header: "Ecole Sainte Marie — Vue d'ensemble",
       live: "En direct",
@@ -218,6 +219,7 @@ const HOME_COPY = {
       note: "No setup fees. No card required.",
     },
     footer: "© 2026 Minerval. Built for Congo schools.",
+    legal: { privacy: "Privacy", terms: "Terms", refunds: "Refunds" },
     card: {
       header: "Ecole Sainte Marie - Vue d'ensemble",
       live: "Live",
@@ -658,6 +660,11 @@ export default function HomePage() {
       <footer className="land-footer">
         <span style={{ fontSize: 16, fontWeight: 700, color: "white" }}>Minerval</span>
         <span style={{ fontSize: 13, color: "#475569" }}>{copy.footer}</span>
+        <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 16, fontSize: 13 }}>
+          <LocalizedLink href="/privacy" style={{ color: "#94a3b8", textDecoration: "none" }}>{copy.legal.privacy}</LocalizedLink>
+          <LocalizedLink href="/terms" style={{ color: "#94a3b8", textDecoration: "none" }}>{copy.legal.terms}</LocalizedLink>
+          <LocalizedLink href="/refunds" style={{ color: "#94a3b8", textDecoration: "none" }}>{copy.legal.refunds}</LocalizedLink>
+        </nav>
       </footer>
     </>
   );

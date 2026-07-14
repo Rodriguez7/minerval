@@ -47,6 +47,26 @@ export default function SignupPage() {
             />
             <p className="text-xs text-gray-400 mt-1">{copy.signup.passwordHint}</p>
           </div>
+          <label className="flex items-start gap-2 text-sm leading-5 text-gray-600">
+            <input
+              name="legalAccepted"
+              type="checkbox"
+              value="yes"
+              required
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <span>
+              {copy.signup.legalPrefix}{" "}
+              <LocalizedLink href="/terms" className="text-blue-600 hover:underline">
+                {copy.signup.termsLink}
+              </LocalizedLink>{" "}
+              {copy.signup.legalJoin}{" "}
+              <LocalizedLink href="/privacy" className="text-blue-600 hover:underline">
+                {copy.signup.privacyLink}
+              </LocalizedLink>
+              .
+            </span>
+          </label>
           {state?.error && (
             <p className="text-sm text-red-600">{state.error}</p>
           )}

@@ -37,6 +37,10 @@ type AuthCopy = {
     emailLabel: string;
     passwordLabel: string;
     passwordHint: string;
+    legalPrefix: string;
+    termsLink: string;
+    legalJoin: string;
+    privacyLink: string;
     submitPending: string;
     submit: string;
     footerPrompt: string;
@@ -137,6 +141,10 @@ export const AUTH_COPY: Record<AppLocale, AuthCopy> = {
       emailLabel: "Email",
       passwordLabel: "Mot de passe",
       passwordHint: "8 caracteres minimum",
+      legalPrefix: "J'accepte les",
+      termsLink: "conditions d'utilisation",
+      legalJoin: "et la",
+      privacyLink: "politique de confidentialite",
       submitPending: "Creation du compte…",
       submit: "Creer le compte",
       footerPrompt: "Vous avez deja un compte ?",
@@ -248,6 +256,10 @@ export const AUTH_COPY: Record<AppLocale, AuthCopy> = {
       emailLabel: "Email",
       passwordLabel: "Password",
       passwordHint: "8 characters minimum",
+      legalPrefix: "I accept the",
+      termsLink: "terms of use",
+      legalJoin: "and the",
+      privacyLink: "privacy policy",
       submitPending: "Creating account…",
       submit: "Create account",
       footerPrompt: "Already have an account?",

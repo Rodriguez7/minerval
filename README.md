@@ -54,6 +54,8 @@ Push to `main` → Railway auto-deploys via GitHub integration.
 
 Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/minerval/railway.toml). The configured liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
 
+The public legal pages are `/privacy`, `/terms`, and `/refunds` (with `/fr` and `/en` locale prefixes). Production must set `LEGAL_ENTITY_NAME`, `LEGAL_ENTITY_ADDRESS`, `LEGAL_CONTACT_EMAIL`, and `PRIVACY_CONTACT_EMAIL`; the deep health check reports a degraded state when any are missing. Account creation records the accepted legal version in the user's authentication metadata.
+
 **Railway env vars to set:**
 - All 6 variables above
 - `NIXPACKS_NODE_VERSION=20`

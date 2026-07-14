@@ -21,6 +21,10 @@ const requiredEnvironment = {
   EMAIL_FROM: "Minerval <no-reply@minerval.org>",
   OPERATIONS_ALERT_EMAIL: "ops@minerval.org",
   HEALTHCHECK_SECRET: "health-secret",
+  LEGAL_ENTITY_NAME: "Minerval Test SARL",
+  LEGAL_ENTITY_ADDRESS: "Kinshasa, RDC",
+  LEGAL_CONTACT_EMAIL: "support@minerval.org",
+  PRIVACY_CONTACT_EMAIL: "privacy@minerval.org",
 };
 
 function request(deep = false, secret?: string) {
