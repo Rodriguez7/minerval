@@ -11,7 +11,7 @@ export async function buildSchoolExport(
   const { data: school, error: schoolError } = await admin
     .from("schools")
     .select(
-      "id, name, code, admin_email, created_at, billing_email, billing_contact, timezone, support_tier, student_id_prefix, currency, logo_url, legal_name, registration_number, school_address, director_name, director_phone, payout_account_name, payout_account_phone, verification_status, verification_submitted_at, verification_reviewed_at, education_levels"
+      "id, name, code, admin_email, created_at, billing_email, billing_contact, timezone, support_tier, student_id_prefix, currency, logo_url, legal_name, registration_number, school_address, director_name, director_phone, payout_account_name, payout_account_phone, verification_status, verification_submitted_at, verification_reviewed_at, education_levels, status, closed_at, closed_by, closure_reason"
     )
     .eq("id", schoolId)
     .single();

@@ -84,6 +84,11 @@ export interface School {
   verification_submitted_at: string | null;
   verification_reviewed_at: string | null;
   verification_rejection_reason: string | null;
+  // Added by migration 021
+  status: "active" | "closed";
+  closed_at: string | null;
+  closed_by: string | null;
+  closure_reason: string | null;
 }
 
 export interface Student {

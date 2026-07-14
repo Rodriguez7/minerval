@@ -28,6 +28,7 @@ export async function getSchoolByPaymentAccessToken(
     .from("schools")
     .select("id, name, code, payment_access_token, currency, logo_url")
     .eq("payment_access_token", paymentAccessToken)
+    .eq("status", "active")
     .single();
 
   if (!error) return (data as PaymentAccessSchool | null) ?? null;
@@ -46,6 +47,7 @@ export async function getSchoolByPaymentAccessToken(
     .from("schools")
     .select("id, name, code, payment_access_token, currency")
     .eq("payment_access_token", paymentAccessToken)
+    .eq("status", "active")
     .single();
 
   return fallback ? ({ ...fallback, logo_url: null } as PaymentAccessSchool) : null;
