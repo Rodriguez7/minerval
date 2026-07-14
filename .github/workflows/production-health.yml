@@ -1,0 +1,63 @@
+name: Production deep health monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deep-health
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    name: Verify production dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      HEALTHCHECK_URL: https://www.minerval.org/api/health?deep=1
+      HEALTHCHECK_SECRET: ${{ secrets.MINERVAL_HEALTHCHECK_SECRET }}
+
+    steps:
+      - name: Require the monitoring secret
+        run: test -n "$HEALTHCHECK_SECRET"
+
+      - name: Check the application and its dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          http_status="$(curl \
+            --silent \
+            --show-error \
+            --max-time 20 \
+            --retry 2 \
+            --retry-all-errors \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --header "Authorization: Bearer $HEALTHCHECK_SECRET" \
+            "$HEALTHCHECK_URL")"
+
+          if [[ "$http_status" != "200" ]]; then
+            echo "Production deep health check returned HTTP $http_status."
+            cat "$response_file"
+            exit 1
+          fi
+
+          jq -e '
+            .service == "minerval" and
+            .status == "ok" and
+            (.checks | type == "object") and
+            ([.checks[] | .ok] | all)
+          ' "$response_file" >/dev/null || {
+            echo "Production deep health response reported a degraded dependency."
+            cat "$response_file"
+            exit 1
+          }
+
+          echo "Production deep health check passed."

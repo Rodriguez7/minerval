@@ -55,6 +55,8 @@ Push to `main` → Railway auto-deploys via GitHub integration.
 
 Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/minerval/railway.toml). The configured liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
 
+The scheduled GitHub Actions monitor calls that deep endpoint every ten minutes. Keep Railway's `HEALTHCHECK_SECRET` and the repository secret `MINERVAL_HEALTHCHECK_SECRET` identical. A non-200 response or any degraded dependency fails the monitor and triggers the repository's configured Actions failure notifications.
+
 The public legal pages are `/privacy`, `/terms`, and `/refunds` (with `/fr` and `/en` locale prefixes). Production must set `LEGAL_ENTITY_NAME`, `LEGAL_ENTITY_ADDRESS`, `LEGAL_CONTACT_EMAIL`, and `PRIVACY_CONTACT_EMAIL`; the deep health check reports a degraded state when any are missing. Account creation records the accepted legal version in the user's authentication metadata.
 
 Before enabling production email, verify `EMAIL_DOMAIN` in Resend (including its DNS records), set `EMAIL_FROM` to a mailbox on that domain, and create or route the public support and privacy addresses. The deep health check rejects malformed or split-domain sender/contact configuration, but DNS verification and inbox delivery still require a real delivery test.
