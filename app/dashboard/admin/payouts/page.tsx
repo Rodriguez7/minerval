@@ -3,6 +3,7 @@ import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { ApproveButton } from "./ApproveButton";
 import { localizePathname } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { ResolvePayoutForm } from "./ResolvePayoutForm";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "En attente",
@@ -45,7 +46,7 @@ export default async function AdminPayoutsPage() {
   const { data: payouts } = await admin
     .from("school_payouts")
     .select(
-      "id, school_id, amount, fee_amount, net_amount, phone, telecom, status, created_at, requested_by, schools(name)"
+      "id, school_id, amount, fee_amount, net_amount, phone, telecom, status, created_at, requested_by, failure_reason, serdipay_transaction_id, schools(name)"
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -129,7 +130,7 @@ export default async function AdminPayoutsPage() {
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Ecole", "Demande", "Commission", "Verse", "Telephone", "Statut", "Date"].map((h) => (
+                {["Ecole", "Demande", "Commission", "Verse", "Telephone", "Statut", "Date", "Suivi"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -155,6 +156,16 @@ export default async function AdminPayoutsPage() {
                   <td className="px-4 py-3">{statusBadge(p.status)}</td>
                   <td className="px-4 py-3 text-sm text-zinc-400">
                     {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="px-4 py-3">
+                    {p.status === "processing" ? (
+                      <ResolvePayoutForm payoutId={p.id} />
+                    ) : (
+                      <div className="max-w-64 text-xs text-zinc-400">
+                        {p.serdipay_transaction_id && <p>Transaction : {p.serdipay_transaction_id}</p>}
+                        {p.failure_reason && <p className="mt-1">{p.failure_reason}</p>}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
