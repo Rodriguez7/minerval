@@ -61,7 +61,7 @@ Before enabling production email, verify `EMAIL_DOMAIN` in Resend (including its
 
 **Railway env vars to set:**
 - All variables listed above that apply to the deployed service
-- `NIXPACKS_NODE_VERSION=20`
+- `NIXPACKS_NODE_VERSION=22`
 
 ### Fixed-IP Proxy
 

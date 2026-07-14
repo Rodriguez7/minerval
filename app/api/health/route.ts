@@ -25,6 +25,7 @@ const REQUIRED_PRODUCTION_ENV = [
   "LEGAL_CONTACT_EMAIL",
   "PRIVACY_CONTACT_EMAIL",
 ] as const;
+const EXPECTED_NODE_MAJOR = 22;
 
 export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.get("deep") === "1") {
@@ -51,9 +52,11 @@ async function deepHealth(request: NextRequest) {
 
   const [database, proxy] = await Promise.all([checkDatabase(), checkProxy()]);
   const emailIssues = getEmailConfigurationIssues();
+  const runtime = checkRuntime();
   const healthy =
     database.ok &&
     proxy.ok &&
+    runtime.ok &&
     missingConfiguration.length === 0 &&
     emailIssues.length === 0;
 
@@ -65,6 +68,7 @@ async function deepHealth(request: NextRequest) {
       checks: {
         database,
         proxy,
+        runtime,
         configuration: {
           ok: missingConfiguration.length === 0,
           missing: missingConfiguration,
@@ -77,6 +81,15 @@ async function deepHealth(request: NextRequest) {
     },
     { status: healthy ? 200 : 503 }
   );
+}
+
+function checkRuntime() {
+  const major = Number.parseInt(process.versions.node.split(".")[0] ?? "", 10);
+  return {
+    ok: major === EXPECTED_NODE_MAJOR,
+    expected_node_major: EXPECTED_NODE_MAJOR,
+    actual_node_major: Number.isFinite(major) ? major : null,
+  };
 }
 
 async function checkDatabase() {

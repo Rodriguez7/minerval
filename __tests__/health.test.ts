@@ -67,6 +67,11 @@ describe("health endpoint", () => {
       checks: {
         database: { ok: true },
         proxy: { ok: true },
+        runtime: {
+          ok: true,
+          expected_node_major: 22,
+          actual_node_major: 22,
+        },
         configuration: { ok: true, missing: [] },
         email: { ok: true, issues: [] },
       },
