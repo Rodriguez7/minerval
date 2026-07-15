@@ -78,6 +78,19 @@ describe("health endpoint", () => {
     });
   });
 
+  it("does not degrade when the legal address is intentionally unpublished", async () => {
+    delete process.env.LEGAL_ENTITY_ADDRESS;
+
+    const response = await GET(request(true, "health-secret"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: "ok",
+      checks: {
+        configuration: { ok: true, missing: [] },
+      },
+    });
+  });
+
   it("returns 503 when sender and public contact domains disagree", async () => {
     process.env.EMAIL_FROM = "Minerval <no-reply@minerval.app>";
 

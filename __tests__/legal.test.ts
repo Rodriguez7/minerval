@@ -9,6 +9,7 @@ import {
 describe("legal configuration and copy", () => {
   afterEach(() => {
     for (const key of REQUIRED_LEGAL_ENV) delete process.env[key];
+    delete process.env.LEGAL_ENTITY_ADDRESS;
   });
 
   it("uses configured operator identity without exposing placeholders", () => {
@@ -22,6 +23,17 @@ describe("legal configuration and copy", () => {
       address: "Kinshasa, RDC",
       contactEmail: "legal@example.com",
       privacyEmail: "privacy@example.com",
+    });
+  });
+
+  it("allows the operator address to remain unpublished", () => {
+    process.env.LEGAL_ENTITY_NAME = "Minerval";
+    process.env.LEGAL_CONTACT_EMAIL = "legal@minerval.org";
+    process.env.PRIVACY_CONTACT_EMAIL = "privacy@minerval.org";
+
+    expect(getLegalOperator()).toMatchObject({
+      name: "Minerval",
+      address: null,
     });
   });
 
