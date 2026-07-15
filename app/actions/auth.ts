@@ -10,6 +10,13 @@ function getFormLocale(formData: FormData) {
   return getPreferredLocale(formData.get("locale")?.toString());
 }
 
+function getAppUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "https://www.minerval.org").replace(
+    /\/$/,
+    ""
+  );
+}
+
 export async function login(_: unknown, formData: FormData) {
   const locale = getFormLocale(formData);
   const copy = getAuthCopy(locale);
@@ -45,7 +52,7 @@ export async function resetPassword(_: unknown, formData: FormData) {
   try {
     const supabase = await createSSRClient();
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${localizePathname(locale, "/reset-password")}`,
+      redirectTo: `${getAppUrl()}${localizePathname(locale, "/reset-password")}`,
     });
 
     if (error) return { error: copy.actions.resetEmailFailed };
@@ -86,14 +93,20 @@ export async function signup(_: unknown, formData: FormData) {
       email,
       password,
       options: {
+        emailRedirectTo: `${getAppUrl()}${localizePathname(locale, "/onboarding/school")}`,
         data: {
           legal_version: LEGAL_VERSION,
           legal_accepted_at: new Date().toISOString(),
+          locale,
         },
       },
     });
     if (authError || !authData.user) {
       return { error: authError?.message ?? copy.actions.signupFailed };
+    }
+
+    if (!authData.session) {
+      return { success: true };
     }
   } catch {
     return { error: copy.actions.authServiceUnavailable };

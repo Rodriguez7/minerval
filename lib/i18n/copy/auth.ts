@@ -45,6 +45,9 @@ type AuthCopy = {
     submit: string;
     footerPrompt: string;
     footerLink: string;
+    successTitle: string;
+    successDescription: string;
+    successBackToSignIn: string;
   };
   forgotPassword: {
     heroEyebrow: string;
@@ -149,6 +152,10 @@ export const AUTH_COPY: Record<AppLocale, AuthCopy> = {
       submit: "Creer le compte",
       footerPrompt: "Vous avez deja un compte ?",
       footerLink: "Se connecter",
+      successTitle: "Confirmez votre adresse email",
+      successDescription:
+        "Nous vous avons envoye un lien securise. Ouvrez-le pour activer votre compte et configurer votre ecole.",
+      successBackToSignIn: "Retour a la connexion",
     },
     forgotPassword: {
       heroEyebrow: "Recuperation du compte",
@@ -264,6 +271,10 @@ export const AUTH_COPY: Record<AppLocale, AuthCopy> = {
       submit: "Create account",
       footerPrompt: "Already have an account?",
       footerLink: "Sign in",
+      successTitle: "Confirm your email address",
+      successDescription:
+        "We sent you a secure link. Open it to activate your account and set up your school.",
+      successBackToSignIn: "Back to sign in",
     },
     forgotPassword: {
       heroEyebrow: "Account recovery",

@@ -48,7 +48,7 @@ describe("signup action (Phase 1b)", () => {
   });
 
   it("does NOT create school or membership on success", async () => {
-    const signUp = vi.fn().mockResolvedValue({ data: { user: { id: "uid1" } }, error: null });
+    const signUp = vi.fn().mockResolvedValue({ data: { user: { id: "uid1" }, session: { access_token: "token" } }, error: null });
     vi.mocked(createSSRClient).mockResolvedValue({
       auth: { signUp },
     } as never);
@@ -58,9 +58,11 @@ describe("signup action (Phase 1b)", () => {
 
     expect(signUp).toHaveBeenCalledWith(expect.objectContaining({
       options: {
+        emailRedirectTo: "https://www.minerval.org/fr/onboarding/school",
         data: {
           legal_version: "2026-07-14",
           legal_accepted_at: expect.any(String),
+          locale: "fr",
         },
       },
     }));
@@ -71,10 +73,38 @@ describe("signup action (Phase 1b)", () => {
 
   it("redirects to the French onboarding path on success", async () => {
     vi.mocked(createSSRClient).mockResolvedValue({
-      auth: { signUp: vi.fn().mockResolvedValue({ data: { user: { id: "uid1" } }, error: null }) },
+      auth: { signUp: vi.fn().mockResolvedValue({ data: { user: { id: "uid1" }, session: { access_token: "token" } }, error: null }) },
     } as never);
     vi.mocked(redirect).mockImplementation((path) => { throw new Error(`REDIRECT:${path}`); });
 
     await expect(signup(null, makeFormData({ email: "a@b.com", password: "password123", legalAccepted: "yes" }))).rejects.toThrow("REDIRECT:/fr/onboarding/school");
+  });
+
+  it("returns a check-email state when confirmation is required", async () => {
+    const signUp = vi.fn().mockResolvedValue({
+      data: { user: { id: "uid1" }, session: null },
+      error: null,
+    });
+    vi.mocked(createSSRClient).mockResolvedValue({ auth: { signUp } } as never);
+
+    const result = await signup(
+      null,
+      makeFormData({
+        email: "a@b.com",
+        password: "password123",
+        legalAccepted: "yes",
+        locale: "en",
+      })
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(signUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          emailRedirectTo: "https://www.minerval.org/en/onboarding/school",
+        }),
+      })
+    );
+    expect(redirect).not.toHaveBeenCalled();
   });
 });
