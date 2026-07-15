@@ -143,7 +143,7 @@ export async function signup(_: unknown, formData: FormData) {
 
 export async function loginWithGoogle(formData: FormData) {
   const locale = getFormLocale(formData);
-  const next = localizePathname(locale, "/onboarding/school");
+  const next = localizePathname(locale, "/dashboard");
   const callbackUrl = new URL(
     localizePathname(locale, "/auth/callback"),
     getAppUrl()
