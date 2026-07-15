@@ -61,3 +61,31 @@ jobs:
           }
 
           echo "Production deep health check passed."
+
+  browser:
+    name: Verify production auth pages in a browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Independent of the health check on purpose: this catches breakage that is
+    # invisible server-side, so it must still run when /api/health says "ok".
+    env:
+      PRODUCTION_URL: https://www.minerval.org
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install browser runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify auth pages render a usable submit path
+        run: npm run test:e2e:production

@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
+    "test:e2e:production": "playwright test --config playwright.production.mjs",
     "backup:database": "node scripts/backup-database.mjs",
     "restore:verify": "node scripts/verify-database-restore.mjs"
   },

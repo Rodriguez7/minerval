@@ -37,7 +37,7 @@ npm run dev
 | `SUPABASE_SERVICE_KEY` | Supabase service role key (server-side only) |
 | `SUPABASE_ANON_KEY` | Supabase anon/public key (for auth sessions) |
 | `NEXT_PUBLIC_APP_URL` | App base URL (e.g. `https://www.minerval.org`) |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile public site key; leave empty until Supabase CAPTCHA is configured |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile public site key. Read at **build** time, so changing it needs a rebuild, not a restart. See [Captcha](#captcha) before changing it |
 | `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | Set to `true` only after the Supabase Google provider is configured |
 | `PROXY_URL` | Hetzner proxy URL (e.g. `https://proxy.minerval.org`) |
 | `PROXY_SECRET` | Shared secret for main app → proxy auth |
@@ -87,36 +87,102 @@ The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](/Users/rod/20%20App
 
 ## Database Schema
 
+Key columns only — see `supabase/` migrations for the authoritative definition.
+
 ```sql
-schools         — id, name, code (unique), admin_email
+-- Tenancy
+schools         — id, name, code (unique), admin_email, currency, timezone
                 — payment_access_token (unique, revocable public payment token)
+                — student_id_prefix, student_id_seq, education_levels, logo_url
+                — verification_status, legal_name, registration_number, director_*
+school_memberships — id, school_id, user_id, role, status
+                   — role is one of: owner | admin | finance | viewer
+school_invites  — pending invitations to join a school
+profiles        — per-user profile data
+
+-- Core domain
 students        — id, school_id, external_id, full_name, class_name, amount_due
 fees            — id, school_id, title, type (recurring/special), amount, active
+
+-- Payments in
 payment_requests — id, student_id, school_id, amount, phone, telecom, status, serdipay_ref, settled_at
-                — reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by
-payment_events  — id, payment_request_id, event_type, payload (audit log)
+                 — reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by
+payment_events   — id, payment_request_id, event_type, payload (audit log)
+
+-- Payouts out
+school_payouts  — id, school_id, status, net_amount, phone, telecom
+                — approved_at, approved_by, failure_reason
+                — status transitions are guarded atomically; see the approve route
+
+-- Billing
+plans                   — code, name, monthly_price_usd, capability flags, max_students
+school_subscriptions    — school_id, plan_code, status, trial_ends_at, current_period_end
+                        — billing_exempt, stripe_customer_id
+school_pricing_policies — per-school pricing overrides
+billing_events          — Stripe webhook audit log
 ```
+
+Every query runs through `getAdminClient()` (service key, bypasses RLS) and is scoped in application code by the `school_id` from `getTenantContext()`. There is no database-level tenant isolation — see [Current Limitations](#current-limitations).
 
 ## Admin Operations
 
 - Reconciliation queue with stale pending detection, manual review, and override actions
 - Reports dashboard with date filters, daily rollups, reconciliation breakdown, and CSV export
 - Audit trail entries written to `payment_events` for reconciliation updates
+- Payout approval is restricted to `SUPER_ADMIN_EMAIL` and is re-entrancy guarded: the status
+  transition only succeeds while the payout is still `pending`. An ambiguous response from
+  SerdiPay leaves the balance reserved for manual verification rather than assuming failure.
 
 ## Running Tests
 
 ```bash
-npm test
-npm run test:e2e
+npm test                    # unit and integration (vitest)
+npm run test:e2e            # browser suite against a local dev server
+npm run test:e2e:production # browser suite against deployed production
 ```
 
-The committed Playwright suite seeds its own school, student, and payment rows through Supabase service-role access, then verifies login, dashboard, reconciliation, reports, CSV export, and the public payment lookup flow.
+The local Playwright suite seeds its own school, student, and payment rows through Supabase service-role access, then verifies login, dashboard, reconciliation, reports, CSV export, and the public payment lookup flow.
 
-## Current Limitations (Phase 1)
+`test:e2e:production` is separate ([`playwright.production.mjs`](/Users/rod/20%20Apps/Minerval/minerval/playwright.production.mjs)) and targets a deployed URL, defaulting to production and overridable with `PRODUCTION_URL`. It starts no server and reads no `.env.local`. See [Monitoring](#monitoring).
 
-- No multi-school data isolation (all schools share the same RLS-less DB)
-- No email receipts
-- No refunds
+## Captcha
+
+Cloudflare Turnstile guards `/login`, `/signup`, and `/forgot-password`. Three things must agree, and if any one of them is wrong the failure is **silent**:
+
+1. **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** (Railway) — when set, the forms disable their submit button until Turnstile issues a token.
+2. **The CSP** in [`next.config.ts`](/Users/rod/20%20Apps/Minerval/minerval/next.config.ts) — must permit `https://challenges.cloudflare.com` in `script-src`, `frame-src`, **and** `connect-src`. The widget loads a script, renders an iframe, and calls home; each is blocked by a different directive.
+3. **Supabase** — Authentication → Attack Protection → CAPTCHA enabled, provider Turnstile, secret key from the *Minerval* widget (the account has more than one).
+
+Verification is Supabase's job, not ours: [`app/actions/auth.ts`](/Users/rod/20%20Apps/Minerval/minerval/app/actions/auth.ts) forwards `captchaToken` to Supabase Auth, which checks it against the secret. There is no verification endpoint in this app.
+
+### Why order matters
+
+`Turnstile` renders nothing when the site key is unset, and the forms gate their submit button on `captchaRequired && !captchaToken`. So a site key **without** a working widget disables every auth form permanently — the button never enables and no one can sign in or register. Conversely, enabling CAPTCHA in Supabase before tokens flow makes Supabase reject every auth request.
+
+When changing any of the three, go in this order:
+
+1. Deploy the CSP change first.
+2. Set the site key in Railway, **rebuild**, and confirm the widget actually renders in a browser.
+3. Only then enable CAPTCHA in Supabase.
+
+To disable captcha, reverse it: turn it off in Supabase first, then clear the site key.
+
+This exact ordering was learned the hard way — a site key deployed against a CSP that blocked Turnstile took password login and signup down for about an hour while every server-side signal stayed green. `e2e/production/auth-availability.spec.ts` exists to catch that recurrence.
+
+## Monitoring
+
+Two independent scheduled checks run every ten minutes ([`.github/workflows/production-health.yml`](/Users/rod/20%20Apps/Minerval/minerval/.github/workflows/production-health.yml)):
+
+- **Deep health** — `GET /api/health?deep=1` verifies Supabase, the SerdiPay proxy, and production configuration.
+- **Browser availability** — `npm run test:e2e:production` loads the real auth pages and asserts they present a usable submit path.
+
+The second exists because the first cannot see client-side breakage. A CSP that blocks the captcha leaves the server perfectly healthy while no one can log in, so the browser check must keep running even when the health check is green.
+
+It deliberately does **not** assert that a captcha token arrives: Turnstile challenges headless browsers from datacenter IPs, so that would fail from CI while production is fine. It asserts the invariants instead — that the page never ships a script its own CSP forbids, and that `window.turnstile` actually executes.
+
+## Current Limitations
+
+- **Tenant isolation is enforced in application code, not the database.** All data access goes through `getAdminClient()` (service key, bypasses RLS), scoped by the `school_id` from `getTenantContext()`. A single missing `.eq("school_id", ...)` is a cross-school data leak, so RLS remains worth adding as defense in depth.
 - No provider-side settlement import yet (reconciliation is still managed from the dashboard)
-- Single admin per school
 - No Excel import (CSV only)
+- No CDN or WAF in front of the app: DNS is not on Cloudflare and traffic goes straight to Railway. Abuse protection is application-level only (`lib/rate-limit.ts`, atomic and fail-closed) plus Supabase Auth's own rate limits.

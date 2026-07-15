@@ -9,6 +9,9 @@ loadEnvFile(path.join(rootDir, ".env.local"), { override: true });
 
 export default defineConfig({
   testDir: "./e2e",
+  // e2e/production targets a deployed environment and has its own config.
+  // Without this it would be picked up here and run against the local server.
+  testIgnore: "**/production/**",
   timeout: 60_000,
   expect: {
     timeout: 10_000,
