@@ -4,6 +4,12 @@ import { createSSRClient } from "@/lib/supabase";
 
 const ONBOARDING_PATH = /^\/(fr|en)\/onboarding\/school$/;
 
+function getAppOrigin() {
+  return new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.minerval.org"
+  ).origin;
+}
+
 function safeOnboardingPath(rawNext: string | null, origin: string) {
   const fallback = "/fr/onboarding/school";
   if (!rawNext) return fallback;
@@ -20,11 +26,12 @@ function safeOnboardingPath(rawNext: string | null, origin: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const appOrigin = getAppOrigin();
   const tokenHash = request.nextUrl.searchParams.get("token_hash");
   const type = request.nextUrl.searchParams.get("type") as EmailOtpType | null;
   const nextPath = safeOnboardingPath(
     request.nextUrl.searchParams.get("next"),
-    request.nextUrl.origin
+    appOrigin
   );
 
   if (tokenHash && type === "email") {
@@ -35,12 +42,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (!error) {
-      return NextResponse.redirect(new URL(nextPath, request.nextUrl.origin));
+      return NextResponse.redirect(new URL(nextPath, appOrigin));
     }
   }
 
   const locale = nextPath.startsWith("/en/") ? "en" : "fr";
-  const errorUrl = new URL(`/${locale}/login`, request.nextUrl.origin);
+  const errorUrl = new URL(`/${locale}/login`, appOrigin);
   errorUrl.searchParams.set("error", "confirmation");
   return NextResponse.redirect(errorUrl);
 }

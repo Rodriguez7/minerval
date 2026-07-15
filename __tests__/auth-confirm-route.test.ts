@@ -38,6 +38,20 @@ describe("GET /auth/confirm", () => {
     );
   });
 
+  it("never redirects users to Railway's internal service origin", async () => {
+    const verifyOtp = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(createSSRClient).mockResolvedValue({ auth: { verifyOtp } } as never);
+    const request = new NextRequest(
+      "https://0.0.0.0:8080/auth/confirm?token_hash=secret&type=email&next=https%3A%2F%2Fwww.minerval.org%2Ffr%2Fonboarding%2Fschool"
+    );
+
+    const response = await GET(request);
+
+    expect(response.headers.get("location")).toBe(
+      "https://www.minerval.org/fr/onboarding/school"
+    );
+  });
+
   it("redirects invalid confirmations to a clean login URL", async () => {
     const verifyOtp = vi.fn().mockResolvedValue({ error: { message: "expired" } });
     vi.mocked(createSSRClient).mockResolvedValue({ auth: { verifyOtp } } as never);
