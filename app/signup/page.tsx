@@ -1,15 +1,20 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import { signup } from "@/app/actions/auth";
 import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { useLocale } from "@/lib/i18n/client";
 import { getAuthCopy } from "@/lib/i18n/copy/auth";
+import { Turnstile } from "@/lib/Turnstile";
 
 export default function SignupPage() {
   const locale = useLocale();
   const copy = getAuthCopy(locale);
   const [state, action, isPending] = useActionState(signup, null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const onCaptchaToken = useCallback((token: string | null) => setCaptchaToken(token), []);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
 
   if (state?.success) {
     return (
@@ -58,6 +63,7 @@ export default function SignupPage() {
         </div>
         <form action={action} className="space-y-4">
           <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="captchaToken" value={captchaToken ?? ""} />
           <div>
             <label className="block text-sm font-medium mb-1">{copy.signup.emailLabel}</label>
             <input
@@ -103,9 +109,10 @@ export default function SignupPage() {
           {state?.error && (
             <p className="text-sm text-red-600">{state.error}</p>
           )}
+          <Turnstile siteKey={captchaSiteKey} onToken={onCaptchaToken} resetSignal={state?.error} />
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || (captchaRequired && !captchaToken)}
             className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {isPending ? copy.signup.submitPending : copy.signup.submit}

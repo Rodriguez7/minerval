@@ -1,16 +1,22 @@
 "use client";
-import { useActionState } from "react";
-import { login } from "@/app/actions/auth";
+import { useActionState, useCallback, useState } from "react";
+import { login, loginWithGoogle } from "@/app/actions/auth";
 import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { useLocale } from "@/lib/i18n/client";
 import { getAuthCopy } from "@/lib/i18n/copy/auth";
 import { formatMoney, formatNumber } from "@/lib/i18n/format";
+import { Turnstile } from "@/lib/Turnstile";
 
 export default function LoginPage() {
   const locale = useLocale();
   const copy = getAuthCopy(locale);
   const [state, action, pending] = useActionState(login, null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const onCaptchaToken = useCallback((token: string | null) => setCaptchaToken(token), []);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
+  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
 
   return (
     <>
@@ -183,6 +189,7 @@ export default function LoginPage() {
 
             <form action={action} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <input type="hidden" name="locale" value={locale} />
+              <input type="hidden" name="captchaToken" value={captchaToken ?? ""} />
 
               {/* Email */}
               <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -239,11 +246,13 @@ export default function LoginPage() {
                 </div>
               )}
 
+              <Turnstile siteKey={captchaSiteKey} onToken={onCaptchaToken} resetSignal={state?.error} />
+
               {/* Submit */}
               <div className="form-field">
                 <button
                   type="submit"
-                  disabled={pending}
+                  disabled={pending || (captchaRequired && !captchaToken)}
                   className={`btn-submit${pending ? " shimmer-btn" : ""}`}
                   style={{
                     width: "100%", border: "none", borderRadius: 10,
@@ -265,6 +274,22 @@ export default function LoginPage() {
                 </button>
               </div>
             </form>
+
+            {googleEnabled && (
+              <div className="mt-5">
+                <div className="mb-4 flex items-center gap-3 text-xs text-zinc-400">
+                  <span className="h-px flex-1 bg-zinc-200" />
+                  <span>{locale === "fr" ? "ou" : "or"}</span>
+                  <span className="h-px flex-1 bg-zinc-200" />
+                </div>
+                <form action={loginWithGoogle}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <button type="submit" className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50">
+                    {locale === "fr" ? "Continuer avec Google" : "Continue with Google"}
+                  </button>
+                </form>
+              </div>
+            )}
 
             {/* Footer link */}
             <p style={{ marginTop: 28, fontSize: 13, color: "#94a3b8", textAlign: "center" }}>

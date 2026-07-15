@@ -1,15 +1,20 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import { resetPassword } from "@/app/actions/auth";
 import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { useLocale } from "@/lib/i18n/client";
 import { getAuthCopy } from "@/lib/i18n/copy/auth";
+import { Turnstile } from "@/lib/Turnstile";
 
 export default function ForgotPasswordPage() {
   const locale = useLocale();
   const copy = getAuthCopy(locale);
   const [state, action, pending] = useActionState(resetPassword, null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const onCaptchaToken = useCallback((token: string | null) => setCaptchaToken(token), []);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
 
   return (
     <>
@@ -280,6 +285,7 @@ export default function ForgotPasswordPage() {
 
                 <form action={action} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <input type="hidden" name="locale" value={locale} />
+                  <input type="hidden" name="captchaToken" value={captchaToken ?? ""} />
 
                   {/* Email */}
                   <div className="form-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -314,11 +320,13 @@ export default function ForgotPasswordPage() {
                     </div>
                   )}
 
+                  <Turnstile siteKey={captchaSiteKey} onToken={onCaptchaToken} resetSignal={state?.error} />
+
                   {/* Submit */}
                   <div className="form-field">
                     <button
                       type="submit"
-                      disabled={pending}
+                      disabled={pending || (captchaRequired && !captchaToken)}
                       className={`btn-submit${pending ? " shimmer-btn" : ""}`}
                       style={{
                         width: "100%", border: "none", borderRadius: 10,

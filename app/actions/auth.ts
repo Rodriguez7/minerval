@@ -17,6 +17,11 @@ function getAppUrl() {
   );
 }
 
+function getCaptchaOptions(formData: FormData) {
+  const captchaToken = formData.get("captchaToken")?.toString().trim();
+  return captchaToken ? { captchaToken } : {};
+}
+
 export async function login(_: unknown, formData: FormData) {
   const locale = getFormLocale(formData);
   const copy = getAuthCopy(locale);
@@ -34,7 +39,10 @@ export async function login(_: unknown, formData: FormData) {
   let requiresMfa = false;
   try {
     const supabase = await createSSRClient();
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { error } = await supabase.auth.signInWithPassword({
+      ...parsed.data,
+      options: getCaptchaOptions(formData),
+    });
     if (error) return { error: copy.actions.invalidCredentials };
 
     const { data: assurance } =
@@ -69,6 +77,7 @@ export async function resetPassword(_: unknown, formData: FormData) {
     const supabase = await createSSRClient();
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
       redirectTo: `${getAppUrl()}${localizePathname(locale, "/reset-password")}`,
+      ...getCaptchaOptions(formData),
     });
 
     if (error) return { error: copy.actions.resetEmailFailed };
@@ -110,6 +119,7 @@ export async function signup(_: unknown, formData: FormData) {
       password,
       options: {
         emailRedirectTo: `${getAppUrl()}${localizePathname(locale, "/onboarding/school")}`,
+        ...getCaptchaOptions(formData),
         data: {
           legal_version: LEGAL_VERSION,
           legal_accepted_at: new Date().toISOString(),
@@ -129,4 +139,31 @@ export async function signup(_: unknown, formData: FormData) {
   }
 
   redirect(localizePathname(locale, "/onboarding/school"));
+}
+
+export async function loginWithGoogle(formData: FormData) {
+  const locale = getFormLocale(formData);
+  const next = localizePathname(locale, "/onboarding/school");
+  const callbackUrl = new URL(
+    localizePathname(locale, "/auth/callback"),
+    getAppUrl()
+  );
+  callbackUrl.searchParams.set("next", next);
+
+  let destination: string | null = null;
+  try {
+    const supabase = await createSSRClient();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: callbackUrl.toString() },
+    });
+    if (!error) destination = data.url;
+  } catch {
+    destination = null;
+  }
+
+  if (!destination) {
+    redirect(`${localizePathname(locale, "/login")}?error=oauth`);
+  }
+  redirect(destination);
 }

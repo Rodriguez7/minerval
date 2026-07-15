@@ -37,6 +37,8 @@ npm run dev
 | `SUPABASE_SERVICE_KEY` | Supabase service role key (server-side only) |
 | `SUPABASE_ANON_KEY` | Supabase anon/public key (for auth sessions) |
 | `NEXT_PUBLIC_APP_URL` | App base URL (e.g. `https://www.minerval.org`) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile public site key; leave empty until Supabase CAPTCHA is configured |
+| `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | Set to `true` only after the Supabase Google provider is configured |
 | `PROXY_URL` | Hetzner proxy URL (e.g. `https://proxy.minerval.org`) |
 | `PROXY_SECRET` | Shared secret for main app → proxy auth |
 | `SERDIPAY_CALLBACK_SECRET` | Shared secret authenticating SerdiPay callbacks |
