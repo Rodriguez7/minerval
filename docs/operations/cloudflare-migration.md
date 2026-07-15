@@ -38,26 +38,53 @@ As of 2026-07-15 the Cloudflare account (`Kayemberodriguez@gmail.com`) holds **n
 
 Verified 2026-07-15. **Re-check with `dig` before migrating** — this list ages.
 
+**13 records.** Confirmed 2026-07-15 by reconciling two independent sources, because **neither was complete alone**:
+
+- A hand-written list missed `zoho._domainkey` (signs outbound business mail).
+- A targeted `dig` sweep then missed `MX send` and `TXT send` — Resend's sending subdomain, on Amazon SES — because it only probed subdomains already known about. Losing those breaks payment receipts.
+- Cloudflare's auto-scan found the `send` pair but warns, correctly, that it misses uncommon records.
+
+Take the **union of `dig` and the provider's scan, and reconcile the counts**. Do not trust either alone, and do not hand-write it.
+
 ```
-A     minerval.org        69.46.46.127               Railway (apex; 301 → https, 307 → /fr)
-CNAME www                 0q290d7m.up.railway.app    Railway (resolves 69.46.46.12)
-A     proxy               89.167.106.33              Hetzner — SerdiPay path. NEVER proxy this.
-MX    minerval.org        mx.zoho.eu       (10)
-MX    minerval.org        mx2.zoho.eu      (20)
-MX    minerval.org        mx3.zoho.eu      (50)
+A     minerval.org        69.46.46.127                            Railway (apex; 301 → https, 307 → /fr)
+CNAME www                 0q290d7m.up.railway.app                 Railway (resolves 69.46.46.12)
+A     proxy               89.167.106.33                           Hetzner — SerdiPay. NEVER proxy this.
+MX    minerval.org        mx.zoho.eu                     (10)
+MX    minerval.org        mx2.zoho.eu                    (20)
+MX    minerval.org        mx3.zoho.eu                    (50)
+MX    send                feedback-smtp.eu-west-1.amazonses.com (10)   Resend bounce handling
 TXT   minerval.org        v=spf1 include:zohomail.eu ~all
 TXT   minerval.org        zoho-verification=zb44744026.zmverify.zoho.eu
+TXT   send                v=spf1 include:amazonses.com ~all       Resend sending subdomain
 TXT   _dmarc              v=DMARC1; p=none; rua=mailto:contact@minerval.org; ...
-TXT   resend._domainkey   p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC9miACDjE5...
+TXT   resend._domainkey   p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC9miACDjE5...   Resend DKIM
+TXT   zoho._domainkey     v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOC...      Zoho DKIM (split)
 ```
 
-Regenerate the current state with:
+Expected totals: **2 A, 1 CNAME, 4 MX, 6 TXT**. If the provider's scan reports different counts, reconcile before proceeding.
+
+**Records default to proxied.** Cloudflare's import turns the cloud **orange** on every A and CNAME, including `proxy`. Left alone, activating the nameservers silently performs Phase 3 — full proxying, including the SerdiPay path — the moment DNS propagates. Grey-cloud all three *before* activation. Cloudflare will warn the zone "is not fully protected"; that is the correct state for Phase 1, and it is Cloudflare confirming that moving DNS alone buys no protection.
+
+No `AAAA` and no `CAA` records exist. The absent `CAA` matters: adding one later without including Railway's CA would break certificate renewal.
+
+**Split TXT records.** `zoho._domainkey` is served as two quoted strings, because a single TXT string cannot exceed 255 bytes. It is one logical value. Paste it into Cloudflare as one continuous string with the quotes and the join removed, and let Cloudflare re-split it. Pasting it with the quotes embedded produces a DKIM record that looks present and fails validation.
+
+Generate the authoritative snapshot — query the authoritative nameserver directly, not a resolver, and keep the file to diff against after the move:
 
 ```bash
-for t in A CNAME MX TXT NS; do echo "--- $t ---"; dig +short $t minerval.org; done
-dig +short CNAME www.minerval.org; dig +short A proxy.minerval.org
-dig +short TXT _dmarc.minerval.org; dig +short TXT resend._domainkey.minerval.org
+{ echo "# minerval.org DNS — $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  for t in NS SOA A AAAA MX TXT CAA; do
+    echo "## $t"; dig +noall +answer @dns1.registrar-servers.com $t minerval.org
+  done
+  for s in www proxy _dmarc resend._domainkey zoho._domainkey; do
+    echo "## $s"
+    for t in A CNAME TXT; do dig +noall +answer @dns1.registrar-servers.com $t $s.minerval.org; done
+  done
+} > /tmp/minerval-dns-before.txt
 ```
+
+After the nameservers move, re-run it against Cloudflare's nameservers and diff. Every value must match; only the `NS`, `SOA`, and TTLs may differ.
 
 What each loss costs:
 
