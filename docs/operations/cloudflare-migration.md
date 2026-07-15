@@ -121,16 +121,45 @@ Soak 24–48h before Phase 2.
 
 ## Phase 2 — Bypass rules before any proxying
 
-These are inert while grey-clouded, which is exactly why they go in first.
+**Done 2026-07-15.** Inert while grey-clouded, which is exactly why it goes in first.
 
-Cloudflare → Security → WAF → create rules that **skip** all security checks (bot fight, WAF, rate limiting) for:
+Cloudflare → Security → Security rules → Create rule → Custom rules. One rule covers all four paths, which leaves headroom in the Free plan's five:
 
-- `/api/serdipay/callback`
-- `/api/serdipay/payout-callback`
-- `/api/webhooks/stripe`
-- `/api/health`
+- **Name:** `Skip security for authenticated server-to-server callbacks`
+- **Expression:**
+  ```
+  (http.request.uri.path in {"/api/serdipay/callback" "/api/serdipay/payout-callback" "/api/webhooks/stripe" "/api/health"})
+  ```
+- **Action:** `Skip`
+- **Components:** check **every** box, including the ones hidden behind *More components to skip*.
 
-Every one is already authenticated (`SERDIPAY_CALLBACK_SECRET`, Stripe signature, `HEALTHCHECK_SECRET`), so bypassing Cloudflare on them costs nothing. They are server-to-server calls from datacenter IPs — precisely what bot protection challenges.
+Every one of these endpoints is already authenticated (`SERDIPAY_CALLBACK_SECRET`, Stripe signature, `HEALTHCHECK_SECRET`), so Cloudflare's checks add no security — only the risk of challenging a legitimate callback. They are server-to-server calls from datacenter IPs, precisely what bot protection is built to stop.
+
+**The default four are not enough.** The visible checkboxes are custom rules, rate limiting, managed rules, and Super Bot Fight Mode. Two of the ones hidden behind *More components to skip* matter most:
+
+- **Browser Integrity Check** — challenges requests lacking normal browser headers. A SerdiPay `POST` has none. Miss this and callbacks are challenged despite the rule.
+- **Security Level** — challenges by IP threat score. Datacenter IPs score poorly.
+
+Also hidden there: Zone Lockdown, User Agent Blocking, Hotlink Protection, and the two *(Previous version)* legacy entries. Check them all — predictability is worth more than selectivity on endpoints that authenticate themselves.
+
+Verify the path shape before writing the expression. Pages redirect to `/en` and `/fr`, but `/api/*` is **not** locale-prefixed, so the literal paths match. A rule on a wrong path fails silently:
+
+```bash
+for p in /api/health /api/serdipay/callback /api/webhooks/stripe; do
+  curl -sI "https://www.minerval.org$p" | head -1     # expect 200 / 405, never a 3xx to /en
+done
+```
+
+### Free plan limits (confirmed in-dashboard)
+
+| | Free |
+|---|---|
+| Custom rules | **5** (this uses 1) |
+| Rate limiting rules | 1 |
+| Managed rules | Pro only — the dashboard shows "Upgrade to Pro" |
+| `Skip` action | Available |
+
+The Free plan's WAF is the auto-applied Free Managed Ruleset, not the configurable managed rulesets. Unmetered DDoS protection is included on Free and is the point of this migration.
 
 ## Phase 3 — Proxy the app only
 
