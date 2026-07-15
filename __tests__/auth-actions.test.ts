@@ -56,6 +56,11 @@ describe("auth actions", () => {
     vi.mocked(createSSRClient).mockResolvedValue({
       auth: {
         signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+        mfa: {
+          getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({
+            data: { currentLevel: "aal1", nextLevel: "aal1" },
+          }),
+        },
       },
     } as never);
     vi.mocked(redirect).mockImplementation((path) => {
@@ -68,6 +73,29 @@ describe("auth actions", () => {
         makeFormData({ email: "admin@school.com", password: "password123", locale: "en" })
       )
     ).rejects.toThrow("REDIRECT:/en/dashboard");
+  });
+
+  it("redirects enrolled users to the MFA challenge", async () => {
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+        mfa: {
+          getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({
+            data: { currentLevel: "aal1", nextLevel: "aal2" },
+          }),
+        },
+      },
+    } as never);
+    vi.mocked(redirect).mockImplementation((path) => {
+      throw new Error(`REDIRECT:${path}`);
+    });
+
+    await expect(
+      login(
+        null,
+        makeFormData({ email: "admin@school.com", password: "password123", locale: "fr" })
+      )
+    ).rejects.toThrow("REDIRECT:/fr/mfa/verify?next=%2Ffr%2Fdashboard");
   });
 
   it("returns a controlled error when reset password throws", async () => {

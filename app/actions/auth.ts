@@ -31,14 +31,30 @@ export async function login(_: unknown, formData: FormData) {
   });
   if (!parsed.success) return { error: copy.actions.invalidCredentialsFormat };
 
+  let requiresMfa = false;
   try {
     const supabase = await createSSRClient();
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     if (error) return { error: copy.actions.invalidCredentials };
+
+    const { data: assurance } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (
+      assurance?.nextLevel === "aal2" &&
+      assurance.currentLevel !== "aal2"
+    ) {
+      requiresMfa = true;
+    }
   } catch {
     return { error: copy.actions.authServiceUnavailable };
   }
 
+  if (requiresMfa) {
+    const next = localizePathname(locale, "/dashboard");
+    redirect(
+      `${localizePathname(locale, "/mfa/verify")}?next=${encodeURIComponent(next)}`
+    );
+  }
   redirect(localizePathname(locale, "/dashboard"));
 }
 

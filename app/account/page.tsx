@@ -22,6 +22,19 @@ export default async function AccountPage() {
         <LocalizedLink href="/dashboard/settings" className="text-sm text-zinc-600 hover:underline">
           {french ? "Retour aux parametres" : "Back to settings"}
         </LocalizedLink>
+        <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <h1 className="text-xl font-semibold text-zinc-950">
+            {french ? "Securite du compte" : "Account security"}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">
+            {french
+              ? "Ajoutez une application d'authentification pour proteger les donnees et les operations financieres de votre ecole."
+              : "Add an authenticator app to protect your school's data and financial operations."}
+          </p>
+          <LocalizedLink href="/account/security" className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            {french ? "Configurer le MFA" : "Configure MFA"}
+          </LocalizedLink>
+        </section>
         <section className="mt-6 rounded-xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-semibold text-red-950">
             {french ? "Supprimer mon compte personnel" : "Delete my personal account"}

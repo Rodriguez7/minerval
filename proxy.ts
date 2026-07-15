@@ -113,6 +113,18 @@ export async function proxy(request: NextRequest) {
     return setLocaleCookie(NextResponse.redirect(url), locale);
   }
 
+  const { data: assurance } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (
+    assurance?.nextLevel === "aal2" &&
+    assurance.currentLevel !== "aal2"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = localizePathname(locale, "/mfa/verify");
+    url.searchParams.set("next", localizePathname(locale, pathname));
+    return setLocaleCookie(NextResponse.redirect(url), locale);
+  }
+
   // The operational dashboard is currently French-first. Do not expose a
   // partially translated English shell around French financial workflows.
   // Public, authentication, payment and onboarding routes remain bilingual.
