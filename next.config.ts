@@ -1,13 +1,19 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+// Turnstile loads its script from challenges.cloudflare.com, renders the widget
+// in an iframe from the same origin, and calls back to it to verify. All three
+// directives are required or the widget silently never renders, which leaves
+// every captcha-gated submit button permanently disabled.
+const turnstileOrigin = "https://challenges.cloudflare.com";
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' ${turnstileOrigin}${isDevelopment ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co",
+  `connect-src 'self' https://*.supabase.co ${turnstileOrigin}`,
+  `frame-src 'self' ${turnstileOrigin}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
