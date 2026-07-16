@@ -157,7 +157,7 @@ The committed Playwright suite seeds its own school, student, and payment rows t
 
 ## Current Limitations (Phase 1)
 
-- No multi-school data isolation (all schools share the same RLS-less DB)
+- Dashboard data operations run through the service-role client; RLS (migrations 007/023/024) protects the Data API surface, but school scoping in server code must come from `getTenantContext()`, never from request input
 - No email receipts
 - No refunds
 - No provider-side settlement import yet (reconciliation is still managed from the dashboard)
