@@ -163,27 +163,38 @@ The Free plan's WAF is the auto-applied Free Managed Ruleset, not the configurab
 
 ## Phase 3 — Proxy the app only
 
-Orange-cloud **`www` and the apex. Nothing else.**
+**Done 2026-07-16.** Orange-cloud **`www` and the apex. Nothing else.** `proxy.minerval.org` stays grey — SerdiPay whitelists Hetzner's *outbound* IP, which Cloudflare never touches, so proxying it only adds a failure point inside the payment path.
 
-Leave `proxy.minerval.org` grey. Proxying it gains nothing — SerdiPay whitelists Hetzner's *outbound* IP, which Cloudflare never touches — and adds a failure point inside the payment path.
+How, in the current DNS UI:
 
-Verify immediately, in order:
+1. DNS → Records → **Edit** the record. The inline cloud icon in the row does **not** toggle; you must open the Edit panel, flip **Proxy status**, and Save.
+2. **Apex first, as a canary.** The apex only 307-redirects browsers to `/fr`, so proxying it is low-risk. Confirm it works through the edge before touching `www`, which is where callbacks land.
+3. Then `www`.
+
+Order on the day: monitor merged and green as a baseline → apex → verify → `www` → verify.
+
+### Verifying through the edge, not your laptop
+
+Your local resolver caches the pre-flip grey answer for the record's TTL (~300s). For those minutes, `curl` from your machine still hits Railway directly — `server: railway-hikari`, no `cf-ray` — which looks like the flip failed but hasn't. Don't trust local `curl`. Verify one of two ways:
 
 ```bash
-curl -sI https://www.minerval.org/en/login | grep -i cf-ray     # present ⇒ proxied
-curl -s  https://www.minerval.org/api/health                    # 200
-curl -sI https://www.minerval.org/api/health?deep=1 \
-  -H "Authorization: Bearer $HEALTHCHECK_SECRET"                # 200 ⇒ bypass rule works
-npm run test:e2e:production                                     # auth pages still usable
+# Force the request through a Cloudflare edge IP (from `dig +short www.minerval.org @1.1.1.1`)
+curl -sI --resolve www.minerval.org:443:188.114.96.10 https://www.minerval.org/en/login \
+  | grep -iE 'cf-ray|server'                    # expect: server: cloudflare, cf-ray present
+
+# The callback bypass, through the edge — the check that actually matters
+curl -so /dev/null -w '%{http_code}\n' \
+  --resolve www.minerval.org:443:188.114.96.10 https://www.minerval.org/api/serdipay/callback
+  # expect 405 (reached the app, POST-only). 403/503 = CHALLENGED = the bypass rule is wrong.
 ```
 
-Then the check that actually matters:
+Or just re-run the GitHub monitor (`gh workflow run production-health.yml`) — its runners resolve fresh, so both jobs passing is proof the proxied path is healthy end to end. That was the definitive check on the day: both green through Cloudflare.
 
-4. **Complete one real payment end to end** and confirm the callback landed — a new row in `payment_events` and `amount_due` decremented.
+### Still outstanding: a real payment
 
-A front page that loads proves nothing about callbacks. If SerdiPay's confirmation is challenged, parents pay, money moves, and the ledger never records it — while every dashboard stays green.
+Everything above proves the callback endpoint is *reachable and un-challenged* through the proxy. It does **not** prove a real SerdiPay C2B push completes — that needs an actual mobile-money transaction, confirming a new `payment_events` row and `amount_due` decremented. A reachable endpoint is necessary, not sufficient. **Run one real payment before considering Phase 3 closed.**
 
-**Rollback:** grey-cloud the record. One click, ~5 min.
+**Rollback:** Edit the record, toggle Proxy status off, Save. ~5 min for your resolver to catch up; the edge switches immediately.
 
 ## Phase 4 — Tighten incrementally
 
