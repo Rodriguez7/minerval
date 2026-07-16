@@ -9,7 +9,8 @@ import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 
 const fromMock = vi.fn();
-const adminMock = { from: fromMock };
+const rpcMock = vi.fn();
+const adminMock = { from: fromMock, rpc: rpcMock };
 
 function makeRequest(rows: unknown[]) {
   return new NextRequest(
@@ -41,7 +42,7 @@ describe("POST /api/dashboard/students/bulk-fee", () => {
     } as never);
 
     const res = await POST(
-      makeRequest([{ external_id: "TST-001", amount_due: 5000 }])
+      makeRequest([{ external_id: "TST-001", amount_due: 5000, balance_due_at: "2026-09-15" }])
     );
 
     expect(res.status).toBe(403);
@@ -60,23 +61,12 @@ describe("POST /api/dashboard/students/bulk-fee", () => {
   it("updates students and returns count", async () => {
     vi.mocked(getTenantContext).mockResolvedValue(PRO_CONTEXT as never);
 
-    // Each row triggers: from("students").update().eq(school_id).eq(external_id)
-    const makeUpdateChain = () => ({
-      update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        }),
-      }),
-    });
-
-    fromMock
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeUpdateChain());
+    rpcMock.mockResolvedValue({ data: true, error: null });
 
     const res = await POST(
       makeRequest([
-        { external_id: "TST-001", amount_due: 5000 },
-        { external_id: "TST-002", amount_due: 3000 },
+        { external_id: "TST-001", amount_due: 5000, balance_due_at: "2026-09-15" },
+        { external_id: "TST-002", amount_due: 3000, balance_due_at: "2026-09-15" },
       ])
     );
 

@@ -11,17 +11,39 @@ import {
   getClassSuggestions,
   type EducationLevel,
 } from "@/lib/congo-education";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 const RowSchema = z.object({
   full_name: z.string().min(1),
   class_name: z.string().optional(),
   amount_due: z.coerce.number().min(0),
+  balance_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  guardian_name: z.string().min(1),
+  guardian_whatsapp: z.string().transform((value, ctx) => {
+    const normalized = normalizeDrcMobilePhone(value);
+    if (!normalized) {
+      ctx.addIssue({ code: "custom", message: "Numero WhatsApp RDC invalide" });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
+  guardian_relationship: z.enum(["parent", "guardian", "payer"]),
+  whatsapp_consent: z.string().transform((value, ctx) => {
+    if (!["oui", "yes", "true", "1"].includes(value.trim().toLowerCase())) {
+      ctx.addIssue({ code: "custom", message: "Le consentement WhatsApp doit etre oui" });
+      return z.NEVER;
+    }
+    return true;
+  }),
+}).refine((row) => row.amount_due === 0 || Boolean(row.balance_due_at), {
+  message: "La date d'echeance est obligatoire lorsque le montant du est superieur a zero",
+  path: ["balance_due_at"],
 });
 
 type ValidRow = z.infer<typeof RowSchema>;
 
 function downloadTemplate(fileName: string, classExample: string) {
-  const template = `full_name,class_name,amount_due\nJean Kabila,${classExample},15000\nMarie Mutombo,,12000\n`;
+  const template = `full_name,class_name,amount_due,balance_due_at,guardian_name,guardian_whatsapp,guardian_relationship,whatsapp_consent\nJean Kabila,${classExample},15000,2026-09-15,Chantal Kabila,0812345678,parent,oui\nMarie Mutombo,,12000,2026-09-15,Paul Mutombo,+243991234567,guardian,oui\n`;
   const blob = new Blob([template], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

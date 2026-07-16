@@ -10,6 +10,14 @@ Browser → Railway (Next.js) → Hetzner proxy (proxy.minerval.org) → SerdiPa
               Supabase (Postgres)
 ```
 
+Automatic reminders use an independent notification path:
+
+```
+GitHub scheduler → Railway reminder worker → Meta WhatsApp Cloud API
+                              ↕
+                        Supabase outbox
+```
+
 - **Main app**: Next.js 16 on Railway (`www.minerval.org`)
 - **Proxy**: Node.js on Hetzner with a fixed IP whitelisted by SerdiPay. Handles token auth and forwards payment requests.
 - **Database**: Supabase Postgres (server-side only, service key)
@@ -85,17 +93,52 @@ The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](/Users/rod/20%20App
 6. SerdiPay calls `POST /api/serdipay/callback` → app records success, decrements `amount_due`
 7. Parent is redirected to receipt page
 
+## Automatic WhatsApp Reminders
+
+The implementation replaces the unfinished manual WhatsApp reminder experiment with automatic payment reminders through Meta's WhatsApp Cloud API. Production sending remains gated on applying migration `023`, creating and approving the Meta templates, configuring secrets, extending the Cloudflare server-to-server bypass rule, and completing the pilot rollout.
+
+- A parent or guardian name, WhatsApp number, relationship, and consent record will be required when a school adds or imports a student. WhatsApp messages are French-only in the first release.
+- Every unpaid balance with a due date will enter a fixed reminder sequence automatically. Schools will not create campaigns or select students.
+- Minerval will initially send French-only approved utility templates from one verified Minerval WhatsApp Business number.
+- Each message will contain a secure, revocable `Payer maintenant` link that loads the student's current balance and existing SerdiPay payment form.
+- Meta webhooks will record sent, delivered, read, and failed states.
+- A successful SerdiPay callback will cancel remaining reminders immediately.
+- Schools will be able to pause automation globally or for one student, while automatic enrollment remains the default.
+- The WhatsApp channel will use Meta directly. Twilio, SMS, email fallback, and unofficial WhatsApp libraries are outside this phase.
+
+The implementation sequence, schema, security requirements, recovered work assessment, tests, and rollout gates are documented in [`docs/superpowers/plans/2026-07-16-automatic-whatsapp-payment-reminders.md`](docs/superpowers/plans/2026-07-16-automatic-whatsapp-payment-reminders.md).
+
+Production requires these server-side values:
+
+| Variable | Description |
+|---|---|
+| `WHATSAPP_ACCESS_TOKEN` | Meta permanent system-user access token |
+| `WHATSAPP_PHONE_NUMBER_ID` | Minerval WhatsApp sending-number ID |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | Minerval WhatsApp Business Account ID |
+| `WHATSAPP_APP_SECRET` | Secret used to verify webhook signatures |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Token used for Meta webhook subscription verification |
+| `WHATSAPP_GRAPH_API_VERSION` | Explicit supported Meta Graph API version |
+| `WHATSAPP_REMINDER_CRON_SECRET` | Secret authenticating the scheduled reminder worker |
+
 ## Database Schema
 
 ```sql
 schools         — id, name, code (unique), admin_email
                 — payment_access_token (unique, revocable public payment token)
 students        — id, school_id, external_id, full_name, class_name, amount_due
+                — balance_due_at, reminder_cycle_id, reminders_paused_until, reminder_stop_reason
+guardians       — school-scoped responsible payer, normalized WhatsApp number, French-only messaging and consent/opt-out state
+student_guardians — primary guardian relationship for each student
+student_payment_links — hashed, expiring and revocable personalized payment-link tokens
+school_whatsapp_settings — automatic reminder switch, local send hour and maximum attempts
+whatsapp_messages — durable Meta outbox, delivery state, errors and audit history
 fees            — id, school_id, title, type (recurring/special), amount, active
 payment_requests — id, student_id, school_id, amount, phone, telecom, status, serdipay_ref, settled_at
                 — reconciliation_status, reconciliation_note, reconciliation_updated_at, reconciliation_updated_by
 payment_events  — id, payment_request_id, event_type, payload (audit log)
 ```
+
+Migration `023_automatic_whatsapp_reminders.sql` adds the reminder schema. Existing unpaid students receive a balance-cycle ID but remain ineligible until the school supplies a guardian, consent record, and due date.
 
 ## Admin Operations
 
@@ -120,3 +163,4 @@ The committed Playwright suite seeds its own school, student, and payment rows t
 - No provider-side settlement import yet (reconciliation is still managed from the dashboard)
 - Single admin per school
 - No Excel import (CSV only)
+- Automatic WhatsApp reminders are implemented but not production-enabled until Meta templates, secrets, Cloudflare bypasses, migration `023`, and the pilot are complete

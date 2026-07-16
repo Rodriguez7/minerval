@@ -150,6 +150,16 @@ for p in /api/health /api/serdipay/callback /api/webhooks/stripe; do
 done
 ```
 
+### Outstanding before the WhatsApp reminder rollout
+
+The live bypass rule above still reflects the four paths configured on 2026-07-15. Before enabling automatic WhatsApp reminders, expand that same rule to include the Meta webhook and authenticated scheduler:
+
+```
+(http.request.uri.path in {"/api/serdipay/callback" "/api/serdipay/payout-callback" "/api/webhooks/stripe" "/api/whatsapp/webhook" "/api/internal/whatsapp-reminders" "/api/health"})
+```
+
+`/api/whatsapp/webhook` verifies Meta's `X-Hub-Signature-256`; `/api/internal/whatsapp-reminders` requires `WHATSAPP_REMINDER_CRON_SECRET`. Verify both return an application response rather than a Cloudflare challenge before configuring Meta or enabling the scheduled workflow.
+
 ### Free plan limits (confirmed in-dashboard)
 
 | | Free |

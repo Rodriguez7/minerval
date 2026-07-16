@@ -3,10 +3,10 @@ import { POST } from "@/app/api/dashboard/students/import/route";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/tenant", () => ({ getTenantContext: vi.fn() }));
-vi.mock("@/lib/supabase", () => ({ getAdminClient: vi.fn() }));
+vi.mock("@/lib/supabase", () => ({ getAdminClient: vi.fn(), createSSRClient: vi.fn() }));
 
 import { getTenantContext } from "@/lib/tenant";
-import { getAdminClient } from "@/lib/supabase";
+import { createSSRClient, getAdminClient } from "@/lib/supabase";
 
 const fromMock = vi.fn();
 const adminMock = { from: fromMock, rpc: vi.fn() };
@@ -19,7 +19,15 @@ function makeRequest(rows: unknown[]) {
   });
 }
 
-const VALID_ROW = { full_name: "Alice", amount_due: 1000 };
+const VALID_ROW = {
+  full_name: "Alice",
+  amount_due: 1000,
+  balance_due_at: "2026-09-15",
+  guardian_name: "Chantal",
+  guardian_whatsapp: "0812345678",
+  guardian_relationship: "parent",
+  whatsapp_consent: true,
+};
 
 const PRO_CONTEXT = {
   school: { id: "school1", code: "TST", currency: "FC" },
@@ -30,6 +38,7 @@ const PRO_CONTEXT = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getAdminClient).mockReturnValue(adminMock as never);
+  vi.mocked(createSSRClient).mockResolvedValue(adminMock as never);
 });
 
 describe("POST /api/dashboard/students/import", () => {
@@ -72,16 +81,9 @@ describe("POST /api/dashboard/students/import", () => {
   it("proceeds when max_students is null (unlimited)", async () => {
     vi.mocked(getTenantContext).mockResolvedValue(PRO_CONTEXT as never);
 
-    // Mock RPC
     adminMock.rpc.mockResolvedValueOnce({
-      data: { prefix: "TST", new_seq: 1 },
+      data: { imported: 1 },
       error: null,
-    });
-
-    // Mock insert
-    fromMock.mockReturnValueOnce({
-      insert: vi.fn().mockReturnThis(),
-      select: vi.fn().mockResolvedValue({ data: [{ id: "s1" }], error: null }),
     });
 
     const res = await POST(makeRequest([VALID_ROW]));

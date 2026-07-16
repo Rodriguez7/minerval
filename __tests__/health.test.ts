@@ -26,6 +26,13 @@ const requiredEnvironment = {
   LEGAL_ENTITY_ADDRESS: "Kinshasa, RDC",
   LEGAL_CONTACT_EMAIL: "support@minerval.org",
   PRIVACY_CONTACT_EMAIL: "privacy@minerval.org",
+  WHATSAPP_ACCESS_TOKEN: "meta-token",
+  WHATSAPP_PHONE_NUMBER_ID: "123456789",
+  WHATSAPP_BUSINESS_ACCOUNT_ID: "987654321",
+  WHATSAPP_APP_SECRET: "meta-app-secret",
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: "meta-verify-token",
+  WHATSAPP_GRAPH_API_VERSION: "v99.0",
+  WHATSAPP_REMINDER_CRON_SECRET: "whatsapp-cron-secret",
 };
 
 function request(deep = false, secret?: string) {

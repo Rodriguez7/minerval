@@ -20,7 +20,7 @@ describe("email configuration", () => {
         EMAIL_FROM: "Minerval <no-reply@minerval.org>",
         LEGAL_CONTACT_EMAIL: "support@minerval.org",
         PRIVACY_CONTACT_EMAIL: "privacy@minerval.org",
-      } as NodeJS.ProcessEnv)
+      } as unknown as NodeJS.ProcessEnv)
     ).toEqual([]);
   });
 
@@ -31,7 +31,7 @@ describe("email configuration", () => {
         EMAIL_FROM: "Minerval <no-reply@minerval.app>",
         LEGAL_CONTACT_EMAIL: "bad",
         PRIVACY_CONTACT_EMAIL: "privacy@minerval.app",
-      } as NodeJS.ProcessEnv)
+      } as unknown as NodeJS.ProcessEnv)
     ).toEqual([
       "EMAIL_FROM does not use EMAIL_DOMAIN",
       "LEGAL_CONTACT_EMAIL is invalid",

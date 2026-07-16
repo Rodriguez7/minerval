@@ -60,7 +60,7 @@ describe("signup action (Phase 1b)", () => {
       options: {
         emailRedirectTo: "https://www.minerval.org/fr/onboarding/school",
         data: {
-          legal_version: "2026-07-14",
+          legal_version: "2026-07-16",
           legal_accepted_at: expect.any(String),
           locale: "fr",
         },

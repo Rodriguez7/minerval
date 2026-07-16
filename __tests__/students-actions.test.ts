@@ -20,7 +20,16 @@ function makeFormData(data: Record<string, string>) {
   return fd;
 }
 
-const VALID_FORM = { full_name: "Alice", amount_due: "1000" };
+const VALID_FORM = {
+  full_name: "Alice",
+  amount_due: "1000",
+  balance_due_at: "2026-09-15",
+  guardian_name: "Chantal",
+  guardian_whatsapp: "0812345678",
+  guardian_relationship: "parent",
+  guardian_locale: "fr",
+  whatsapp_consent: "on",
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -57,16 +66,16 @@ describe("addStudent", () => {
     } as never);
 
     ssrMock.rpc.mockResolvedValueOnce({
-      data: { prefix: "TST", new_seq: 1 },
+      data: { student_id: "student-1", external_id: "TST-001" },
       error: null,
-    });
-
-    fromMock.mockReturnValueOnce({
-      insert: vi.fn().mockResolvedValue({ data: null, error: null }),
     });
 
     const result = await addStudent(null, makeFormData(VALID_FORM));
 
     expect(result).toEqual({ success: true });
+    expect(ssrMock.rpc).toHaveBeenCalledWith(
+      "create_student_with_guardian",
+      expect.objectContaining({ p_guardian_phone: "243812345678" })
+    );
   });
 });

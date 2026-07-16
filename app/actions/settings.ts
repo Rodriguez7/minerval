@@ -10,6 +10,12 @@ const PricingSchema = z.object({
   feeDisplayMode: z.enum(["visible_line_item", "hidden"]),
 });
 
+const WhatsAppSettingsSchema = z.object({
+  automaticRemindersEnabled: z.boolean(),
+  localSendHour: z.coerce.number().int().min(0).max(23),
+  maxReminders: z.coerce.number().int().min(1).max(6),
+});
+
 type State = { error?: string; success?: boolean } | undefined;
 
 const EducationLevelsSchema = z
@@ -79,6 +85,42 @@ export async function updatePricingPolicy(
 
   if (error) return { error: "Impossible de mettre a jour la politique tarifaire." };
 
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function updateWhatsAppSettings(
+  _: State,
+  formData: FormData
+): Promise<State> {
+  const { school, membership } = await getTenantContext();
+  if (!["owner", "admin"].includes(membership.role)) {
+    return { error: "Non autorise" };
+  }
+
+  const parsed = WhatsAppSettingsSchema.safeParse({
+    automaticRemindersEnabled: formData.get("automaticRemindersEnabled") === "on",
+    localSendHour: formData.get("localSendHour"),
+    maxReminders: formData.get("maxReminders"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Erreur de validation" };
+  }
+
+  const { error } = await getAdminClient()
+    .from("school_whatsapp_settings")
+    .upsert(
+      {
+        school_id: school.id,
+        automatic_reminders_enabled: parsed.data.automaticRemindersEnabled,
+        local_send_hour: parsed.data.localSendHour,
+        max_reminders: parsed.data.maxReminders,
+        paused_until: null,
+      },
+      { onConflict: "school_id" }
+    );
+
+  if (error) return { error: "Impossible de mettre a jour les rappels WhatsApp." };
   revalidatePath("/dashboard/settings");
   return { success: true };
 }
