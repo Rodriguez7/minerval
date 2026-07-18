@@ -6,6 +6,10 @@ import { getAdminClient } from "@/lib/supabase";
 const RowSchema = z.object({
   external_id: z.string().min(1).max(50),
   amount_due: z.coerce.number().min(0),
+  balance_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+}).refine((row) => row.amount_due === 0 || Boolean(row.balance_due_at), {
+  message: "La date d'echeance est obligatoire lorsque le montant du est superieur a zero",
+  path: ["balance_due_at"],
 });
 
 const BodySchema = z.object({
@@ -44,12 +48,13 @@ export async function POST(req: NextRequest) {
   // different values per row without an RPC, so use Promise.all for concurrency.
   const results = await Promise.all(
     rows.map(async (row) => {
-      const { error } = await admin
-        .from("students")
-        .update({ amount_due: row.amount_due })
-        .eq("school_id", school.id)
-        .eq("external_id", row.external_id);
-      return error ? null : row.external_id;
+      const { data, error } = await admin.rpc("replace_student_balance_cycle", {
+        p_school_id: school.id,
+        p_external_id: row.external_id,
+        p_amount_due: row.amount_due,
+        p_balance_due_at: `${row.balance_due_at}T00:00:00.000Z`,
+      });
+      return error || data !== true ? null : row.external_id;
     })
   );
 

@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getTenantContext } from "@/lib/tenant";
-import { getAdminClient } from "@/lib/supabase";
+import { createSSRClient, getAdminClient } from "@/lib/supabase";
+import { normalizeDrcMobilePhone } from "@/lib/phone";
 
 const RowSchema = z.object({
   full_name: z.string().min(1).max(200),
   class_name: z.string().max(100).optional(),
   amount_due: z.coerce.number().min(0),
+  balance_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  guardian_name: z.string().min(1).max(200),
+  guardian_whatsapp: z.string().transform((value, ctx) => {
+    const normalized = normalizeDrcMobilePhone(value);
+    if (!normalized) {
+      ctx.addIssue({ code: "custom", message: "Numero WhatsApp RDC invalide" });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
+  guardian_relationship: z.enum(["parent", "guardian", "payer"]),
+  whatsapp_consent: z.literal(true),
+}).refine((row) => row.amount_due === 0 || Boolean(row.balance_due_at), {
+  message: "La date d'echeance est obligatoire lorsque le montant du est superieur a zero",
+  path: ["balance_due_at"],
 });
 
 const BodySchema = z.object({
@@ -14,7 +30,11 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { school, plan } = await getTenantContext();
+  const { school, plan, membership } = await getTenantContext();
+
+  if (!["owner", "admin", "finance"].includes(membership.role)) {
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 });
+  }
 
   if (!plan.can_bulk_ops) {
     return NextResponse.json(
@@ -59,24 +79,28 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Atomically reserve `rowCount` sequential IDs for this school
-  const { data: seq, error: seqError } = await admin
-    .rpc("increment_student_seq", { p_school_id: school.id, p_count: rowCount }) as { data: { prefix: string; new_seq: number } | null; error: unknown };
+  const supabase = await createSSRClient();
+  const { data, error } = await supabase.rpc("import_students_with_guardians", {
+    p_school_id: school.id,
+    p_rows: parsed.data.rows.map((row) => ({
+      full_name: row.full_name,
+      class_name: row.class_name ?? "",
+      amount_due: row.amount_due,
+      balance_due_at: `${row.balance_due_at}T00:00:00.000Z`,
+      guardian_name: row.guardian_name,
+      guardian_phone: row.guardian_whatsapp,
+      guardian_relationship: row.guardian_relationship,
+      guardian_locale: "fr",
+    })),
+  });
 
-  if (seqError || !seq) {
-    return NextResponse.json({ error: "Impossible de generer les identifiants eleves." }, { status: 500 });
+  const result = data as { imported?: number; error?: string } | null;
+  if (error || result?.error) {
+    return NextResponse.json(
+      { error: error?.message ?? result?.error ?? "Echec de l'import" },
+      { status: 500 }
+    );
   }
 
-  const startSeq = seq.new_seq - rowCount + 1;
-  const rows = parsed.data.rows.map((r, i) => ({
-    ...r,
-    school_id: school.id,
-    external_id: `${seq.prefix}-${String(startSeq + i).padStart(3, "0")}`,
-  }));
-
-  const { data, error } = await admin.from("students").insert(rows).select("id");
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json({ imported: data?.length ?? 0 });
+  return NextResponse.json({ imported: result?.imported ?? 0 });
 }

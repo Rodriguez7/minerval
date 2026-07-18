@@ -98,7 +98,62 @@ export interface Student {
   full_name: string;
   class_name: string | null;
   amount_due: number;
+  balance_due_at: string | null;
+  reminder_cycle_id: string | null;
+  reminders_paused_until: string | null;
+  reminder_stop_reason: string | null;
   created_at: string;
+}
+
+export type GuardianRelationship = "parent" | "guardian" | "payer";
+export type WhatsAppLocale = "fr";
+export type WhatsAppMessageKind =
+  | "payment_reminder"
+  | "payment_confirmed"
+  | "payment_failed";
+export type WhatsAppMessageStatus =
+  | "queued"
+  | "sending"
+  | "accepted"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed"
+  | "cancelled";
+
+export interface Guardian {
+  id: string;
+  school_id: string;
+  full_name: string;
+  whatsapp_phone: string;
+  preferred_locale: WhatsAppLocale;
+  whatsapp_opt_in_at: string;
+  whatsapp_opt_in_source: "manual_entry" | "csv_import" | "parent_form";
+  whatsapp_opted_out_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  school_id: string;
+  student_id: string;
+  guardian_id: string;
+  reminder_cycle_id: string;
+  kind: WhatsAppMessageKind;
+  stage: number | null;
+  template_name: string;
+  locale: WhatsAppLocale;
+  scheduled_for: string;
+  amount_snapshot: number;
+  currency: string;
+  status: WhatsAppMessageStatus;
+  meta_message_id: string | null;
+  attempt_count: number;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Fee {

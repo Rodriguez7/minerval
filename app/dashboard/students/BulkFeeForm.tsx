@@ -29,10 +29,11 @@ export function BulkFeeForm({ canBulkOps }: Props) {
 
     const rows = dataLines
       .map((line) => {
-        const [external_id, amount_due_str] = line.split(",");
+        const [external_id, amount_due_str, balance_due_at] = line.split(",");
         const amount_due = parseFloat(amount_due_str?.trim() ?? "");
-        return external_id?.trim() && !isNaN(amount_due)
-          ? { external_id: external_id.trim(), amount_due }
+        const dueDate = balance_due_at?.trim() ?? "";
+        return external_id?.trim() && !isNaN(amount_due) && /^\d{4}-\d{2}-\d{2}$/.test(dueDate)
+          ? { external_id: external_id.trim(), amount_due, balance_due_at: dueDate }
           : null;
       })
       .filter(Boolean);
@@ -74,7 +75,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
         <p className="text-sm text-gray-500 mb-4">
           Importez un CSV avec les colonnes{" "}
           <code className="bg-gray-100 px-1 rounded text-xs">
-            external_id,amount_due
+            external_id,amount_due,balance_due_at
           </code>{" "}
           pour mettre a jour les soldes en masse.
         </p>
@@ -97,7 +98,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
       <p className="text-sm text-gray-500 mb-4">
         Importez un CSV avec les colonnes{" "}
         <code className="bg-gray-100 px-1 rounded text-xs">
-          external_id,amount_due
+            external_id,amount_due,balance_due_at
         </code>{" "}
         pour mettre a jour les soldes en masse.
       </p>

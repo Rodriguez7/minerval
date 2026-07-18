@@ -1,6 +1,6 @@
 import type { AppLocale } from "./i18n/config";
 
-export const LEGAL_VERSION = "2026-07-14";
+export const LEGAL_VERSION = "2026-07-16";
 
 export const REQUIRED_LEGAL_ENV = [
   "LEGAL_ENTITY_NAME",
@@ -54,6 +54,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
           items: [
             "Donnees de l'etablissement et de ses utilisateurs : nom, email, role, coordonnees, informations d'inscription et d'abonnement.",
             "Donnees des eleves : nom, identifiant scolaire, classe, niveau, montant des frais et situation de paiement.",
+            "Donnees des parents, responsables et payeurs designes : nom, relation avec l'eleve, numero WhatsApp, langue preferee, preuve de consentement, desabonnement et etat de livraison des rappels.",
             "Donnees du payeur et de transaction : numero de telephone, operateur mobile money, montant, statut, references et recu. Minerval ne demande jamais le code PIN mobile money.",
             "Donnees techniques et de securite : adresse IP, appareil, journaux d'acces, erreurs et traces d'audit.",
           ],
@@ -63,6 +64,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
           items: [
             "Creer et securiser les comptes, gerer les autorisations et fournir le service demande.",
             "Initier, confirmer, rapprocher et reverser les paiements, produire les recus et prevenir la fraude.",
+            "Envoyer automatiquement les rappels administratifs WhatsApp relatifs aux soldes scolaires impayes et les arreter apres paiement ou desabonnement.",
             "Gerer les abonnements, fournir l'assistance, diagnostiquer les incidents et respecter les obligations legales.",
             "Ameliorer la fiabilite du service a partir de statistiques agregees et de journaux techniques.",
           ],
@@ -70,7 +72,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
         {
           title: "4. Destinataires et prestataires",
           paragraphs: [
-            "Les donnees ne sont pas vendues. Elles sont accessibles aux utilisateurs autorises de l'ecole et, lorsque necessaire, aux prestataires qui assurent l'hebergement, la base de donnees, les paiements mobile money, les abonnements, les emails et la surveillance technique. Ceux-ci comprennent actuellement Supabase, Railway, SerdiPay, Stripe, Resend et l'infrastructure proxy de paiement de Minerval.",
+            "Les donnees ne sont pas vendues. Elles sont accessibles aux utilisateurs autorises de l'ecole et, lorsque necessaire, aux prestataires qui assurent l'hebergement, la base de donnees, les paiements mobile money, les abonnements, les emails, les rappels WhatsApp et la surveillance technique. Ceux-ci comprennent actuellement Supabase, Railway, SerdiPay, Stripe, Resend, Meta/WhatsApp et l'infrastructure proxy de paiement de Minerval.",
             "Certains prestataires peuvent traiter des donnees en dehors de la RDC. Minerval limite les donnees transmises, applique des controles d'acces et utilise des engagements contractuels adaptes au service concerne.",
           ],
         },
@@ -116,7 +118,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
         {
           title: "2. Service",
           paragraphs: [
-            "Minerval fournit des outils de gestion des eleves, de collecte des frais scolaires, de rapprochement, de rapports et de reversement. Les services mobile money, bancaires et d'abonnement sont aussi soumis aux regles et a la disponibilite des prestataires concernes.",
+            "Minerval fournit des outils de gestion des eleves, de collecte des frais scolaires, de rappels administratifs WhatsApp, de rapprochement, de rapports et de reversement. Les services WhatsApp, mobile money, bancaires et d'abonnement sont aussi soumis aux regles et a la disponibilite des prestataires concernes.",
           ],
         },
         {
@@ -125,6 +127,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
             "Fournir des informations exactes, maintenir les roles a jour et proteger les identifiants de connexion.",
             "Informer rapidement Minerval en cas d'acces suspect, d'erreur de paiement ou de changement de representant autorise.",
             "Ne pas partager les donnees d'eleves au-dela de ce qui est necessaire et autorise.",
+            "Enregistrer un numero WhatsApp de parent, responsable ou payeur uniquement apres avoir obtenu son accord pour les rappels administratifs, et respecter toute demande de desabonnement.",
           ],
         },
         {
@@ -223,6 +226,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
           items: [
             "Institution and user data: name, email, role, contact details, registration, and subscription information.",
             "Student data: name, school identifier, class, level, fee amount, and payment position.",
+            "Parent, guardian, and designated-payer data: name, relationship to the student, WhatsApp number, preferred language, consent record, opt-out, and reminder delivery status.",
             "Payer and transaction data: phone number, mobile-money network, amount, status, references, and receipt. Minerval never asks for a mobile-money PIN.",
             "Technical and security data: IP address, device, access logs, errors, and audit trails.",
           ],
@@ -232,6 +236,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
           items: [
             "Create and secure accounts, manage permissions, and provide the requested service.",
             "Initiate, confirm, reconcile, and pay out transactions, produce receipts, and prevent fraud.",
+            "Automatically send administrative WhatsApp reminders about unpaid school balances and stop them after payment or opt-out.",
             "Manage subscriptions, provide support, diagnose incidents, and meet legal obligations.",
             "Improve service reliability using aggregated statistics and technical logs.",
           ],
@@ -239,7 +244,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
         {
           title: "4. Recipients and service providers",
           paragraphs: [
-            "Data is not sold. It is available to authorized school users and, where necessary, providers supporting hosting, databases, mobile-money payments, subscriptions, email, and technical monitoring. These currently include Supabase, Railway, SerdiPay, Stripe, Resend, and Minerval's payment proxy infrastructure.",
+            "Data is not sold. It is available to authorized school users and, where necessary, providers supporting hosting, databases, mobile-money payments, subscriptions, email, WhatsApp reminders, and technical monitoring. These currently include Supabase, Railway, SerdiPay, Stripe, Resend, Meta/WhatsApp, and Minerval's payment proxy infrastructure.",
             "Some providers may process data outside the DRC. Minerval limits the data shared, applies access controls, and uses contractual commitments appropriate to the relevant service.",
           ],
         },
@@ -285,7 +290,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
         {
           title: "2. Service",
           paragraphs: [
-            "Minerval provides student management, school-fee collection, reconciliation, reporting, and payout tools. Mobile-money, banking, and subscription services are also subject to the rules and availability of their providers.",
+            "Minerval provides student management, school-fee collection, administrative WhatsApp reminders, reconciliation, reporting, and payout tools. WhatsApp, mobile-money, banking, and subscription services are also subject to the rules and availability of their providers.",
           ],
         },
         {
@@ -294,6 +299,7 @@ const LEGAL_COPY: Record<AppLocale, Record<LegalDocumentKind, LegalDocument>> = 
             "Provide accurate information, keep roles current, and protect login credentials.",
             "Promptly notify Minerval of suspected access, payment errors, or a change in authorized representative.",
             "Do not share student data beyond what is necessary and authorized.",
+            "Record a parent, guardian, or payer WhatsApp number only after obtaining consent for administrative reminders, and honor every opt-out request.",
           ],
         },
         {

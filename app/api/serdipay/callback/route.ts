@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase";
 import { verifySerdiPayCallback } from "@/lib/serdipay";
 import { reportOperationalIssue } from "@/lib/operations";
+import { getWhatsAppTemplateName } from "@/lib/whatsapp-templates";
 
 interface SerdiPayCallback {
   message?: string;
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   const { data: payment, error: lookupErr } = await admin
     .from("payment_requests")
-    .select("id, student_id, amount, fee_amount, status")
+    .select("id, student_id, school_id, amount, fee_amount, status, receipt_access_token, students(reminder_cycle_id)")
     .eq("id", reference)
     .single();
 
@@ -57,10 +58,12 @@ export async function POST(req: NextRequest) {
 
   const isSuccess = paymentStatus === "success";
 
+  let reminderCycleId: string | null = null;
+
   if (isSuccess) {
     const { data: student, error: studentLookupError } = await admin
       .from("students")
-      .select("amount_due")
+      .select("amount_due, reminder_cycle_id")
       .eq("id", payment.student_id)
       .single();
 
@@ -78,9 +81,19 @@ export async function POST(req: NextRequest) {
 
     const schoolFeePaid = Math.max(0, payment.amount - (payment.fee_amount ?? 0));
     const remainingDue = Math.max(0, Number(student.amount_due) - schoolFeePaid);
+    reminderCycleId = student.reminder_cycle_id;
     const { error: studentUpdateError } = await admin
       .from("students")
-      .update({ amount_due: remainingDue })
+      .update({
+        amount_due: remainingDue,
+        ...(remainingDue === 0
+          ? {
+              balance_due_at: null,
+              reminders_paused_until: null,
+              reminder_stop_reason: "paid",
+            }
+          : {}),
+      })
       .eq("id", payment.student_id);
 
     if (studentUpdateError) {
@@ -94,6 +107,11 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+  }
+
+  if (!isSuccess) {
+    const student = payment.students as unknown as { reminder_cycle_id: string | null } | null;
+    reminderCycleId = student?.reminder_cycle_id ?? null;
   }
 
   const { error: paymentUpdateError } = await admin
@@ -134,6 +152,64 @@ export async function POST(req: NextRequest) {
       message: "Payment settled but its audit event could not be persisted.",
       reference: payment.id,
     });
+  }
+
+  if (reminderCycleId) {
+    if (isSuccess) {
+      const { error: cancelError } = await admin.rpc("cancel_student_whatsapp_messages", {
+        p_student_id: payment.student_id,
+        p_reminder_cycle_id: reminderCycleId,
+        p_reason: "payment_success",
+      });
+      if (cancelError) {
+        await reportOperationalIssue({
+          source: "serdipay-payment-callback",
+          severity: "warning",
+          message: "Payment succeeded but queued WhatsApp reminders could not be cancelled.",
+          reference: payment.id,
+        });
+      }
+    }
+
+    const [{ data: studentGuardian }, { data: school }] = await Promise.all([
+      admin
+        .from("student_guardians")
+        .select("guardian_id, guardians!inner(preferred_locale, whatsapp_opted_out_at)")
+        .eq("student_id", payment.student_id)
+        .eq("is_primary", true)
+        .maybeSingle(),
+      admin.from("schools").select("currency").eq("id", payment.school_id).single(),
+    ]);
+
+    const guardian = studentGuardian?.guardians as unknown as
+      | { preferred_locale: "fr"; whatsapp_opted_out_at: string | null }
+      | null;
+    if (studentGuardian?.guardian_id && guardian && !guardian.whatsapp_opted_out_at && school) {
+      const kind = isSuccess ? "payment_confirmed" : "payment_failed";
+      const { error: notificationError } = await admin.from("whatsapp_messages").insert({
+        school_id: payment.school_id,
+        student_id: payment.student_id,
+        guardian_id: studentGuardian.guardian_id,
+        reminder_cycle_id: reminderCycleId,
+        kind,
+        stage: null,
+        template_name: getWhatsAppTemplateName(kind, "fr"),
+        locale: "fr",
+        scheduled_for: new Date().toISOString(),
+        amount_snapshot: payment.amount,
+        currency: school.currency,
+        receipt_access_token: isSuccess ? payment.receipt_access_token : null,
+      });
+
+      if (notificationError) {
+        await reportOperationalIssue({
+          source: "serdipay-payment-callback",
+          severity: "warning",
+          message: `Payment settled but WhatsApp notification could not be queued: ${notificationError.message}`,
+          reference: payment.id,
+        });
+      }
+    }
   }
 
   return NextResponse.json({ message: "OK" });

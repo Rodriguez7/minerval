@@ -3,7 +3,11 @@ export const dynamic = "force-dynamic";
 import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { DEFAULT_PARENT_FEE_BPS } from "@/lib/fee";
-import { updateEducationLevels, updatePricingPolicy } from "@/app/actions/settings";
+import {
+  updateEducationLevels,
+  updatePricingPolicy,
+  updateWhatsAppSettings,
+} from "@/app/actions/settings";
 import { LogoUploadForm } from "./LogoUploadForm";
 import { CloseSchoolForm } from "./CloseSchoolForm";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
@@ -23,12 +27,39 @@ export default async function SettingsPage() {
     .eq("school_id", school.id)
     .single();
 
-  const { data: logoRow } = await admin
+  const [{ data: logoRow }, { data: whatsappSettings }] = await Promise.all([
+    admin
     .from("schools")
     .select("logo_url")
     .eq("id", school.id)
-    .single();
+    .single(),
+    admin
+      .from("school_whatsapp_settings")
+      .select("automatic_reminders_enabled, local_send_hour, max_reminders")
+      .eq("school_id", school.id)
+      .maybeSingle(),
+  ]);
   const currentLogoUrl = (logoRow as { logo_url?: string | null } | null)?.logo_url ?? null;
+  const whatsappStatuses = ["queued", "accepted", "sent", "delivered", "read", "failed", "cancelled"] as const;
+  const [statusCountResults, optedOutResult] = await Promise.all([
+    Promise.all(
+      whatsappStatuses.map((status) =>
+        admin
+          .from("whatsapp_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", school.id)
+          .eq("status", status)
+      )
+    ),
+    admin
+      .from("guardians")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .not("whatsapp_opted_out_at", "is", null),
+  ]);
+  const whatsappCounts = Object.fromEntries(
+    whatsappStatuses.map((status, index) => [status, statusCountResults[index].count ?? 0])
+  ) as Record<(typeof whatsappStatuses)[number], number>;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -54,6 +85,79 @@ export default async function SettingsPage() {
               <span className={`text-sm text-zinc-900 ${mono ? "font-mono" : ""}`}>{value}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Rappels automatiques WhatsApp</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            Les soldes impayés admissibles sont inscrits automatiquement. Aucune campagne ni sélection d&apos;élèves n&apos;est nécessaire.
+          </p>
+        </div>
+        <form
+          action={async (fd: FormData) => { "use server"; await updateWhatsAppSettings(undefined, fd); }}
+          className="space-y-4"
+        >
+          <label className="flex items-start gap-3 rounded-lg border border-zinc-200 p-3 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              name="automaticRemindersEnabled"
+              defaultChecked={whatsappSettings?.automatic_reminders_enabled ?? true}
+              disabled={!canManage}
+              className="mt-0.5"
+            />
+            <span>
+              <strong className="block text-zinc-900">Activer les rappels automatiques</strong>
+              Minerval contacte le responsable enregistré selon l&apos;échéance et s&apos;arrête dès que le paiement est confirmé.
+            </span>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Heure locale d&apos;envoi</label>
+              <select
+                name="localSendHour"
+                defaultValue={whatsappSettings?.local_send_hour ?? 9}
+                disabled={!canManage}
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white"
+              >
+                {Array.from({ length: 13 }, (_, index) => index + 7).map((hour) => (
+                  <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Nombre maximal</label>
+              <select
+                name="maxReminders"
+                defaultValue={whatsappSettings?.max_reminders ?? 6}
+                disabled={!canManage}
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white"
+              >
+                {[1, 2, 3, 4, 5, 6].map((count) => (
+                  <option key={count} value={count}>{count} rappel{count > 1 ? "s" : ""}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {canManage && (
+            <button type="submit" className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800">
+              Enregistrer les rappels
+            </button>
+          )}
+        </form>
+        <div className="border-t border-zinc-100 pt-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Suivi des messages</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {whatsappStatuses.map((status) => (
+              <span key={status} className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700">
+                {status}: {whatsappCounts[status]}
+              </span>
+            ))}
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-800">
+              désabonnés: {optedOutResult.count ?? 0}
+            </span>
+          </div>
         </div>
       </div>
 
