@@ -1,7 +1,8 @@
 export const enMessages = {
   meta: {
-    title: "Minerval — School Fee Payments",
-    description: "Pay school fees in Congo via mobile money",
+    title: "Minerval — WhatsApp Reminders and School Fee Payments",
+    description:
+      "Automate WhatsApp reminders, mobile money payments, and school-fee reconciliation in the DRC.",
   },
   common: {
     languages: {

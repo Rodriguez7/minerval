@@ -42,99 +42,112 @@ type PayRow = { id: number; initials: string; name: string; color: string; time:
 const HOME_COPY = {
   fr: {
     nav: {
-      howItWorks: "Comment ca marche",
-      forSchools: "Pour les ecoles",
+      howItWorks: "Comment ça marche",
+      forSchools: "Pour les écoles",
       login: "Connexion",
       signup: "Commencer gratuitement",
     },
     hero: {
-      badge: "Mobile money · M-Pesa · Airtel Money · Orange",
+      badge: "Rappels WhatsApp automatiques · Paiement mobile money",
       titleLines: [
-        "Arretez de courir",
-        "apres les paiements.",
-        "Laissez les parents payer",
-        "depuis leur telephone.",
+        "Automatisez le recouvrement",
+        "des frais scolaires.",
+        "Les parents paient",
+        "depuis WhatsApp.",
       ],
       description:
-        "Aucune gestion de cash. Aucun retard. Les frais scolaires sont collectes via mobile money et suivis en temps reel depuis un seul tableau de bord.",
-      cta: "Creer votre ecole — gratuit",
-      secondary: "Voir comment ca marche",
-      note: "Gratuit pour commencer. Aucun frais d'installation. Aucune carte requise.",
+        "Minerval détecte les soldes impayés, envoie automatiquement un rappel en français avec un lien sécurisé, puis rapproche chaque paiement avec le bon élève.",
+      cta: "Créer mon école gratuitement",
+      secondary: "Voir le parcours",
+      note: "Sans frais d’installation · Sans carte bancaire · Rappels sous votre contrôle",
     },
     telecom: {
-      intro: "Reseaux de paiement acceptes",
+      intro: "Paiement depuis le téléphone du parent",
       activityPrefix: "Paiement via",
-      tagline: "Les parents paient depuis n'importe quel telephone · Aucun telechargement · Aucun nouveau compte requis",
+      tagline: "M-Pesa · Airtel Money · Orange Money · Aucun téléchargement · Aucun nouveau compte",
+    },
+    trust: {
+      label: "Une automatisation responsable",
+      items: [
+        { title: "Messages approuvés par Meta", desc: "Des modèles WhatsApp en français, clairs et non promotionnels." },
+        { title: "Consentement enregistré", desc: "Chaque responsable donne son accord et peut se désinscrire." },
+        { title: "Liens de paiement sécurisés", desc: "Chaque lien est personnel, révocable et limité dans le temps." },
+        { title: "Arrêt après paiement", desc: "Dès qu’un paiement est confirmé, les prochains rappels sont annulés." },
+      ],
     },
     how: {
-      label: "Comment ca marche",
+      label: "Comment ça marche",
       titleLines: [
-        "Trois etapes entre l'inscription",
-        "et le premier paiement",
+        "Trois étapes, sans campagne",
+        "ni relance manuelle",
       ],
       description:
-        "Aucune configuration technique. Aucun compte bancaire requis. Si vous avez une ecole et un numero de telephone, vous etes pret.",
+        "L’école garde le contrôle, mais n’a aucun élève à sélectionner et aucune campagne à créer.",
       steps: [
         {
-          title: "Enregistrez votre ecole",
-          desc: "Creez un compte, saisissez le nom de votre ecole et le prefixe d'ID eleve. Moins de 2 minutes.",
+          title: "Ajoutez l’élève et son responsable",
+          desc: "Importez vos élèves ou ajoutez-les manuellement avec le numéro WhatsApp et le consentement du parent ou tuteur.",
         },
         {
-          title: "Importez vos eleves",
-          desc: "Importez un CSV ou ajoutez les eleves manuellement. Chaque eleve recoit un identifiant unique et son montant.",
+          title: "Minerval envoie les rappels",
+          desc: "Lorsqu’un solde arrive à échéance, Minerval envoie automatiquement le bon rappel, au bon moment, en français.",
         },
         {
-          title: "Partagez votre lien de paiement",
-          desc: "Envoyez votre lien aux parents. Ils saisissent l'ID de leur enfant, choisissent M-Pesa ou Airtel, et paient en quelques secondes.",
+          title: "Le paiement est rapproché",
+          desc: "Le parent appuie sur « Payer maintenant », règle par mobile money et le solde de l’élève est mis à jour automatiquement.",
         },
       ],
     },
     features: {
-      label: "Ce que vous obtenez",
+      label: "Tout le parcours, au même endroit",
       titleLines: [
-        "Tout ce qu'une ecole doit avoir.",
-        "Rien de superflu.",
+        "Moins de relances.",
+        "Plus de visibilité.",
       ],
       items: [
         {
-          title: "Paiements mobile money",
-          desc: "Acceptez M-Pesa, Airtel Money et Orange Money. Les parents paient depuis n'importe quel telephone.",
+          title: "Rappels WhatsApp automatiques",
+          desc: "Chaque solde éligible suit une séquence de rappels sans sélection manuelle de l’école.",
         },
         {
-          title: "Liste des eleves",
-          desc: "Gerez toute votre liste, suivez qui a paye et importez des centaines de lignes via CSV.",
+          title: "Paiement mobile money sécurisé",
+          desc: "Le parent ouvre son lien personnel et paie depuis son téléphone avec M-Pesa, Airtel Money ou Orange Money.",
         },
         {
-          title: "Tableau de bord en temps reel",
-          desc: "Voyez chaque paiement a l'instant ou il arrive. Filtrez par classe, date ou statut.",
+          title: "Rapprochement automatique",
+          desc: "Chaque paiement confirmé est associé au bon élève et interrompt immédiatement les rappels restants.",
         },
         {
-          title: "Recus instantanes",
-          desc: "Chaque paiement reussi genere une page de recu partageable que les parents peuvent conserver ou imprimer.",
+          title: "Suivi et reçus en temps réel",
+          desc: "L’école suit les paiements, les statuts d’envoi WhatsApp et les soldes, tandis que le parent reçoit un reçu partageable.",
         },
       ],
     },
     cta: {
-      title: "Pret a ne plus courir apres les frais ?",
+      title: "Prêt à automatiser vos relances ?",
       description:
-        "Gratuit pour commencer. Votre premier lien de paiement est pret en moins de 5 minutes.",
-      button: "Creer votre ecole — gratuit",
-      note: "Aucun frais d'installation. Aucune carte requise.",
+        "Créez votre école, ajoutez un premier élève et configurez votre suivi en quelques minutes.",
+      button: "Créer mon école gratuitement",
+      note: "Sans frais d’installation. Sans carte bancaire.",
     },
-    footer: "© 2026 Minerval. Concu pour les ecoles du Congo.",
-    legal: { privacy: "Confidentialite", terms: "Conditions", refunds: "Remboursements" },
+    footer: "© 2026 Minerval. Conçu pour les écoles de la RDC.",
+    legal: { privacy: "Confidentialité", terms: "Conditions", refunds: "Remboursements" },
     card: {
-      header: "Ecole Sainte Marie — Vue d'ensemble",
+      header: "École Sainte-Marie — Recouvrement",
       live: "En direct",
-      collectedToday: "Collecte aujourd'hui",
+      collectedToday: "Recouvré aujourd’hui",
       collectedChange: "+12 % vs hier",
-      students: "Eleves",
-      studentsPaid: "248 ont paye",
-      recentPayments: "Paiements recents",
-      confirmed: "Confirme",
-      processing: "En cours",
+      students: "Élèves",
+      studentsPaid: "248 à jour",
+      automationTitle: "Relance WhatsApp automatique",
+      automationMessage: "Bonjour Maman Kabongo, les frais de Grâce restent dus. Consultez le solde et payez en toute sécurité.",
+      payNow: "Payer maintenant",
+      automationStatus: "Programmé selon l’échéance",
+      recentPayments: "Paiements rapprochés",
+      confirmed: "Rapproché",
+      processing: "En confirmation",
       times: ["Il y a 2 min", "Il y a 18 min", "Il y a 34 min"] as [string, string, string],
-      justNow: "A l'instant",
+      justNow: "À l’instant",
     },
   },
   en: {
@@ -145,91 +158,104 @@ const HOME_COPY = {
       signup: "Get started free",
     },
     hero: {
-      badge: "Mobile money · M-Pesa · Airtel Money · Orange",
+      badge: "Automatic WhatsApp reminders · Mobile money payments",
       titleLines: [
-        "Stop chasing",
-        "payments.",
-        "Let parents pay",
-        "from their phone.",
+        "Automate school-fee",
+        "collection.",
+        "Parents pay",
+        "from WhatsApp.",
       ],
       description:
-        "No cash handling. No delays. School fees are collected via mobile money and tracked in real time from one dashboard.",
-      cta: "Create your school — free",
-      secondary: "See how it works",
-      note: "Free to start. No setup fees. No card required.",
+        "Minerval detects unpaid balances, automatically sends a secure payment reminder, and reconciles every confirmed payment with the right student.",
+      cta: "Create my school for free",
+      secondary: "See the journey",
+      note: "No setup fee · No card required · Reminders stay under your control",
     },
     telecom: {
-      intro: "Accepted payment networks",
+      intro: "Payment from the parent’s phone",
       activityPrefix: "Payment via",
-      tagline: "Parents pay from any phone · No app download · No new account needed",
+      tagline: "M-Pesa · Airtel Money · Orange Money · No app download · No new account",
+    },
+    trust: {
+      label: "Responsible automation",
+      items: [
+        { title: "Meta-approved messages", desc: "Clear, non-promotional WhatsApp templates in French." },
+        { title: "Recorded consent", desc: "Every responsible payer opts in and can opt out." },
+        { title: "Secure payment links", desc: "Each personal link is revocable and time-limited." },
+        { title: "Stops after payment", desc: "Once payment is confirmed, remaining reminders are cancelled." },
+      ],
     },
     how: {
       label: "How it works",
       titleLines: [
-        "Three steps from signup",
-        "to first payment",
+        "Three steps, with no campaign",
+        "or manual chasing",
       ],
       description:
-        "No technical setup. No bank account required. If you have a school and a phone number, you're ready.",
+        "The school stays in control without selecting students or creating reminder campaigns.",
       steps: [
         {
-          title: "Register your school",
-          desc: "Create an account, enter your school name and student ID prefix. Takes under 2 minutes.",
+          title: "Add the student and guardian",
+          desc: "Import students or add them manually with the parent or guardian’s WhatsApp number and consent.",
         },
         {
-          title: "Import your students",
-          desc: "Upload a CSV or add students manually. Each student gets a unique ID and their fee amount automatically.",
+          title: "Minerval sends reminders",
+          desc: "When a balance becomes due, Minerval automatically sends the right French reminder at the right time.",
         },
         {
-          title: "Share your payment link",
-          desc: "Send your unique link to parents. They enter their child's ID, choose M-Pesa or Airtel, and pay in seconds.",
+          title: "Payment is reconciled",
+          desc: "The parent taps “Pay now”, pays by mobile money, and the student’s balance is updated automatically.",
         },
       ],
     },
     features: {
-      label: "What you get",
+      label: "The whole journey in one place",
       titleLines: [
-        "Everything a school needs.",
-        "Nothing it doesn't.",
+        "Less chasing.",
+        "More visibility.",
       ],
       items: [
         {
-          title: "Mobile money payments",
-          desc: "Accept M-Pesa, Airtel Money, and Orange Money. Parents pay from any phone.",
+          title: "Automatic WhatsApp reminders",
+          desc: "Every eligible balance follows a reminder sequence without manual student selection.",
         },
         {
-          title: "Student roster",
-          desc: "Manage your full student list, track who has paid, and import hundreds of records via CSV.",
+          title: "Secure mobile money payment",
+          desc: "Parents open a personal link and pay from their phone using M-Pesa, Airtel Money, or Orange Money.",
         },
         {
-          title: "Real-time dashboard",
-          desc: "See every payment the moment it lands. Filter by class, date, or status.",
+          title: "Automatic reconciliation",
+          desc: "Every confirmed payment is matched to the right student and immediately stops remaining reminders.",
         },
         {
-          title: "Instant receipts",
-          desc: "Every successful payment generates a shareable receipt page that parents can save or print.",
+          title: "Live tracking and receipts",
+          desc: "Schools track payments, WhatsApp delivery, and balances while parents receive a shareable receipt.",
         },
       ],
     },
     cta: {
-      title: "Ready to stop chasing fees?",
+      title: "Ready to automate fee reminders?",
       description:
-        "Free to start. Your first payment link is ready in under 5 minutes.",
-      button: "Create your school — free",
-      note: "No setup fees. No card required.",
+        "Create your school, add your first student, and prepare the payment journey in minutes.",
+      button: "Create my school for free",
+      note: "No setup fee. No card required.",
     },
-    footer: "© 2026 Minerval. Built for Congo schools.",
+    footer: "© 2026 Minerval. Built for schools in the DRC.",
     legal: { privacy: "Privacy", terms: "Terms", refunds: "Refunds" },
     card: {
-      header: "Ecole Sainte Marie - Vue d'ensemble",
+      header: "École Sainte-Marie — Collections",
       live: "Live",
       collectedToday: "Collected today",
       collectedChange: "+12% vs yesterday",
       students: "Students",
-      studentsPaid: "248 paid",
-      recentPayments: "Recent payments",
-      confirmed: "Confirmed",
-      processing: "Processing",
+      studentsPaid: "248 up to date",
+      automationTitle: "Automatic WhatsApp reminder",
+      automationMessage: "Hello Mama Kabongo, Grace’s school fees are still due. Review the balance and pay securely.",
+      payNow: "Pay now",
+      automationStatus: "Scheduled from the due date",
+      recentPayments: "Reconciled payments",
+      confirmed: "Reconciled",
+      processing: "Confirming",
       times: ["2 minutes ago", "18 minutes ago", "34 minutes ago"] as [string, string, string],
       justNow: "Just now",
     },
@@ -284,6 +310,17 @@ function DashboardCard({ locale, copy }: { locale: PageLocale; copy: (typeof HOM
           <div style={{ fontSize: 12, color: "#3b82f6", fontWeight: 500, marginTop: 2 }}>{copy.card.studentsPaid}</div>
         </div>
       </div>
+      <div className="automation-preview">
+        <div className="automation-preview-head">
+          <span className="automation-preview-label">{copy.card.automationTitle}</span>
+          <span className="automation-preview-dot" aria-hidden="true" />
+        </div>
+        <div className="automation-message">{copy.card.automationMessage}</div>
+        <div className="automation-preview-foot">
+          <span className="automation-status">{copy.card.automationStatus}</span>
+          <span className="automation-pay-button">{copy.card.payNow}</span>
+        </div>
+      </div>
       {/* payments */}
       <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>{copy.card.recentPayments}</div>
       <div>
@@ -330,12 +367,12 @@ function useReveal() {
 }
 
 function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const { ref, visible } = useReveal();
+  const { ref } = useReveal();
   return (
     <div ref={ref} style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(32px)",
-      transition: `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+      opacity: 1,
+      transform: "translateY(0)",
+      transitionDelay: `${delay}ms`,
     }}>
       {children}
     </div>
@@ -413,13 +450,31 @@ export default function HomePage() {
         .activity-chip { display:flex; align-items:center; gap:8px; padding:9px 18px; border-radius:40px; background:white; border:1px solid #e2e8f0; font-size:12px; color:#64748b; font-weight:500; white-space:nowrap; flex-shrink:0; }
         .chip-dot { width:6px; height:6px; border-radius:50%; background:#10b981; animation:pulseDot 2s ease-in-out infinite; }
 
+        .automation-preview { margin-bottom:20px; padding:14px; border:1px solid #bbf7d0; border-radius:14px; background:linear-gradient(145deg,#f0fdf4,#ffffff); }
+        .automation-preview-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+        .automation-preview-label { color:#166534; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.55px; }
+        .automation-preview-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,0.12); }
+        .automation-message { color:#334155; font-size:12px; line-height:1.5; margin-bottom:10px; }
+        .automation-preview-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .automation-status { color:#64748b; font-size:10px; }
+        .automation-pay-button { flex-shrink:0; border-radius:8px; background:#16a34a; color:white; padding:6px 10px; font-size:10px; font-weight:700; }
+
+        .trust-section { max-width:1400px; margin:0 auto; padding:72px 64px 24px; }
+        .trust-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:28px; }
+        .trust-heading-copy { max-width:620px; color:#475569; font-size:15px; line-height:1.65; }
+        .trust-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+        .trust-item { min-width:0; border:1px solid #e2e8f0; border-radius:16px; padding:22px; background:#fff; }
+        .trust-check { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:16px; background:#dcfce7; color:#15803d; font-size:15px; font-weight:800; }
+        .trust-title { margin-bottom:8px; color:#0f172a; font-size:15px; font-weight:700; line-height:1.35; }
+        .trust-desc { color:#64748b; font-size:13px; line-height:1.6; }
+
         .land-section { max-width:1400px; margin:0 auto; padding:96px 64px; }
         .section-label { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:#3b82f6; font-weight:600; margin-bottom:14px; }
         .section-title { font-size:clamp(28px,3vw,42px); font-weight:700; letter-spacing:-1px; color:#0f172a; margin-bottom:12px; }
         .section-sub { font-size:16px; color:#64748b; max-width:480px; line-height:1.6; }
-        .steps-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; margin-top:56px; }
-        .step { padding:32px 40px 32px 0; border-right:1px solid #e2e8f0; margin-right:40px; }
-        .step:last-child { border-right:none; margin-right:0; padding-right:0; }
+        .section-heading-grid { display:grid; grid-template-columns:1fr 1fr; align-items:end; gap:32px; }
+        .steps-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:48px; }
+        .step { height:100%; padding:28px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; }
         .step-num { width:40px; height:40px; border-radius:50%; background:#1d4ed8; color:white; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; margin-bottom:20px; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s; }
         .step:hover .step-num { transform:scale(1.15); box-shadow:0 4px 16px rgba(29,78,216,0.35); }
         .step-title { font-size:18px; font-weight:700; color:#0f172a; margin-bottom:10px; }
@@ -437,7 +492,7 @@ export default function HomePage() {
         .feature-desc { font-size:14px; color:#64748b; line-height:1.65; }
         .cta-section { background:#1d4ed8; padding:80px 64px; text-align:center; position:relative; overflow:hidden; }
         .cta-section::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 20% 50%,rgba(255,255,255,0.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 50%,rgba(255,255,255,0.04) 0%,transparent 60%); pointer-events:none; }
-        .cta-inner { max-width:600px; margin:0 auto; position:relative; }
+        .cta-inner { max-width:760px; margin:0 auto; position:relative; }
         .cta-title { font-size:clamp(28px,3.5vw,44px); font-weight:800; color:white; letter-spacing:-1.2px; margin-bottom:14px; }
         .cta-sub { font-size:16px; color:#bfdbfe; margin-bottom:32px; line-height:1.6; }
         .btn-cta-white { background:white; color:#1d4ed8; border:none; padding:15px 32px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; box-shadow:0 4px 20px rgba(0,0,0,0.15); transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.2s; display:inline-block; text-decoration:none; }
@@ -448,9 +503,12 @@ export default function HomePage() {
           .landing-hero { grid-template-columns:1fr; min-height:auto; padding-left:24px; padding-right:24px; padding-top:96px; padding-bottom:56px; gap:40px; }
           .hero-right { justify-content:center; }
           .land-section { padding:64px 24px; }
+          .trust-section { padding:56px 24px 8px; }
+          .trust-heading { align-items:flex-start; flex-direction:column; margin-bottom:24px; }
+          .trust-grid { grid-template-columns:1fr 1fr; }
+          .section-heading-grid { grid-template-columns:1fr; gap:10px; }
           .steps-grid { grid-template-columns:1fr; }
-          .step { border-right:none; margin-right:0; padding-right:0; border-bottom:1px solid #e2e8f0; padding-bottom:32px; }
-          .step:last-child { border-bottom:none; }
+          .step { padding:24px; }
           .features-grid { grid-template-columns:1fr; }
           .feature:first-child,.feature:nth-child(2),.feature:nth-child(3),.feature:last-child { border-radius:0; }
           .cta-section { padding:64px 24px; }
@@ -467,9 +525,18 @@ export default function HomePage() {
           .hero-actions .btn-ghost { justify-content:center; width:100%; }
           .hero-badge { font-size:12px; padding:6px 12px; margin-bottom:22px; }
           .hero-sub { font-size:16px; margin-bottom:28px; }
+          .automation-preview-foot { align-items:flex-start; flex-direction:column; }
           .marquee-wrapper::before,.marquee-wrapper::after { width:44px; }
           .marquee-wrapper::before,.marquee-wrapper::after { display:none; }
           .marquee-track,.marquee-track-reverse { width:auto; flex-wrap:wrap; justify-content:center; padding:0 18px; animation:none; }
+          .marquee-track > * { display:none; }
+          .marquee-track > :nth-child(1),
+          .marquee-track > :nth-child(3),
+          .marquee-track > :nth-child(5) { display:flex; }
+          .marquee-track-reverse > * { display:none; }
+          .marquee-track-reverse > :nth-child(1),
+          .marquee-track-reverse > :nth-child(2),
+          .marquee-track-reverse > :nth-child(3) { display:flex; }
           .m-pill { padding:10px 16px; font-size:13px; }
           .activity-chip { padding:8px 14px; }
         }
@@ -480,7 +547,9 @@ export default function HomePage() {
           .hero-left { padding-top:0; }
           .hero-note { align-items:flex-start; line-height:1.45; }
           .land-section { padding:56px 18px; }
-          .section-title br { display:none; }
+          .trust-section { padding:48px 18px 4px; }
+          .trust-grid { grid-template-columns:1fr; gap:10px; }
+          .trust-item { padding:20px; }
           .features-grid { margin-top:32px; border-radius:16px; }
           .feature { padding:28px; }
           .step { padding:28px 0; }
@@ -590,10 +659,36 @@ export default function HomePage() {
         <div className="telecom-tagline">{copy.telecom.tagline}</div>
       </div>
 
+      {/* Trust and safeguards */}
+      <section className="trust-section" aria-labelledby="trust-title">
+        <div className="trust-heading">
+          <div>
+            <div className="section-label">{copy.trust.label}</div>
+            <h2 className="section-title" id="trust-title">
+              {locale === "fr" ? "Pensée pour protéger la relation avec les parents." : "Built to protect the relationship with parents."}
+            </h2>
+          </div>
+          <p className="trust-heading-copy">
+            {locale === "fr"
+              ? "Minerval automatise le suivi sans transformer les rappels en messages intrusifs. L’école garde la maîtrise de chaque étape."
+              : "Minerval automates follow-up without turning reminders into intrusive messages. The school remains in control at every step."}
+          </p>
+        </div>
+        <div className="trust-grid">
+          {copy.trust.items.map((item) => (
+            <article className="trust-item" key={item.title}>
+              <div className="trust-check" aria-hidden="true">✓</div>
+              <h3 className="trust-title">{item.title}</h3>
+              <p className="trust-desc">{item.desc}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* How it works */}
       <section className="land-section" id="how-it-works">
         <Reveal><div className="section-label">{copy.how.label}</div></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "end", gap: 24 }}>
+        <div className="section-heading-grid">
           <Reveal delay={100}><div className="section-title">{copy.how.titleLines[0]}<br />{copy.how.titleLines[1]}</div></Reveal>
           <Reveal delay={200}><div className="section-sub">{copy.how.description}</div></Reveal>
         </div>

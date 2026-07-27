@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Minerval — Paiements scolaires par mobile money";
+export const alt = "Minerval — Rappels WhatsApp et paiements scolaires";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -40,10 +40,10 @@ export default function OpenGraphImage() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 940 }}>
           <div style={{ fontSize: 68, lineHeight: 1.08, fontWeight: 800, letterSpacing: -2 }}>
-            Les frais scolaires, simplement.
+            Automatisez le recouvrement des frais scolaires.
           </div>
           <div style={{ fontSize: 30, lineHeight: 1.4, color: "#475569" }}>
-            Mobile money, recus instantanes et suivi en temps reel pour les ecoles de la RDC.
+            Rappels WhatsApp, paiements mobile money et rapprochement automatique pour les écoles de la RDC.
           </div>
         </div>
         <div style={{ display: "flex", gap: 18, fontSize: 24, color: "#1e40af", fontWeight: 600 }}>

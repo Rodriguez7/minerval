@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Minerval — Paiements scolaires",
+    name: "Minerval — Rappels WhatsApp et paiements scolaires",
     short_name: "Minerval",
     description:
-      "Collecte et suivi des frais scolaires par mobile money pour les ecoles de la RDC.",
+      "Rappels WhatsApp automatiques, paiements mobile money et suivi des frais scolaires pour les écoles de la RDC.",
     start_url: "/fr/",
     display: "standalone",
     background_color: "#ffffff",

@@ -1,7 +1,8 @@
 export const frMessages = {
   meta: {
-    title: "Minerval — Paiement des frais scolaires",
-    description: "Payez les frais scolaires au Congo via mobile money",
+    title: "Minerval — Rappels WhatsApp et paiement des frais scolaires",
+    description:
+      "Automatisez les rappels WhatsApp, les paiements mobile money et le rapprochement des frais scolaires en RDC.",
   },
   common: {
     languages: {
