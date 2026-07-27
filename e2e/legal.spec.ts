@@ -1,5 +1,30 @@
 import { expect, test } from "@playwright/test";
 
+test("switches the landing page language in both directions", async ({ page }) => {
+  await page.goto("/fr");
+  await expect(
+    page.getByRole("heading", {
+      name: "Automatisez le recouvrement des frais scolaires. Les parents paient depuis WhatsApp.",
+    })
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "English", exact: true }).click();
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Automate school-fee collection. Parents pay from WhatsApp.",
+    })
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Français", exact: true }).click();
+  await expect(page).toHaveURL(/\/fr$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Automatisez le recouvrement des frais scolaires. Les parents paient depuis WhatsApp.",
+    })
+  ).toBeVisible();
+});
+
 test("publishes bilingual legal pages and links them from signup", async ({ page }) => {
   const privacyResponse = await page.goto("/fr/privacy");
   expect(privacyResponse?.headers()["content-security-policy"]).toContain("object-src 'none'");

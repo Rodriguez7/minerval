@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { APP_LOCALES, localizeHref } from "./config";
 import { useI18n, useLocale } from "./client";
@@ -35,13 +34,13 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         }
 
         return (
-          <Link
+          <a
             key={option}
             href={href}
             className="rounded-full px-3 py-1 text-xs font-semibold text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
           >
             {label}
-          </Link>
+          </a>
         );
       })}
     </div>
