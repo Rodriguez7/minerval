@@ -1,6 +1,6 @@
 # Automatic WhatsApp Payment Reminders — Implementation Plan
 
-**Status:** Implemented locally; production rollout gates remain open
+**Status:** Deployed and production-configured; controlled end-to-end pilot remains open
 
 **Goal:** Automatically remind the parent or guardian responsible for every unpaid student balance through Meta's WhatsApp Cloud API, without requiring a school to create a campaign or select students.
 
@@ -155,7 +155,7 @@ Enable RLS for every new table. Tenant-facing reads and writes must be constrain
 
 Create and obtain approval for these French templates before enabling production sends:
 
-All three templates were submitted to Meta on July 16, 2026 and are currently in review. The application must always send language code `fr`; English WhatsApp templates are outside the first release.
+All three French templates were approved by Meta. The application must always send language code `fr`; English WhatsApp templates are outside the first release.
 
 ### `minerval_payment_reminder_v1`
 
@@ -346,6 +346,16 @@ Never expose these values through `NEXT_PUBLIC_*`. Extend the deep health check 
 - [ ] Run dry-run in production for at least 48 hours and inspect duplicates, timing, and recipient eligibility.
 - [ ] Enable live sending for one internal pilot school, then expand gradually.
 - [ ] Complete one real WhatsApp-to-SerdiPay payment and verify delivery webhooks, callback cancellation, receipt link, and final balance.
+
+### Production readiness update — July 27, 2026
+
+- Meta phone registration is verified for the Minerval Cloud API number.
+- The Minerval WhatsApp Business Account has an active default billing method.
+- The French reminder, confirmation, and failure templates are approved.
+- A permanent system-user token, webhook subscription, and all required production variables are configured.
+- Production deep health and the scheduled reminder worker are passing.
+- The latest scheduled run completed with zero eligible recipients and zero sends.
+- Broader enrollment remains blocked on one controlled, consented end-to-end pilot.
 
 ---
 

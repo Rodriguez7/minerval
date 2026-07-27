@@ -95,7 +95,7 @@ The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](/Users/rod/20%20App
 
 ## Automatic WhatsApp Reminders
 
-The implementation replaces the unfinished manual WhatsApp reminder experiment with automatic payment reminders through Meta's WhatsApp Cloud API. Production sending remains gated on applying migration `023`, creating and approving the Meta templates, configuring secrets, extending the Cloudflare server-to-server bypass rule, and completing the pilot rollout.
+The implementation replaces the unfinished manual WhatsApp reminder experiment with automatic payment reminders through Meta's WhatsApp Cloud API. The production database, approved French templates, permanent system-user token, verified sending number, webhook subscription, billing method, server configuration, and scheduled worker are active. The remaining rollout gate is a controlled end-to-end pilot with a consented recipient before enrolling real school balances.
 
 - A parent or guardian name, WhatsApp number, relationship, and consent record will be required when a school adds or imports a student. WhatsApp messages are French-only in the first release.
 - Every unpaid balance with a due date will enter a fixed reminder sequence automatically. Schools will not create campaigns or select students.
@@ -230,4 +230,4 @@ It deliberately does **not** assert that a captcha token arrives: Turnstile chal
 - No refunds
 - No provider-side settlement import yet (reconciliation is still managed from the dashboard)
 - No Excel import (CSV only)
-- Automatic WhatsApp reminders are implemented but not production-enabled until Meta templates, secrets, Cloudflare bypasses, migration `023`, and the pilot are complete
+- Automatic WhatsApp reminder infrastructure is production-enabled; automatic runs currently send only for eligible, consented balances, and a controlled end-to-end pilot remains required before broader school rollout
