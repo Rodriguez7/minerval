@@ -15,6 +15,7 @@ import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { collectAllPages } from "@/lib/paged-query";
 import { clampPage, parsePage } from "@/lib/pagination";
 import { Pagination } from "../Pagination";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const REPORT_PAGE_SIZE = 100;
@@ -33,21 +34,31 @@ export default async function ReportsPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
+  const reconciliationLabels = fr
+    ? RECONCILIATION_LABELS
+    : {
+        pending_review: "Pending review",
+        reconciled: "Reconciled",
+        needs_review: "Needs review",
+        manual_override: "Manual resolution",
+      };
   const { school, plan } = await getTenantContext();
 
   if (!plan.can_rich_reports) {
     return (
       <div className="space-y-6 max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Rapports</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{fr ? "Rapports" : "Reports"}</h1>
         <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center space-y-4">
           <p className="text-sm text-zinc-500">
-            Les rapports avances sont disponibles avec les plans Growth et Pro.
+            {fr ? "Les rapports avancés sont disponibles avec les plans Growth et Pro." : "Advanced reports are available on Growth and Pro plans."}
           </p>
           <LocalizedLink
             href="/dashboard/billing"
             className="inline-flex bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors"
           >
-            Voir les plans
+            {fr ? "Voir les plans" : "View plans"}
           </LocalizedLink>
         </div>
       </div>
@@ -123,9 +134,9 @@ export default async function ReportsPage({
     <div className="space-y-8">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Rapports</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{fr ? "Rapports" : "Reports"}</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Performance des paiements, exceptions de rapprochement et export CSV
+            {fr ? "Performance des paiements, exceptions de rapprochement et export CSV" : "Payment performance, reconciliation exceptions, and CSV export"}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -133,13 +144,13 @@ export default async function ReportsPage({
             href={`/dashboard/reports/export?${exportParams.toString()}`}
             className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
           >
-            Exporter en CSV
+            {fr ? "Exporter en CSV" : "Export CSV"}
           </LocalizedLink>
           <LocalizedLink
             href="/dashboard/reconciliation"
             className="text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
         >
-            File de rapprochement
+            {fr ? "File de rapprochement" : "Reconciliation queue"}
           </LocalizedLink>
         </div>
       </div>
@@ -147,7 +158,7 @@ export default async function ReportsPage({
       {/* Filters */}
       <form className="bg-white rounded-xl border border-zinc-200 p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Du</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Du" : "From"}</label>
           <input
             type="date"
             name="from"
@@ -156,7 +167,7 @@ export default async function ReportsPage({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Au</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Au" : "To"}</label>
           <input
             type="date"
             name="to"
@@ -165,30 +176,30 @@ export default async function ReportsPage({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Statut du paiement</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Statut du paiement" : "Payment status"}</label>
           <select
             name="paymentStatus"
             defaultValue={filters.paymentStatus}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">Tous</option>
-            <option value="pending">En attente</option>
-            <option value="success">Succes</option>
-            <option value="failed">Echec</option>
+            <option value="all">{fr ? "Tous" : "All"}</option>
+            <option value="pending">{fr ? "En attente" : "Pending"}</option>
+            <option value="success">{fr ? "Succès" : "Success"}</option>
+            <option value="failed">{fr ? "Échec" : "Failed"}</option>
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Rapprochement</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Rapprochement" : "Reconciliation"}</label>
           <select
             name="reconciliationStatus"
             defaultValue={filters.reconciliationStatus}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">Tous</option>
-            <option value="pending_review">En attente de verification</option>
-            <option value="reconciled">Rapproche</option>
-            <option value="needs_review">A verifier</option>
-            <option value="manual_override">Resolution manuelle</option>
+            <option value="all">{fr ? "Tous" : "All"}</option>
+            <option value="pending_review">{reconciliationLabels.pending_review}</option>
+            <option value="reconciled">{reconciliationLabels.reconciled}</option>
+            <option value="needs_review">{reconciliationLabels.needs_review}</option>
+            <option value="manual_override">{reconciliationLabels.manual_override}</option>
           </select>
         </div>
         <div className="flex items-end">
@@ -196,35 +207,35 @@ export default async function ReportsPage({
             type="submit"
             className="w-full rounded-lg bg-zinc-900 text-white py-2 text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
           >
-            Appliquer les filtres
+            {fr ? "Appliquer les filtres" : "Apply filters"}
           </button>
         </div>
       </form>
 
       {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <MetricCard label="Lances" value={`${totals.initiated.toLocaleString("fr-FR")} ${school.currency}`} />
-        <MetricCard label="Encaisse" value={`${totals.collected.toLocaleString("fr-FR")} ${school.currency}`} />
-        <MetricCard label="En attente" value={`${totals.pending.toLocaleString("fr-FR")} ${school.currency}`} />
-        <MetricCard label="Echec" value={`${totals.failed.toLocaleString("fr-FR")} ${school.currency}`} />
-        <MetricCard label="Exceptions" value={String(totals.exceptions)} />
+        <MetricCard label={fr ? "Lancés" : "Initiated"} value={`${totals.initiated.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label={fr ? "Encaissé" : "Collected"} value={`${totals.collected.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label={fr ? "En attente" : "Pending"} value={`${totals.pending.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label={fr ? "Échec" : "Failed"} value={`${totals.failed.toLocaleString("fr-FR")} ${school.currency}`} />
+        <MetricCard label={fr ? "Exceptions" : "Exceptions"} value={String(totals.exceptions)} />
       </div>
 
       {/* Daily rollup + reconciliation breakdown */}
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1.4fr_1fr]">
         <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100">
-            <h2 className="text-sm font-semibold text-zinc-900">Synthese journaliere</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">{fr ? "Synthèse journalière" : "Daily summary"}</h2>
           </div>
           {dailyTotals.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <p className="text-sm text-zinc-400">Aucun paiement pour cette plage de filtres.</p>
+              <p className="text-sm text-zinc-400">{fr ? "Aucun paiement pour cette plage de filtres." : "No payments for these filters."}</p>
             </div>
           ) : (
             <table>
               <thead>
                 <tr className="border-b border-zinc-100">
-                  {["Date", "Demandes", "Lances", "Encaisse"].map((h) => (
+                  {(fr ? ["Date", "Demandes", "Lancés", "Encaissé"] : ["Date", "Requests", "Initiated", "Collected"]).map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -253,14 +264,14 @@ export default async function ReportsPage({
 
         <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100">
-            <h2 className="text-sm font-semibold text-zinc-900">Repartition du rapprochement</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">{fr ? "Répartition du rapprochement" : "Reconciliation breakdown"}</h2>
           </div>
           <div className="px-6 py-4 space-y-3">
             {(["pending_review", "reconciled", "needs_review", "manual_override"] as const).map((status) => {
               const count = rows.filter((row) => row.reconciliation_status === status).length;
               return (
                 <div key={status} className="flex items-center justify-between py-1 border-b border-zinc-50 last:border-0">
-                  <span className="text-sm text-zinc-600">{RECONCILIATION_LABELS[status]}</span>
+                  <span className="text-sm text-zinc-600">{reconciliationLabels[status]}</span>
                   <span className="text-sm font-semibold font-mono text-zinc-900">{count}</span>
                 </div>
               );
@@ -273,20 +284,23 @@ export default async function ReportsPage({
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Transactions filtrees
+            {fr ? "Transactions filtrées" : "Filtered transactions"}
             <span className="ml-2 text-xs font-normal text-zinc-400">{rows.length}</span>
           </h2>
         </div>
         {rows.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-zinc-400">Aucune transaction pour cette plage de filtres.</p>
+            <p className="text-sm text-zinc-400">{fr ? "Aucune transaction pour cette plage de filtres." : "No transactions for these filters."}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table>
               <thead>
                 <tr className="border-b border-zinc-100">
-                  {["Eleve", "Montant", "Operateur", "Paiement", "Rapprochement", "Date"].map((h) => (
+                  {(fr
+                    ? ["Élève", "Montant", "Opérateur", "Paiement", "Rapprochement", "Date"]
+                    : ["Student", "Amount", "Operator", "Payment", "Reconciliation", "Date"]
+                  ).map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -300,7 +314,7 @@ export default async function ReportsPage({
                     <tr key={row.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium text-zinc-900">
-                          {student?.full_name ?? "Eleve inconnu"}
+                          {student?.full_name ?? (fr ? "Élève inconnu" : "Unknown student")}
                         </p>
                         <p className="text-xs text-zinc-400 font-mono">{student?.external_id ?? "—"}</p>
                       </td>
@@ -312,15 +326,15 @@ export default async function ReportsPage({
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600">
                         {row.status === "success"
-                          ? "succes"
+                          ? fr ? "succès" : "success"
                           : row.status === "failed"
-                            ? "echec"
+                            ? fr ? "échec" : "failed"
                             : row.status === "pending"
-                              ? "en attente"
+                              ? fr ? "en attente" : "pending"
                               : row.status}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-sm text-zinc-600">{RECONCILIATION_LABELS[row.reconciliation_status]}</p>
+                        <p className="text-sm text-zinc-600">{reconciliationLabels[row.reconciliation_status]}</p>
                         {row.reconciliation_note && (
                           <p className="text-xs text-zinc-400">{row.reconciliation_note}</p>
                         )}

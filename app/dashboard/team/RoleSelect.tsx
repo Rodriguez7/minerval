@@ -2,8 +2,10 @@
 import { useTransition, useState } from "react";
 import { changeMemberRole } from "./actions";
 import type { MembershipRole } from "@/lib/types";
+import { useLocale } from "@/lib/i18n/client";
 
 export function RoleSelect({ memberId, currentRole }: { memberId: string; currentRole: string }) {
+  const fr = useLocale() === "fr";
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -25,9 +27,9 @@ export function RoleSelect({ memberId, currentRole }: { memberId: string; curren
         {(["owner", "admin", "finance", "viewer"] as MembershipRole[]).map((r) => (
           <option key={r} value={r}>
             {r === "owner"
-              ? "Proprietaire"
+              ? fr ? "Propriétaire" : "Owner"
               : r === "viewer"
-                ? "Lecture"
+                ? fr ? "Lecture" : "Viewer"
                 : r.charAt(0).toUpperCase() + r.slice(1)}
           </option>
         ))}

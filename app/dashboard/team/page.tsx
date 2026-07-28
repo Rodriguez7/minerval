@@ -4,6 +4,7 @@ import { deactivateMember } from "./actions";
 import { RoleSelect } from "./RoleSelect";
 import { InviteForm } from "./InviteForm";
 import type { MembershipRole } from "@/lib/types";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 async function loadTeamData() {
   const { school, membership: currentMembership, user } = await getTenantContext();
@@ -31,27 +32,32 @@ async function loadTeamData() {
   };
 }
 
-const ROLE_LABELS: Record<MembershipRole, string> = {
-  owner: "Proprietaire",
-  admin: "Admin",
-  finance: "Finance",
-  viewer: "Lecture",
-};
-
 export default async function TeamPage() {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
+  const roleLabels: Record<MembershipRole, string> = {
+    owner: fr ? "Propriétaire" : "Owner",
+    admin: "Admin",
+    finance: "Finance",
+    viewer: fr ? "Lecture" : "Viewer",
+  };
   const { members, currentMembership, currentUserId } = await loadTeamData();
   const canManage = ["owner", "admin"].includes(currentMembership.role);
 
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Equipe</h1>
-        <p className="text-sm text-zinc-500 mt-1">Gerez les membres et les roles d&apos;acces</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{fr ? "Équipe" : "Team"}</h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {fr ? "Gérez les membres et les rôles d’accès" : "Manage members and access roles"}
+        </p>
       </div>
 
       {canManage && (
         <div className="bg-white rounded-xl border border-zinc-200 p-6">
-          <h2 className="text-sm font-semibold text-zinc-900 mb-4">Inviter un membre</h2>
+          <h2 className="text-sm font-semibold text-zinc-900 mb-4">
+            {fr ? "Inviter un membre" : "Invite a member"}
+          </h2>
           <InviteForm />
         </div>
       )}
@@ -59,14 +65,14 @@ export default async function TeamPage() {
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Membres
+            {fr ? "Membres" : "Members"}
             <span className="ml-2 text-xs font-normal text-zinc-400">{members.length}</span>
           </h2>
         </div>
         <div className="overflow-x-auto"><table>
           <thead>
             <tr className="border-b border-zinc-100">
-              {["Email", "Role", "Statut", ""].map((h) => (
+              {(fr ? ["E-mail", "Rôle", "Statut", ""] : ["Email", "Role", "Status", ""]).map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                   {h}
                 </th>
@@ -81,14 +87,14 @@ export default async function TeamPage() {
                   <td className="px-4 py-3 text-sm text-zinc-900">
                     {m.email}
                     {isSelf && (
-                      <span className="ml-2 text-xs text-zinc-400">(vous)</span>
+                      <span className="ml-2 text-xs text-zinc-400">({fr ? "vous" : "you"})</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">
                     {canManage && !isSelf ? (
                       <RoleSelect memberId={m.id} currentRole={m.role} />
                     ) : (
-                      <span>{ROLE_LABELS[m.role as MembershipRole] ?? m.role}</span>
+                      <span>{roleLabels[m.role as MembershipRole] ?? m.role}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -99,7 +105,7 @@ export default async function TeamPage() {
                           : "bg-zinc-100 text-zinc-500 border border-zinc-200"
                       }`}
                     >
-                      {m.status === "active" ? "actif" : "inactif"}
+                      {m.status === "active" ? fr ? "actif" : "active" : fr ? "inactif" : "inactive"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -115,7 +121,7 @@ export default async function TeamPage() {
                           type="submit"
                           className="text-xs text-red-600 hover:underline transition-colors"
                         >
-                          Desactiver
+                          {fr ? "Désactiver" : "Deactivate"}
                         </button>
                       </form>
                     )}

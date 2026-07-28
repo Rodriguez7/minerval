@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { getTenantContext } from "@/lib/tenant";
-import { normalizeDrcMobilePhone } from "@/lib/phone";
+import { normalizeWhatsAppPhone } from "@/lib/phone";
 
 const studentSchema = z.object({
   full_name: z.string().min(1).max(200),
@@ -20,7 +20,7 @@ const studentSchema = z.object({
 export async function addStudent(_: unknown, formData: FormData) {
   const { school, membership, plan } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = studentSchema.safeParse({
@@ -37,11 +37,11 @@ export async function addStudent(_: unknown, formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
   if (parsed.data.amount_due > 0 && !parsed.data.balance_due_at) {
-    return { error: "La date d'echeance est obligatoire lorsque le montant du est superieur a zero." };
+    return { error: "La date d'échéance est obligatoire lorsque le montant dû est supérieur a zéro." };
   }
 
-  const guardianPhone = normalizeDrcMobilePhone(parsed.data.guardian_whatsapp);
-  if (!guardianPhone) return { error: "Numero WhatsApp RDC invalide." };
+  const guardianPhone = normalizeWhatsAppPhone(parsed.data.guardian_whatsapp);
+  if (!guardianPhone) return { error: "Numéro WhatsApp international invalide." };
 
   const supabase = await createSSRClient();
 
@@ -55,7 +55,7 @@ export async function addStudent(_: unknown, formData: FormData) {
     const current = currentCount ?? 0;
     if (current + 1 > plan.max_students) {
       return {
-        error: `Limite d'eleves atteinte. Votre plan autorise ${plan.max_students} eleves (actuellement ${current}).`,
+        error: `Limite d’élèves atteinte. Votre plan autorise ${plan.max_students} élèves (actuellement ${current}).`,
       };
     }
   }
@@ -78,9 +78,9 @@ export async function addStudent(_: unknown, formData: FormData) {
   const result = data as { error?: string } | null;
   if (error || result?.error) {
     if (error?.message.includes("guardian_whatsapp_opted_out")) {
-      return { error: "Ce numero WhatsApp s'est desabonne des rappels." };
+      return { error: "Ce numéro WhatsApp s’est désabonné des rappels." };
     }
-    return { error: "Impossible d'ajouter l'eleve et son responsable." };
+    return { error: "Impossible d'ajouter l'élève et son responsable." };
   }
 
   revalidatePath("/dashboard/students");
@@ -90,7 +90,7 @@ export async function addStudent(_: unknown, formData: FormData) {
 export async function editStudent(_: unknown, formData: FormData) {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const schema = z.object({
@@ -117,7 +117,7 @@ export async function editStudent(_: unknown, formData: FormData) {
     .eq("id", id)
     .eq("school_id", school.id);
 
-  if (error) return { error: "Impossible de mettre a jour l'eleve." };
+  if (error) return { error: "Impossible de mettre à jour l'élève." };
 
   revalidatePath("/dashboard/students");
   return { success: true };
@@ -126,7 +126,7 @@ export async function editStudent(_: unknown, formData: FormData) {
 export async function deleteStudent(id: string) {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const supabase = await createSSRClient();
@@ -136,7 +136,7 @@ export async function deleteStudent(id: string) {
     .eq("id", id)
     .eq("school_id", school.id);
 
-  if (error) return { error: "Impossible de supprimer l'eleve." };
+  if (error) return { error: "Impossible de supprimer l'élève." };
 
   revalidatePath("/dashboard/students");
   return { success: true };
@@ -145,7 +145,7 @@ export async function deleteStudent(id: string) {
 export async function setStudentReminderPause(formData: FormData) {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = z.object({
@@ -166,7 +166,7 @@ export async function setStudentReminderPause(formData: FormData) {
     .eq("id", parsed.data.studentId)
     .eq("school_id", school.id);
 
-  if (error) return { error: "Impossible de mettre a jour les rappels." };
+  if (error) return { error: "Impossible de mettre à jour les rappels." };
   revalidatePath("/dashboard/students");
   return { success: true };
 }
@@ -174,7 +174,7 @@ export async function setStudentReminderPause(formData: FormData) {
 export async function setStudentGuardian(formData: FormData) {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin", "finance"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = z.object({
@@ -194,8 +194,8 @@ export async function setStudentGuardian(formData: FormData) {
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Action invalide" };
 
-  const phone = normalizeDrcMobilePhone(parsed.data.guardianWhatsapp);
-  if (!phone) return { error: "Numero WhatsApp RDC invalide." };
+  const phone = normalizeWhatsAppPhone(parsed.data.guardianWhatsapp);
+  if (!phone) return { error: "Numéro WhatsApp international invalide." };
 
   const supabase = await createSSRClient();
   const { data, error } = await supabase.rpc("set_student_primary_guardian", {

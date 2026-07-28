@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 
-export function ApproveButton({ payoutId }: { payoutId: string }) {
+export function ApproveButton({ payoutId, locale }: { payoutId: string; locale: "fr" | "en" }) {
+  const fr = locale === "fr";
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,16 +16,16 @@ export function ApproveButton({ payoutId }: { payoutId: string }) {
         setDone(true);
       } else {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Echec");
+        setError(data.error ?? (fr ? "Échec" : "Failed"));
       }
     } catch {
-      setError("Erreur reseau");
+      setError(fr ? "Erreur réseau" : "Network error");
     } finally {
       setLoading(false);
     }
   }
 
-  if (done) return <span className="text-xs text-green-600">Envoye</span>;
+  if (done) return <span className="text-xs text-green-600">{fr ? "Envoyé" : "Sent"}</span>;
   if (error) return <span className="text-xs text-red-600">{error}</span>;
 
   return (
@@ -33,7 +34,7 @@ export function ApproveButton({ payoutId }: { payoutId: string }) {
       disabled={loading}
       className="rounded bg-black px-3 py-1 text-xs text-white disabled:opacity-40"
     >
-      {loading ? "…" : "Approuver"}
+      {loading ? "…" : fr ? "Approuver" : "Approve"}
     </button>
   );
 }

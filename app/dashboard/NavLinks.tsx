@@ -6,7 +6,7 @@ import { getDashboardShellCopy } from "@/lib/i18n/copy/dashboard";
 import { stripLocaleFromPathname } from "@/lib/i18n/config";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 
-export function NavLinks() {
+export function NavLinks({ showAdmin = false }: { showAdmin?: boolean }) {
   const locale = useLocale();
   const copy = getDashboardShellCopy(locale);
   const pathname = stripLocaleFromPathname(usePathname());
@@ -21,6 +21,9 @@ export function NavLinks() {
     { href: "/dashboard/team", label: copy.nav.team },
     { href: "/dashboard/billing", label: copy.nav.billing },
     { href: "/dashboard/settings", label: copy.nav.settings },
+    ...(showAdmin
+      ? [{ href: "/dashboard/admin/schools", label: copy.nav.verification }]
+      : []),
   ];
 
   return (

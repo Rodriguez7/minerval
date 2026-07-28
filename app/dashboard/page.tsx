@@ -11,6 +11,10 @@ import { markPaymentFailed, regeneratePaymentAccessToken } from "./actions";
 import type { PaymentRequest, Student, Telecom } from "@/lib/types";
 import { TELECOM_LABELS } from "@/lib/types";
 import { collectAllPages } from "@/lib/paged-query";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { getSchoolReadinessItems } from "@/lib/school-readiness";
+import { OnboardingChecklist } from "./OnboardingChecklist";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type DashboardPayment = Pick<
   PaymentRequest,
@@ -24,11 +28,21 @@ type StudentDueRow = Pick<
   "id" | "external_id" | "full_name" | "class_name" | "amount_due"
 >;
 
-async function loadDashboardData() {
+async function loadDashboardData(locale: AppLocale) {
   const { school } = await getTenantContext();
   const supabase = await createSSRClient();
+  const fr = locale === "fr";
 
-  const [studentCountResult, paymentsResult, studentsWithDuesResult, studentsWithDuesCountResult, paymentMetrics] = await Promise.all([
+  const [
+    studentCountResult,
+    paymentsResult,
+    studentsWithDuesResult,
+    studentsWithDuesCountResult,
+    paymentMetrics,
+    guardianCountResult,
+    balanceCountResult,
+    whatsappSettingsResult,
+  ] = await Promise.all([
     supabase
       .from("students")
       .select("id", { count: "exact", head: true })
@@ -61,6 +75,23 @@ async function loadDashboardData() {
         .order("id", { ascending: true })
         .range(from, to)
     ),
+    supabase
+      .from("guardians")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .not("whatsapp_opt_in_at", "is", null)
+      .is("whatsapp_opted_out_at", null),
+    supabase
+      .from("students")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .gt("amount_due", 0)
+      .not("balance_due_at", "is", null),
+    supabase
+      .from("school_whatsapp_settings")
+      .select("automatic_reminders_enabled")
+      .eq("school_id", school.id)
+      .maybeSingle(),
   ]);
 
   const allPayments = (paymentsResult.data ?? []) as DashboardPayment[];
@@ -71,19 +102,32 @@ async function loadDashboardData() {
   const paymentQrCode = await QRCode.toDataURL(paymentUrl, { margin: 1, width: 256 });
 
   const stats = [
-    { label: "Eleves", value: studentCountResult.count ?? 0 },
+    { label: fr ? "Élèves" : "Students", value: studentCountResult.count ?? 0 },
     {
-      label: "En attente",
+      label: fr ? "En attente" : "Pending",
       value: pending.length,
       sub: `${pending.reduce((s, p) => s + p.amount, 0).toLocaleString("fr-FR")} ${school.currency}`,
     },
     {
-      label: "Confirmes",
+      label: fr ? "Confirmés" : "Confirmed",
       value: successful.length,
       sub: `${successful.reduce((s, p) => s + p.amount, 0).toLocaleString("fr-FR")} ${school.currency}`,
     },
-    { label: "Avec soldes", value: studentsWithDuesCountResult.count ?? 0 },
+    { label: fr ? "Avec soldes" : "With balances", value: studentsWithDuesCountResult.count ?? 0 },
   ];
+  const readinessItems = getSchoolReadinessItems(
+    school,
+    {
+      students: studentCountResult.count ?? 0,
+      guardians: guardianCountResult.count ?? 0,
+      balancesWithDueDate: balanceCountResult.count ?? 0,
+    },
+    {
+      automaticRemindersEnabled:
+        whatsappSettingsResult.data?.automatic_reminders_enabled ?? true,
+    },
+    locale
+  );
 
   const staleCutoff = new Date(Date.now() - 3_600_000).toISOString();
 
@@ -95,10 +139,11 @@ async function loadDashboardData() {
     studentsWithDues,
     paymentUrl,
     paymentQrCode,
+    readinessItems,
   };
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, locale }: { status: string; locale: AppLocale }) {
   const styles = {
     success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     failed: "bg-red-50 text-red-700 border border-red-200",
@@ -111,17 +156,19 @@ function StatusBadge({ status }: { status: string }) {
       }`}
     >
       {status === "success"
-        ? "succes"
+        ? locale === "fr" ? "succès" : "success"
         : status === "failed"
-          ? "echec"
+          ? locale === "fr" ? "échec" : "failed"
           : status === "pending"
-            ? "en attente"
+            ? locale === "fr" ? "en attente" : "pending"
             : status}
     </span>
   );
 }
 
 export default async function DashboardPage() {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
   const {
     school,
     allPayments,
@@ -130,14 +177,21 @@ export default async function DashboardPage() {
     studentsWithDues,
     paymentUrl,
     paymentQrCode,
-  } = await loadDashboardData();
+    readinessItems,
+  } = await loadDashboardData(locale);
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Vue d&apos;ensemble</h1>
-        <p className="text-sm text-zinc-500 mt-1">Activite des paiements et indicateurs de l&apos;ecole</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
+          {fr ? "Vue d’ensemble" : "Overview"}
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {fr ? "Activité des paiements et indicateurs de l’établissement" : "Payment activity and school metrics"}
+        </p>
       </div>
+
+      <OnboardingChecklist locale={locale} items={readinessItems} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -154,9 +208,13 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-900">QR de paiement de l&apos;ecole</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              {fr ? "QR de paiement de l’établissement" : "School payment QR"}
+            </h2>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Partagez ce QR code ou ce lien avec les parents pour collecter les frais
+              {fr
+                ? "Partagez ce QR code ou ce lien avec les parents pour collecter les frais."
+                : "Share this QR code or link with parents to collect fees."}
             </p>
           </div>
           <form action={regeneratePaymentAccessToken}>
@@ -164,21 +222,23 @@ export default async function DashboardPage() {
               type="submit"
               className="text-xs font-medium text-red-600 hover:text-red-700 transition-colors"
             >
-              Regenerer
+              {fr ? "Régénérer" : "Regenerate"}
             </button>
           </form>
         </div>
         <div className="px-4 py-5 md:px-6 flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
           <Image
             src={paymentQrCode}
-            alt={`QR de paiement pour ${school.name}`}
+            alt={fr ? `QR de paiement pour ${school.name}` : `Payment QR for ${school.name}`}
             width={176}
             height={176}
             unoptimized
             className="rounded-lg border border-zinc-200 p-2 bg-white shrink-0"
           />
           <div className="space-y-2">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Lien de paiement actif</p>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              {fr ? "Lien de paiement actif" : "Active payment link"}
+            </p>
             <Link
               href={paymentUrl}
               target="_blank"
@@ -187,7 +247,9 @@ export default async function DashboardPage() {
               {paymentUrl}
             </Link>
             <p className="text-xs text-zinc-400">
-              La regeneration invalide immediatement l&apos;ancien lien.
+              {fr
+                ? "La régénération invalide immédiatement l’ancien lien."
+                : "Regenerating immediately invalidates the previous link."}
             </p>
           </div>
         </div>
@@ -196,20 +258,25 @@ export default async function DashboardPage() {
       {/* Recent Payments */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Paiements recents</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">
+            {fr ? "Paiements récents" : "Recent payments"}
+          </h2>
           <Link
             href={paymentUrl}
             target="_blank"
             className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
           >
-            Page de paiement ↗
+            {fr ? "Page de paiement ↗" : "Payment page ↗"}
           </Link>
         </div>
         <div className="overflow-x-auto">
           <table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Eleve", "Montant", "Telephone", "Operateur", "Statut", "Date", ""].map((h) => (
+                {(fr
+                  ? ["Élève", "Montant", "Téléphone", "Opérateur", "Statut", "Date", ""]
+                  : ["Student", "Amount", "Phone", "Operator", "Status", "Date", ""]
+                ).map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -236,7 +303,7 @@ export default async function DashboardPage() {
                       {TELECOM_LABELS[p.telecom as Telecom] ?? p.telecom}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={p.status} />
+                      <StatusBadge status={p.status} locale={locale} />
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-400">
                       {new Date(p.created_at).toLocaleDateString("fr-FR")}
@@ -253,7 +320,7 @@ export default async function DashboardPage() {
                             type="submit"
                             className="text-xs text-red-600 hover:underline transition-colors"
                           >
-                            Marquer en echec
+                            {fr ? "Marquer en échec" : "Mark failed"}
                           </button>
                         </form>
                       )}
@@ -265,7 +332,9 @@ export default async function DashboardPage() {
           </table>
           {allPayments.length === 0 && (
             <div className="px-6 py-12 text-center">
-              <p className="text-sm text-zinc-400">Aucun paiement pour le moment.</p>
+              <p className="text-sm text-zinc-400">
+                {fr ? "Aucun paiement pour le moment." : "No payments yet."}
+              </p>
             </div>
           )}
         </div>
@@ -275,13 +344,20 @@ export default async function DashboardPage() {
       {studentsWithDues.length > 0 && (
         <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100">
-            <h2 className="text-sm font-semibold text-zinc-900">Frais impayes</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Eleves avec un solde restant</p>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              {fr ? "Frais impayés" : "Outstanding fees"}
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {fr ? "Élèves avec un solde restant" : "Students with a remaining balance"}
+            </p>
           </div>
           <table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Nom", "ID", "Classe", "Montant du"].map((h) => (
+                {(fr
+                  ? ["Nom", "ID", "Classe", "Montant dû"]
+                  : ["Name", "ID", "Class", "Amount due"]
+                ).map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>

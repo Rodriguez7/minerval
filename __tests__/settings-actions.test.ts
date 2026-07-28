@@ -32,14 +32,14 @@ describe("updatePricingPolicy", () => {
     mockTenant("viewer");
     const fd = makeFormData({ parentFeeBps: "275", feeDisplayMode: "visible_line_item" });
     const result = await updatePricingPolicy(undefined, fd);
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("returns French unauthorized error for finance", async () => {
     mockTenant("finance");
     const fd = makeFormData({ parentFeeBps: "275", feeDisplayMode: "visible_line_item" });
     const result = await updatePricingPolicy(undefined, fd);
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("returns validation error for out-of-range bps (owner, no DB call)", async () => {
@@ -132,6 +132,6 @@ describe("updateEducationLevels", () => {
     const formData = new FormData();
     formData.append("educationLevels", "university");
     const result = await updateEducationLevels(undefined, formData);
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 });

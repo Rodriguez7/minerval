@@ -54,7 +54,7 @@ describe("addStudent", () => {
     const result = await addStudent(null, makeFormData(VALID_FORM));
 
     expect(result).toEqual({
-      error: "Limite d'eleves atteinte. Votre plan autorise 10 eleves (actuellement 10).",
+      error: "Limite d’élèves atteinte. Votre plan autorise 10 élèves (actuellement 10).",
     });
   });
 

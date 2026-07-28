@@ -55,9 +55,9 @@ export async function createSchool(_: unknown, formData: FormData) {
   }
 
   const directorPhone = normalizeDrcMobilePhone(parsed.data.directorPhone);
-  if (!directorPhone) return { error: "Numero mobile RDC du responsable invalide." };
+  if (!directorPhone) return { error: "Numéro mobile RDC du responsable invalide." };
   const payoutAccountPhone = normalizeDrcMobilePhone(parsed.data.payoutAccountPhone);
-  if (!payoutAccountPhone) return { error: "Numero mobile RDC de versement invalide." };
+  if (!payoutAccountPhone) return { error: "Numéro mobile RDC de versement invalide." };
 
   const supabase = await createSSRClient();
   const { data: { user } } = await supabase.auth.getUser();

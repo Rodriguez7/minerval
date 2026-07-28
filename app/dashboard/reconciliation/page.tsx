@@ -16,6 +16,7 @@ import type { Telecom } from "@/lib/types";
 import { collectAllPages } from "@/lib/paged-query";
 import { clampPage, parsePage } from "@/lib/pagination";
 import { Pagination } from "../Pagination";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const EXCEPTIONS_PAGE_SIZE = 50;
@@ -76,6 +77,16 @@ export default async function ReconciliationPage({
   searchParams: SearchParams;
 }) {
   const { school } = await getTenantContext();
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
+  const reconciliationLabels = fr
+    ? RECONCILIATION_LABELS
+    : {
+        pending_review: "Pending review",
+        reconciled: "Reconciled",
+        needs_review: "Needs review",
+        manual_override: "Manual resolution",
+      };
   const resolvedSearchParams = await searchParams;
   const filters = parseReportFilters(resolvedSearchParams);
   const supabase = await createSSRClient();
@@ -122,23 +133,25 @@ export default async function ReconciliationPage({
     <div className="space-y-8">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Rapprochement</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
+            {fr ? "Rapprochement" : "Reconciliation"}
+          </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Analysez les exceptions, signalez les ecarts et gardez une trace d&apos;audit
+            {fr ? "Analysez les exceptions, signalez les écarts et conservez une trace d’audit." : "Review exceptions, flag discrepancies, and maintain an audit trail."}
           </p>
         </div>
         <LocalizedLink
           href="/dashboard/reports"
           className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
         >
-          Ouvrir le tableau de bord des rapports
+          {fr ? "Ouvrir le tableau de bord des rapports" : "Open reports dashboard"}
         </LocalizedLink>
       </div>
 
       {/* Filters */}
       <form className="bg-white rounded-xl border border-zinc-200 p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Du</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Du" : "From"}</label>
           <input
             type="date"
             name="from"
@@ -147,7 +160,7 @@ export default async function ReconciliationPage({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Au</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Au" : "To"}</label>
           <input
             type="date"
             name="to"
@@ -156,30 +169,30 @@ export default async function ReconciliationPage({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Statut du paiement</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Statut du paiement" : "Payment status"}</label>
           <select
             name="paymentStatus"
             defaultValue={filters.paymentStatus}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">Tous</option>
-            <option value="pending">En attente</option>
-            <option value="success">Succes</option>
-            <option value="failed">Echec</option>
+            <option value="all">{fr ? "Tous" : "All"}</option>
+            <option value="pending">{fr ? "En attente" : "Pending"}</option>
+            <option value="success">{fr ? "Succès" : "Success"}</option>
+            <option value="failed">{fr ? "Échec" : "Failed"}</option>
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Rapprochement</label>
+          <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Rapprochement" : "Reconciliation"}</label>
           <select
             name="reconciliationStatus"
             defaultValue={filters.reconciliationStatus}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
           >
-            <option value="all">Tous</option>
-            <option value="pending_review">En attente de verification</option>
-            <option value="reconciled">Rapproche</option>
-            <option value="needs_review">A verifier</option>
-            <option value="manual_override">Resolution manuelle</option>
+            <option value="all">{fr ? "Tous" : "All"}</option>
+            <option value="pending_review">{reconciliationLabels.pending_review}</option>
+            <option value="reconciled">{reconciliationLabels.reconciled}</option>
+            <option value="needs_review">{reconciliationLabels.needs_review}</option>
+            <option value="manual_override">{reconciliationLabels.manual_override}</option>
           </select>
         </div>
         <div className="flex items-end">
@@ -187,7 +200,7 @@ export default async function ReconciliationPage({
             type="submit"
             className="w-full rounded-lg bg-zinc-900 text-white py-2 text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
           >
-            Appliquer les filtres
+            {fr ? "Appliquer les filtres" : "Apply filters"}
           </button>
         </div>
       </form>
@@ -195,25 +208,25 @@ export default async function ReconciliationPage({
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <SummaryCard
-          label="En attente expire"
+          label={fr ? "En attente expirée" : "Stale pending"}
           value={summary.stalePending.length}
           tone="yellow"
           sub={`${summary.stalePending.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
         <SummaryCard
-          label="A verifier"
+          label={fr ? "À vérifier" : "Needs review"}
           value={summary.needsReview.length}
           tone="red"
           sub={`${summary.needsReview.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
         <SummaryCard
-          label="Resolution manuelle"
+          label={fr ? "Résolution manuelle" : "Manual resolution"}
           value={summary.overrides.length}
           tone="amber"
           sub={`${summary.overrides.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
         />
         <SummaryCard
-          label="Rapproche"
+          label={fr ? "Rapproché" : "Reconciled"}
           value={summary.reconciled.length}
           tone="green"
           sub={`${summary.reconciled.reduce((sum, row) => sum + Number(row.amount), 0).toLocaleString("fr-FR")} ${school.currency}`}
@@ -223,15 +236,15 @@ export default async function ReconciliationPage({
       {/* Exception queue */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-sm font-semibold text-zinc-900">File d&apos;exceptions</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">{fr ? "File d’exceptions" : "Exception queue"}</h2>
           <p className="text-xs text-zinc-500 mt-0.5">
-            Demandes en attente expirees et elements signales a examiner
+            {fr ? "Demandes en attente expirées et éléments signalés à examiner" : "Stale pending requests and flagged items to review"}
           </p>
         </div>
 
         {exceptions.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-zinc-400">Aucune exception de rapprochement pour cette plage de filtres.</p>
+            <p className="text-sm text-zinc-400">{fr ? "Aucune exception de rapprochement pour cette plage de filtres." : "No reconciliation exceptions for these filters."}</p>
           </div>
         ) : (
           <div className="divide-y divide-zinc-100">
@@ -243,7 +256,7 @@ export default async function ReconciliationPage({
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
                     <div>
                       <p className="text-sm font-medium text-zinc-900">
-                        {student?.full_name ?? "Eleve inconnu"}
+                        {student?.full_name ?? (fr ? "Élève inconnu" : "Unknown student")}
                       </p>
                       <p className="text-xs text-zinc-500 mt-0.5">
                         {student?.external_id ?? "—"} ·{" "}
@@ -253,9 +266,9 @@ export default async function ReconciliationPage({
                         · {TELECOM_LABELS[row.telecom as Telecom] ?? row.telecom}
                       </p>
                       <p className="text-xs text-zinc-400 mt-1">
-                        Demande le {new Date(row.created_at).toLocaleString("fr-FR")}
+                        {fr ? "Demandé le" : "Requested"} {new Date(row.created_at).toLocaleString(fr ? "fr-FR" : "en-US")}
                         {row.reconciliation_updated_at &&
-                          ` · Derniere revue ${new Date(row.reconciliation_updated_at).toLocaleString("fr-FR")}`}
+                          ` · ${fr ? "Dernière revue" : "Last reviewed"} ${new Date(row.reconciliation_updated_at).toLocaleString(fr ? "fr-FR" : "en-US")}`}
                       </p>
                     </div>
                     <div className="flex gap-2 flex-wrap shrink-0">
@@ -273,9 +286,9 @@ export default async function ReconciliationPage({
                             : "yellow"
                         }
                       >
-                        {RECONCILIATION_LABELS[row.reconciliation_status]}
+                        {reconciliationLabels[row.reconciliation_status]}
                       </Badge>
-                      {stale && <Badge tone="yellow">callback en retard</Badge>}
+                      {stale && <Badge tone="yellow">{fr ? "callback en retard" : "delayed callback"}</Badge>}
                     </div>
                   </div>
 
@@ -294,7 +307,7 @@ export default async function ReconciliationPage({
                       <input
                         name="note"
                         defaultValue={row.reconciliation_note ?? ""}
-                        placeholder="Ajouter une note de rapprochement"
+                        placeholder={fr ? "Ajouter une note de rapprochement" : "Add reconciliation note"}
                         className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
                       />
                     </div>
@@ -305,7 +318,7 @@ export default async function ReconciliationPage({
                         value="needs_review"
                         className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors"
                       >
-                        A verifier
+                        {fr ? "À vérifier" : "Needs review"}
                       </button>
                       <button
                         type="submit"
@@ -313,7 +326,7 @@ export default async function ReconciliationPage({
                         value="manual_override"
                         className="rounded-lg border border-orange-200 px-3 py-2 text-sm text-orange-700 hover:bg-orange-50 transition-colors"
                       >
-                        Resolution manuelle
+                        {fr ? "Résolution manuelle" : "Manual resolution"}
                       </button>
                       {row.status !== "pending" && (
                         <button
@@ -322,7 +335,7 @@ export default async function ReconciliationPage({
                           value="reconciled"
                           className="rounded-lg border border-emerald-200 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors"
                         >
-                          Marquer comme rapproche
+                          {fr ? "Marquer comme rapproché" : "Mark reconciled"}
                         </button>
                       )}
                     </div>

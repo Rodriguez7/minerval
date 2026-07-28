@@ -4,23 +4,26 @@ import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { collectAllPages } from "@/lib/paged-query";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export default async function AnalyticsPage() {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
   const { school, plan } = await getTenantContext();
 
   if (!plan.can_advanced_analytics) {
     return (
       <div className="space-y-6 max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Analytique</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{fr ? "Analytique" : "Analytics"}</h1>
         <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center space-y-4">
           <p className="text-sm text-zinc-500">
-            L&apos;analytique avancee est disponible avec le plan Pro.
+            {fr ? "L’analytique avancée est disponible avec le plan Pro." : "Advanced analytics are available on the Pro plan."}
           </p>
           <LocalizedLink
             href="/dashboard/billing"
             className="inline-flex bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors"
           >
-            Voir les plans
+            {fr ? "Voir les plans" : "View plans"}
           </LocalizedLink>
         </div>
       </div>
@@ -70,7 +73,7 @@ export default async function AnalyticsPage() {
   const collectionsByClass = new Map<string, number>();
   for (const p of settledPayments) {
     const className =
-      (p.students as unknown as { class_name: string | null } | null)?.class_name ?? "Sans classe";
+      (p.students as unknown as { class_name: string | null } | null)?.class_name ?? (fr ? "Sans classe" : "No class");
     collectionsByClass.set(
       className,
       (collectionsByClass.get(className) ?? 0) + Number(p.amount)
@@ -79,7 +82,7 @@ export default async function AnalyticsPage() {
 
   const outstandingByClass = new Map<string, number>();
   for (const s of students) {
-    const className = s.class_name ?? "Sans classe";
+    const className = s.class_name ?? (fr ? "Sans classe" : "No class");
     outstandingByClass.set(
       className,
       (outstandingByClass.get(className) ?? 0) + Number(s.amount_due)
@@ -96,27 +99,37 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Analytique</h1>
-        <p className="text-sm text-zinc-500 mt-1">Performance des paiements et repartition des encaissements</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{fr ? "Analytique" : "Analytics"}</h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {fr ? "Performance des paiements et répartition des encaissements" : "Payment performance and collection breakdown"}
+        </p>
       </div>
 
       {/* Key metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Taux de succes</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+            {fr ? "Taux de succès" : "Success rate"}
+          </p>
           <p className="text-3xl font-bold font-mono text-zinc-950 mt-2">{successRate}%</p>
           <p className="text-xs text-zinc-400 mt-1">
-            {succeeded.toLocaleString("fr-FR")} paiements reussis sur {total.toLocaleString("fr-FR")} lances
+            {fr
+              ? `${succeeded.toLocaleString("fr-FR")} paiements réussis sur ${total.toLocaleString("fr-FR")} lancés`
+              : `${succeeded.toLocaleString("en-US")} successful payments out of ${total.toLocaleString("en-US")}`}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Total encaisse</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+            {fr ? "Total encaissé" : "Total collected"}
+          </p>
           <p className="text-3xl font-bold font-mono text-emerald-700 mt-2">
             {totalCollected.toLocaleString("fr-FR")} {currency}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Total impaye</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+            {fr ? "Total impayé" : "Total outstanding"}
+          </p>
           <p className="text-3xl font-bold font-mono text-amber-600 mt-2">
             {totalOutstanding.toLocaleString("fr-FR")} {currency}
           </p>
@@ -127,20 +140,22 @@ export default async function AnalyticsPage() {
       {allClasses.length > 0 && (
         <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100">
-            <h2 className="text-sm font-semibold text-zinc-900">Par classe</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Encaissements et soldes restants par classe</p>
+            <h2 className="text-sm font-semibold text-zinc-900">{fr ? "Par classe" : "By class"}</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {fr ? "Encaissements et soldes restants par classe" : "Collections and outstanding balances by class"}
+            </p>
           </div>
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
                 <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
-                  Classe
+                  {fr ? "Classe" : "Class"}
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wide">
-                  Encaisse
+                  {fr ? "Encaissé" : "Collected"}
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wide">
-                  Impaye
+                  {fr ? "Impayé" : "Outstanding"}
                 </th>
               </tr>
             </thead>

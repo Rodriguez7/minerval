@@ -12,6 +12,7 @@ import { BulkFeeForm } from "./BulkFeeForm";
 import { getClassSuggestions, isUniversityOnly } from "@/lib/congo-education";
 import { clampPage, getPageRange, parsePage } from "@/lib/pagination";
 import { Pagination } from "../Pagination";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 const STUDENTS_PAGE_SIZE = 50;
 
@@ -44,12 +45,16 @@ export default async function StudentsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
   const { school, plan } = await getTenantContext();
   const classSuggestions = getClassSuggestions(school.education_levels);
   const universityOnly = isUniversityOnly(school.education_levels);
-  const learnerSingular = universityOnly ? "étudiant" : "élève";
-  const learnerPlural = universityOnly ? "étudiants" : "élèves";
-  const classLabel = universityOnly ? "Promotion / auditoire" : "Classe / promotion";
+  const learnerSingular = fr ? (universityOnly ? "étudiant" : "élève") : "student";
+  const learnerPlural = fr ? (universityOnly ? "étudiants" : "élèves") : "students";
+  const classLabel = fr
+    ? universityOnly ? "Promotion / auditoire" : "Classe / promotion"
+    : universityOnly ? "Cohort / lecture group" : "Class / grade";
   const resolvedSearchParams = await searchParams;
 
   const supabase = await createSSRClient();
@@ -112,20 +117,24 @@ export default async function StudentsPage({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 capitalize">{learnerPlural}</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Gérez les {learnerPlural} inscrits et leurs soldes de frais
+          {fr
+            ? `Gérez les ${learnerPlural} inscrits et leurs soldes de frais`
+            : "Manage enrolled students and their outstanding fees"}
         </p>
       </div>
 
       {/* Add student */}
       <div className="bg-white rounded-xl border border-zinc-200 p-6">
-        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Ajouter un {learnerSingular}</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">
+          {fr ? `Ajouter un ${learnerSingular}` : "Add a student"}
+        </h2>
         <form
           action={addStudent.bind(null, null) as (formData: FormData) => void}
           className="grid grid-cols-1 md:grid-cols-3 gap-3"
         >
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Nom complet <span className="text-red-500">*</span>
+              {fr ? "Nom complet" : "Full name"} <span className="text-red-500">*</span>
             </label>
             <input
               name="full_name"
@@ -152,7 +161,7 @@ export default async function StudentsPage({
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Montant dû <span className="text-red-500">*</span>
+              {fr ? "Montant dû" : "Amount due"} <span className="text-red-500">*</span>
             </label>
             <input
               name="amount_due"
@@ -166,18 +175,20 @@ export default async function StudentsPage({
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Échéance
+              {fr ? "Échéance" : "Due date"}
             </label>
             <input
               name="balance_due_at"
               type="date"
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
             />
-            <p className="text-xs text-zinc-400">Requise lorsque le montant dû est supérieur à zéro.</p>
+            <p className="text-xs text-zinc-400">
+              {fr ? "Requise lorsque le montant dû est supérieur à zéro." : "Required when the amount due is greater than zéro."}
+            </p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Parent / responsable <span className="text-red-500">*</span>
+              {fr ? "Parent / responsable" : "Parent / guardian"} <span className="text-red-500">*</span>
             </label>
             <input
               name="guardian_name"
@@ -189,7 +200,7 @@ export default async function StudentsPage({
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              WhatsApp du responsable <span className="text-red-500">*</span>
+              {fr ? "WhatsApp du responsable" : "Guardian WhatsApp"} <span className="text-red-500">*</span>
             </label>
             <input
               name="guardian_whatsapp"
@@ -202,7 +213,9 @@ export default async function StudentsPage({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Lien avec l&apos;apprenant</label>
+            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              {fr ? "Lien avec l’apprenant" : "Relationship to student"}
+            </label>
             <select
               name="guardian_relationship"
               defaultValue="parent"
@@ -210,15 +223,17 @@ export default async function StudentsPage({
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
             >
               <option value="parent">Parent</option>
-              <option value="guardian">Tuteur / responsable</option>
-              <option value="payer">Payeur désigné</option>
+              <option value="guardian">{fr ? "Tuteur / responsable" : "Guardian"}</option>
+              <option value="payer">{fr ? "Payeur désigné" : "Designated payer"}</option>
             </select>
           </div>
           <input type="hidden" name="guardian_locale" value="fr" />
           <label className="col-span-1 md:col-span-3 flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-600">
             <input name="whatsapp_consent" type="checkbox" required className="mt-0.5" />
             <span>
-              Je confirme que ce responsable a accepté de recevoir sur WhatsApp les rappels administratifs liés aux frais scolaires.
+              {fr
+                ? "Je confirme que ce responsable a accepté de recevoir sur WhatsApp les rappels administratifs liés aux frais scolaires."
+                : "I confirm that this guardian agreed to receive administrative school-fee reminders on WhatsApp."}
             </span>
           </label>
           <div className="col-span-1 md:col-span-3">
@@ -226,7 +241,7 @@ export default async function StudentsPage({
               type="submit"
               className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
             >
-              Ajouter {universityOnly ? "l'étudiant" : "l'élève"}
+              {fr ? `Ajouter ${universityOnly ? "l’étudiant" : "l’élève"}` : "Add student"}
             </button>
           </div>
         </form>
@@ -240,9 +255,13 @@ export default async function StudentsPage({
 
       {studentsWithoutGuardian.length > 0 && (
         <div className="rounded-xl border border-zinc-200 bg-white p-6">
-          <h2 className="text-sm font-semibold text-zinc-900">Compléter un responsable existant</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">
+            {fr ? "Compléter un responsable existant" : "Add a guardian to an existing student"}
+          </h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Les anciens dossiers restent exclus des rappels tant qu&apos;un responsable consentant n&apos;est pas enregistré.
+            {fr
+              ? "Les anciens dossiers restent exclus des rappels tant qu’un responsable consentant n’est pas enregistré."
+              : "Existing records remain excluded from reminders until a consenting guardian is added."}
           </p>
           <form
             action={async (formData: FormData) => {
@@ -252,24 +271,25 @@ export default async function StudentsPage({
             className="mt-4 grid gap-3 md:grid-cols-3"
           >
             <select name="studentId" required className="rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white">
-              <option value="">Choisir l&apos;apprenant</option>
+              <option value="">{fr ? "Choisir l’apprenant" : "Choose a student"}</option>
               {studentsWithoutGuardian.map((student) => (
                 <option key={student.id} value={student.id}>{student.full_name} — {student.external_id}</option>
               ))}
             </select>
-            <input name="guardianName" required placeholder="Nom du responsable" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm" />
+            <input name="guardianName" required placeholder={fr ? "Nom du responsable" : "Guardian name"} className="rounded-lg border border-zinc-200 px-3 py-2 text-sm" />
             <input name="guardianWhatsapp" required type="tel" placeholder="WhatsApp: 0812345678" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm" />
             <select name="guardianRelationship" defaultValue="parent" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white">
               <option value="parent">Parent</option>
-              <option value="guardian">Tuteur / responsable</option>
-              <option value="payer">Payeur désigné</option>
+              <option value="guardian">{fr ? "Tuteur / responsable" : "Guardian"}</option>
+              <option value="payer">{fr ? "Payeur désigné" : "Designated payer"}</option>
             </select>
             <input type="hidden" name="guardianLocale" value="fr" />
             <label className="flex items-center gap-2 text-xs text-zinc-600">
-              <input name="whatsappConsent" type="checkbox" required /> Consentement WhatsApp confirmé
+              <input name="whatsappConsent" type="checkbox" required />{" "}
+              {fr ? "Consentement WhatsApp confirmé" : "WhatsApp consent confirmed"}
             </label>
             <button type="submit" className="md:col-span-3 justify-self-start rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white">
-              Enregistrer le responsable
+              {fr ? "Enregistrer le responsable" : "Save guardian"}
             </button>
           </form>
         </div>
@@ -277,9 +297,13 @@ export default async function StudentsPage({
 
       {unreachableStudents.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-sm font-semibold text-amber-900">Parents non joints</h2>
+          <h2 className="text-sm font-semibold text-amber-900">
+            {fr ? "Parents non joints" : "Unreachable guardians"}
+          </h2>
           <p className="mt-1 text-xs text-amber-800">
-            {unreachableStudents.length} apprenant{unreachableStudents.length > 1 ? "s" : ""} sur cette page nécessite une vérification du numéro ou du consentement WhatsApp.
+            {fr
+              ? `${unreachableStudents.length} apprenant${unreachableStudents.length > 1 ? "s" : ""} sur cette page nécessite une vérification du numéro ou du consentement WhatsApp.`
+              : `${unreachableStudents.length} student${unreachableStudents.length > 1 ? "s" : ""} on this page needs a phone or consent review.`}
           </p>
           <p className="mt-2 text-xs text-amber-700">
             {unreachableStudents.slice(0, 5).map((student) => student.full_name).join(", ")}
@@ -292,7 +316,7 @@ export default async function StudentsPage({
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Tous les {learnerPlural}
+            {fr ? `Tous les ${learnerPlural}` : "All students"}
             <span className="ml-2 text-xs font-normal text-zinc-400">
               {totalStudents}
             </span>
@@ -302,7 +326,10 @@ export default async function StudentsPage({
           <table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Nom", "ID", classLabel, "Responsable", "WhatsApp", "Montant dû", "Échéance", "Rappels", "Ajouté le"].map((h) => (
+                {(fr
+                  ? ["Nom", "ID", classLabel, "Responsable", "WhatsApp", "Montant dû", "Échéance", "Rappels", "Ajouté le"]
+                  : ["Name", "ID", classLabel, "Guardian", "WhatsApp", "Amount due", "Due date", "Reminders", "Added"]
+                ).map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide"
@@ -324,11 +351,13 @@ export default async function StudentsPage({
                   <td className="px-4 py-3 text-sm font-medium text-zinc-900">{s.full_name}</td>
                   <td className="px-4 py-3 text-sm text-zinc-500 font-mono">{s.external_id}</td>
                   <td className="px-4 py-3 text-sm text-zinc-500">{s.class_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-500">{guardian?.full_name ?? "À compléter"}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-500">
+                    {guardian?.full_name ?? (fr ? "À compléter" : "Incomplete")}
+                  </td>
                   <td className="px-4 py-3 text-sm text-zinc-500 font-mono">
                     {guardian ? maskPhone(guardian.whatsapp_phone) : "—"}
                     {guardian?.whatsapp_opted_out_at && (
-                      <span className="ml-2 text-xs text-red-600">désabonné</span>
+                      <span className="ml-2 text-xs text-red-600">{fr ? "désabonné" : "opted out"}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono">
@@ -343,11 +372,15 @@ export default async function StudentsPage({
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-500">
                     {s.reminder_stop_reason === "paid" ? (
-                      <span className="text-emerald-700">arrêtés — payé</span>
+                      <span className="text-emerald-700">{fr ? "arrêtés — payé" : "stopped — paid"}</span>
                     ) : (
                       <div className="space-y-1">
                         <p className="text-xs text-zinc-500">
-                          {latestMessage ? latestMessage.status : s.amount_due > 0 ? "à planifier" : "aucun"}
+                          {latestMessage
+                            ? latestMessage.status
+                            : s.amount_due > 0
+                              ? fr ? "à planifier" : "to schedule"
+                              : fr ? "aucun" : "none"}
                         </p>
                       <form action={async (formData: FormData) => {
                         "use server";
@@ -360,7 +393,9 @@ export default async function StudentsPage({
                           value={s.reminders_paused_until ? "resume" : "pause"}
                         />
                         <button type="submit" className="text-xs text-blue-700 hover:underline whitespace-nowrap">
-                          {s.reminders_paused_until ? "Reprendre" : "Pauser 7 jours"}
+                          {s.reminders_paused_until
+                            ? fr ? "Reprendre" : "Resume"
+                            : fr ? "Pauser 7 jours" : "Pause for 7 days"}
                         </button>
                       </form>
                       </div>
@@ -378,7 +413,11 @@ export default async function StudentsPage({
           </table>
           {!students?.length && (
             <div className="px-6 py-12 text-center">
-              <p className="text-sm text-zinc-400">Aucun {learnerSingular} pour le moment. Ajoutez-en un ci-dessus ou importez un CSV.</p>
+              <p className="text-sm text-zinc-400">
+                {fr
+                  ? `Aucun ${learnerSingular} pour le moment. Ajoutez-en un ci-dessus ou importez un CSV.`
+                  : "No students yet. Add one above or import a CSV file."}
+              </p>
             </div>
           )}
         </div>

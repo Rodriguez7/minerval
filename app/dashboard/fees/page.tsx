@@ -3,8 +3,11 @@ export const dynamic = "force-dynamic";
 import { getTenantContext } from "@/lib/tenant";
 import { createSSRClient } from "@/lib/supabase";
 import { createFee, toggleFeeActive } from "../actions";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export default async function FeesPage() {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
   const { school } = await getTenantContext();
   const supabase = await createSSRClient();
 
@@ -17,24 +20,28 @@ export default async function FeesPage() {
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Frais</h1>
-        <p className="text-sm text-zinc-500 mt-1">Definissez les structures de frais recurrentes et exceptionnelles</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{fr ? "Frais" : "Fees"}</h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {fr ? "Définissez les frais récurrents et exceptionnels." : "Define recurring and one-time fees."}
+        </p>
       </div>
 
       {/* Create fee form */}
       <div className="bg-white rounded-xl border border-zinc-200 p-6">
-        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Creer un frais</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">
+          {fr ? "Créer un frais" : "Create a fee"}
+        </h2>
         <form
           action={createFee.bind(null, null) as (formData: FormData) => void}
           className="flex flex-wrap gap-3 items-end"
         >
           <div className="space-y-1.5 flex-1 min-w-44">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Intitule du frais <span className="text-red-500">*</span>
+              {fr ? "Intitulé du frais" : "Fee name"} <span className="text-red-500">*</span>
             </label>
             <input
               name="title"
-              placeholder="ex. Frais de scolarite"
+              placeholder="ex. Frais de scolarité"
               required
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
             />
@@ -46,13 +53,13 @@ export default async function FeesPage() {
               required
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow"
             >
-              <option value="recurring">Recurrent</option>
-              <option value="special">Exceptionnel</option>
+              <option value="recurring">{fr ? "Récurrent" : "Recurring"}</option>
+              <option value="special">{fr ? "Exceptionnel" : "One-time"}</option>
             </select>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Montant ({school.currency}) <span className="text-red-500">*</span>
+              {fr ? "Montant" : "Amount"} ({school.currency}) <span className="text-red-500">*</span>
             </label>
             <input
               name="amount"
@@ -68,7 +75,7 @@ export default async function FeesPage() {
             type="submit"
             className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
           >
-            Creer
+            {fr ? "Créer" : "Create"}
           </button>
         </form>
       </div>
@@ -77,14 +84,17 @@ export default async function FeesPage() {
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Grille des frais
+            {fr ? "Grille des frais" : "Fee schedule"}
             <span className="ml-2 text-xs font-normal text-zinc-400">{fees?.length ?? 0}</span>
           </h2>
         </div>
         <div className="overflow-x-auto"><table>
           <thead>
             <tr className="border-b border-zinc-100">
-              {["Intitule", "Type", "Montant", "Statut", ""].map((h) => (
+              {(fr
+                ? ["Intitulé", "Type", "Montant", "Statut", ""]
+                : ["Name", "Type", "Amount", "Status", ""]
+              ).map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide"
@@ -106,7 +116,9 @@ export default async function FeesPage() {
                         : "bg-violet-50 text-violet-700 border border-violet-200"
                     }`}
                   >
-                    {f.type === "recurring" ? "Recurrent" : "Exceptionnel"}
+                    {f.type === "recurring"
+                      ? fr ? "Récurrent" : "Recurring"
+                      : fr ? "Exceptionnel" : "One-time"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm font-mono text-zinc-900">
@@ -118,7 +130,7 @@ export default async function FeesPage() {
                       f.active ? "text-emerald-600" : "text-zinc-400"
                     }`}
                   >
-                    {f.active ? "Actif" : "Inactif"}
+                    {f.active ? fr ? "Actif" : "Active" : fr ? "Inactif" : "Inactive"}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -131,7 +143,7 @@ export default async function FeesPage() {
                       type="submit"
                       className="text-xs text-zinc-500 hover:text-zinc-700 hover:underline transition-colors"
                     >
-                      {f.active ? "Desactiver" : "Activer"}
+                      {f.active ? fr ? "Désactiver" : "Disable" : fr ? "Activer" : "Enable"}
                     </button>
                   </form>
                 </td>
@@ -141,7 +153,9 @@ export default async function FeesPage() {
         </table></div>
         {!fees?.length && (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-zinc-400">Aucun frais defini pour le moment.</p>
+            <p className="text-sm text-zinc-400">
+              {fr ? "Aucun frais défini pour le moment." : "No fees have been defined yet."}
+            </p>
           </div>
         )}
       </div>

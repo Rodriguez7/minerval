@@ -11,7 +11,7 @@ import {
   getClassSuggestions,
   type EducationLevel,
 } from "@/lib/congo-education";
-import { normalizeDrcMobilePhone } from "@/lib/phone";
+import { normalizeWhatsAppPhone } from "@/lib/phone";
 
 const RowSchema = z.object({
   full_name: z.string().min(1),
@@ -20,9 +20,9 @@ const RowSchema = z.object({
   balance_due_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   guardian_name: z.string().min(1),
   guardian_whatsapp: z.string().transform((value, ctx) => {
-    const normalized = normalizeDrcMobilePhone(value);
+    const normalized = normalizeWhatsAppPhone(value);
     if (!normalized) {
-      ctx.addIssue({ code: "custom", message: "Numero WhatsApp RDC invalide" });
+      ctx.addIssue({ code: "custom", message: "Numéro WhatsApp international invalide" });
       return z.NEVER;
     }
     return normalized;
@@ -30,13 +30,13 @@ const RowSchema = z.object({
   guardian_relationship: z.enum(["parent", "guardian", "payer"]),
   whatsapp_consent: z.string().transform((value, ctx) => {
     if (!["oui", "yes", "true", "1"].includes(value.trim().toLowerCase())) {
-      ctx.addIssue({ code: "custom", message: "Le consentement WhatsApp doit etre oui" });
+      ctx.addIssue({ code: "custom", message: "Le consentement WhatsApp doit être oui" });
       return z.NEVER;
     }
     return true;
   }),
 }).refine((row) => row.amount_due === 0 || Boolean(row.balance_due_at), {
-  message: "La date d'echeance est obligatoire lorsque le montant du est superieur a zero",
+  message: "La date d’échéance est obligatoire lorsque le montant dû est supérieur à zéro",
   path: ["balance_due_at"],
 });
 

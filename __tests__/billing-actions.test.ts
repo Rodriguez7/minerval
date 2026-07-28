@@ -54,7 +54,7 @@ describe("createCheckoutSession", () => {
   it("returns French unauthorized error for non-owner/admin role", async () => {
     mockTenant({ membership: { id: "mem1", role: "viewer", status: "active" } });
     const result = await createCheckoutSession("growth_monthly");
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("returns error for starter_free plan", async () => {
@@ -104,7 +104,7 @@ describe("createPortalSession", () => {
   it("returns French unauthorized error for non-owner/admin role", async () => {
     mockTenant({ membership: { id: "mem1", role: "viewer", status: "active" } });
     const result = await createPortalSession();
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("returns error if no stripe_customer_id", async () => {

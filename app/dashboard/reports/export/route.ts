@@ -67,7 +67,7 @@ export async function GET(req: Request) {
       row.status === "success"
         ? "succes"
         : row.status === "failed"
-          ? "echec"
+          ? "échec"
           : row.status === "pending"
             ? "en attente"
             : row.status,
