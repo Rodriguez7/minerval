@@ -13,8 +13,8 @@ import { LogoUploadForm } from "./LogoUploadForm";
 import { CloseSchoolForm } from "./CloseSchoolForm";
 import {
   VerificationDocumentsForm,
-  type VerificationDocument,
 } from "./VerificationDocumentsForm";
+import { getVerificationDocuments } from "@/lib/verification-documents";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import {
   EDUCATION_LEVELS,
@@ -41,7 +41,7 @@ export default async function SettingsPage() {
     .eq("school_id", school.id)
     .single();
 
-  const [{ data: logoRow }, { data: whatsappSettings }, { data: verificationDocumentRows }] = await Promise.all([
+  const [{ data: logoRow }, { data: whatsappSettings }, verificationDocuments] = await Promise.all([
     admin
     .from("schools")
     .select("logo_url")
@@ -52,29 +52,9 @@ export default async function SettingsPage() {
       .select("automatic_reminders_enabled, local_send_hour, max_reminders")
       .eq("school_id", school.id)
       .maybeSingle(),
-    admin
-      .from("school_verification_documents")
-      .select("id,document_type,file_name,storage_path,mime_type,size_bytes,created_at")
-      .eq("school_id", school.id)
-      .order("created_at", { ascending: false }),
+    getVerificationDocuments(admin, school.id),
   ]);
   const currentLogoUrl = (logoRow as { logo_url?: string | null } | null)?.logo_url ?? null;
-  const verificationDocuments: VerificationDocument[] = await Promise.all(
-    (verificationDocumentRows ?? []).map(async (document) => {
-      const { data } = await admin.storage
-        .from("school-verification-documents")
-        .createSignedUrl(document.storage_path, 300);
-      return {
-        id: document.id,
-        document_type: document.document_type,
-        file_name: document.file_name,
-        mime_type: document.mime_type,
-        size_bytes: document.size_bytes,
-        created_at: document.created_at,
-        url: data?.signedUrl ?? null,
-      };
-    })
-  );
   const whatsappStatuses = ["queued", "accepted", "sent", "delivered", "read", "failed", "cancelled"] as const;
   const [
     statusCountResults,
@@ -212,6 +192,11 @@ export default async function SettingsPage() {
               : "Your application has been sent to Minerval. Approval or requested changes will appear here."}
           </p>
         )}
+        <VerificationDocumentsForm
+          documents={verificationDocuments}
+          canManage={canManage}
+          locale={locale}
+        />
         <form
           action={async (fd: FormData) => { "use server"; await submitSchoolVerification(undefined, fd); }}
           className="mt-5 grid gap-4 sm:grid-cols-2"
@@ -274,11 +259,6 @@ export default async function SettingsPage() {
             </div>
           )}
         </form>
-        <VerificationDocumentsForm
-          documents={verificationDocuments}
-          canManage={canManage}
-          locale={locale}
-        />
       </section>
 
       <div id="whatsapp" className="scroll-mt-24 bg-white rounded-xl border border-zinc-200 p-6 space-y-5">

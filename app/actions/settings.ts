@@ -234,6 +234,21 @@ export async function reviewSchoolVerification(
     .eq("id", parsed.data.schoolId)
     .maybeSingle();
   if (schoolError || !school) return { error: "Établissement introuvable." };
+  if (parsed.data.decision === "verified") {
+    const { count: documentCount, error: documentError } = await admin
+      .from("school_verification_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", parsed.data.schoolId);
+    if (documentError) {
+      return { error: "Impossible de vérifier les documents du dossier." };
+    }
+    if (!documentCount) {
+      return {
+        error:
+          "Ajoutez au moins un document officiel avant d’approuver l’établissement.",
+      };
+    }
+  }
 
   const reviewedAt = new Date().toISOString();
   const { error } = await admin

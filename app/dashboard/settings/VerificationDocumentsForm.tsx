@@ -3,16 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppLocale } from "@/lib/i18n/config";
-
-export type VerificationDocument = {
-  id: string;
-  document_type: string;
-  file_name: string;
-  mime_type: string;
-  size_bytes: number;
-  created_at: string;
-  url: string | null;
-};
+import type { VerificationDocument } from "@/lib/verification-documents";
 
 const LABELS: Record<string, { fr: string; en: string }> = {
   registration_certificate: {
@@ -119,12 +110,12 @@ export function VerificationDocumentsForm({
   return (
     <div className="mt-5 border-t border-zinc-100 pt-5">
       <h3 className="text-sm font-semibold text-zinc-900">
-        {fr ? "Documents justificatifs" : "Supporting documents"}
+        {fr ? "Documents de vérification" : "Verification documents"}
       </h3>
       <p className="mt-1 text-xs leading-5 text-zinc-500">
         {fr
-          ? "Ces fichiers sont privés. Seuls les responsables autorisés de l’établissement et l’administrateur Minerval peuvent les consulter."
-          : "These files are private. Only authorized school managers and the Minerval administrator can access them."}
+          ? "Ajoutez les documents officiels de l’établissement. Ils seront consultés uniquement pendant la vérification."
+          : "Upload the school’s official documents. They will only be used during verification."}
       </p>
 
       <div className="mt-3 space-y-2">

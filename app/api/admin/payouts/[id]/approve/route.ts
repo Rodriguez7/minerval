@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
+import { getPlatformAdmin } from "@/lib/admin-auth";
 import { callProxyPayout, ProxyError } from "@/lib/proxy";
 import { buildSerdiPayCallbackUrl } from "@/lib/serdipay";
 import { reportOperationalIssue } from "@/lib/operations";
@@ -10,13 +10,32 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { user } = await getTenantContext();
-
-  if (user.email !== process.env.SUPER_ADMIN_EMAIL) {
+  const user = await getPlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: "Interdit" }, { status: 403 });
   }
 
   const admin = getAdminClient();
+  const { data: review } = await admin
+    .from("school_payouts")
+    .select("id,status,schools(verification_status)")
+    .eq("id", id)
+    .maybeSingle();
+  const joinedSchool = Array.isArray(review?.schools)
+    ? review.schools[0]
+    : review?.schools;
+  if (!review || review.status !== "pending") {
+    return NextResponse.json(
+      { error: "Versement introuvable ou déjà traité" },
+      { status: 409 }
+    );
+  }
+  if (joinedSchool?.verification_status !== "verified") {
+    return NextResponse.json(
+      { error: "L’établissement doit être vérifié avant le versement" },
+      { status: 409 }
+    );
+  }
 
   // Atomic re-entrancy guard: only succeeds if status is still 'pending'
   const { data: payout } = await admin

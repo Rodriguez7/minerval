@@ -8,12 +8,19 @@ export function ApproveButton({ payoutId, locale }: { payoutId: string; locale: 
   const [error, setError] = useState<string | null>(null);
 
   async function handleApprove() {
+    const confirmed = window.confirm(
+      fr
+        ? "Confirmer ce versement réel vers le compte Mobile Money indiqué ?"
+        : "Confirm this real payout to the listed Mobile Money account?"
+    );
+    if (!confirmed) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/payouts/${payoutId}/approve`, { method: "POST" });
       if (res.ok) {
         setDone(true);
+        window.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? (fr ? "Échec" : "Failed"));
@@ -32,7 +39,7 @@ export function ApproveButton({ payoutId, locale }: { payoutId: string; locale: 
     <button
       onClick={handleApprove}
       disabled={loading}
-      className="rounded bg-black px-3 py-1 text-xs text-white disabled:opacity-40"
+      className="rounded-lg bg-zinc-950 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-40"
     >
       {loading ? "…" : fr ? "Approuver" : "Approve"}
     </button>

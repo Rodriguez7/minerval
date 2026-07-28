@@ -4,7 +4,7 @@ import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { localizePathname } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
-import { createSSRClient } from "@/lib/supabase";
+import { getPlatformAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +14,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const locale = await getRequestLocale();
-  const ssr = await createSSRClient();
-  const {
-    data: { user },
-  } = await ssr.auth.getUser();
-
-  if (
-    !user ||
-    !process.env.SUPER_ADMIN_EMAIL ||
-    user.email !== process.env.SUPER_ADMIN_EMAIL
-  ) {
+  const user = await getPlatformAdmin();
+  if (!user) {
     redirect(localizePathname(locale, "/dashboard"));
   }
 

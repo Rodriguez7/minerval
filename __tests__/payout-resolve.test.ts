@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/tenant", () => ({ getTenantContext: vi.fn() }));
+vi.mock("@/lib/admin-auth", () => ({ getPlatformAdmin: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({ getAdminClient: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   sendPayoutCompletedEmail: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock("@/lib/email", () => ({
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/admin/payouts/[id]/resolve/route";
-import { getTenantContext } from "@/lib/tenant";
+import { getPlatformAdmin } from "@/lib/admin-auth";
 import { getAdminClient } from "@/lib/supabase";
 import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "@/lib/email";
 
@@ -22,7 +22,11 @@ function request(body: unknown) {
 }
 
 function context(email: string) {
-  vi.mocked(getTenantContext).mockResolvedValue({ user: { email } } as never);
+  vi.mocked(getPlatformAdmin).mockResolvedValue(
+    email === "admin@minerval.org"
+      ? { id: "admin-1", email }
+      : null
+  );
 }
 
 function params() {

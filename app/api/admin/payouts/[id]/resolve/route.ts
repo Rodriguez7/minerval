@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getTenantContext } from "@/lib/tenant";
 import { getAdminClient } from "@/lib/supabase";
+import { getPlatformAdmin } from "@/lib/admin-auth";
 import { sendPayoutCompletedEmail, sendPayoutFailedEmail } from "@/lib/email";
 
 const ResolutionSchema = z
@@ -24,8 +24,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user } = await getTenantContext();
-  if (!process.env.SUPER_ADMIN_EMAIL || user.email !== process.env.SUPER_ADMIN_EMAIL) {
+  const user = await getPlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: "Interdit" }, { status: 403 });
   }
 

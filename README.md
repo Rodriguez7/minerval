@@ -179,6 +179,11 @@ Dashboard queries run through `getAdminClient()` (service key, bypasses RLS) and
 
 ## Admin Operations
 
+- The platform-admin area is independent from school membership. `SUPER_ADMIN_EMAIL`
+  protects the overview, school-verification queue, payout queue, and their API actions.
+- Schools upload verification documents through the normal onboarding, Settings, or
+  pre-withdrawal interface. Admin approval requires at least one official document;
+  storage URLs remain an internal implementation detail.
 - Reconciliation queue with stale pending detection, manual review, and override actions
 - Reports dashboard with date filters, daily rollups, reconciliation breakdown, and CSV export
 - Audit trail entries written to `payment_events` for reconciliation updates

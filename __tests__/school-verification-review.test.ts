@@ -28,6 +28,13 @@ vi.mock("@/lib/supabase", () => ({
           update: () => ({ eq: schoolUpdateEq }),
         };
       }
+      if (table === "school_verification_documents") {
+        return {
+          select: () => ({
+            eq: vi.fn().mockResolvedValue({ count: 1, error: null }),
+          }),
+        };
+      }
       return { insert: auditInsert };
     },
   })),

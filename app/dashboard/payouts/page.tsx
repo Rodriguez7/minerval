@@ -7,6 +7,8 @@ import { TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
 import { WithdrawForm } from "./WithdrawForm";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { getVerificationDocuments } from "@/lib/verification-documents";
+import { VerificationDocumentsForm } from "@/app/dashboard/settings/VerificationDocumentsForm";
 
 export default async function PayoutsPage() {
   const locale = await getRequestLocale();
@@ -49,6 +51,9 @@ export default async function PayoutsPage() {
 
   const canWithdraw = membership.role === "owner" && school.verification_status === "verified";
   const needsVerification = membership.role === "owner" && school.verification_status !== "verified";
+  const verificationDocuments = needsVerification
+    ? await getVerificationDocuments(admin, school.id)
+    : [];
   const { gross, fees, net } = totals;
 
   const statusBadge = (status: string) => {
@@ -123,17 +128,36 @@ export default async function PayoutsPage() {
           {canWithdraw && (
             <WithdrawForm availableBalance={availableBalance} currency={currency} />
           )}
-          {needsVerification && (
-            <div className="max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              <p className="font-semibold">{fr ? "Vérification requise" : "Verification required"}</p>
-              <p className="mt-1">
-                {fr
-                  ? `Votre dossier école est ${school.verification_status === "pending" ? "en cours de vérification" : "à compléter"}. Les versements seront activés après validation.`
-                  : `Your school profile is ${school.verification_status === "pending" ? "under review" : "incomplete"}. Payouts will be enabled after approval.`}
-              </p>
-            </div>
-          )}
         </div>
+        {needsVerification && (
+          <div className="mt-6 border-t border-zinc-100 pt-5">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="font-semibold">
+                {fr ? "Vérification requise avant le premier versement" : "Verification required before the first payout"}
+              </p>
+              <p className="mt-1 leading-6">
+                {school.verification_status === "pending"
+                  ? fr
+                    ? "Votre dossier est en cours d’examen. Vous pouvez encore ajouter un document si nécessaire."
+                    : "Your application is under review. You can still add a document if needed."
+                  : fr
+                    ? "Ajoutez les documents officiels de l’établissement. Minerval les examinera avant d’activer les versements."
+                    : "Upload the school’s official documents. Minerval will review them before enabling payouts."}
+              </p>
+              {school.verification_rejection_reason && (
+                <p className="mt-2 font-medium">
+                  {fr ? "Correction demandée :" : "Changes requested:"}{" "}
+                  {school.verification_rejection_reason}
+                </p>
+              )}
+            </div>
+            <VerificationDocumentsForm
+              documents={verificationDocuments}
+              canManage
+              locale={locale}
+            />
+          </div>
+        )}
       </div>
 
       {/* Payout history */}

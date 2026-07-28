@@ -9,11 +9,13 @@ export function VerificationReviewForm({
   schoolId,
   status,
   rejectionReason,
+  canApprove,
   locale,
 }: {
   schoolId: string;
   status: SchoolVerificationStatus;
   rejectionReason: string | null;
+  canApprove: boolean;
   locale: AppLocale;
 }) {
   const fr = locale === "fr";
@@ -58,18 +60,22 @@ export function VerificationReviewForm({
         <button
           name="decision"
           value="verified"
-          disabled={pending || status === "verified"}
+          disabled={pending || status === "verified" || !canApprove}
           className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending
             ? fr
               ? "Enregistrement…"
               : "Saving…"
-            : status === "verified"
+              : status === "verified"
               ? fr
                 ? "Déjà approuvé"
                 : "Already approved"
-              : fr
+              : !canApprove
+                ? fr
+                  ? "Document requis"
+                  : "Document required"
+                : fr
                 ? "Approuver"
                 : "Approve"}
         </button>
