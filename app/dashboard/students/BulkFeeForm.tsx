@@ -1,12 +1,14 @@
 "use client";
 import { useState, useRef } from "react";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { useLocale } from "@/lib/i18n/client";
 
 interface Props {
   canBulkOps: boolean;
 }
 
 export function BulkFeeForm({ canBulkOps }: Props) {
+  const fr = useLocale() === "fr";
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -39,7 +41,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
       .filter(Boolean);
 
     if (rows.length === 0) {
-      setStatus("Aucune ligne valide trouvee. Verifiez le format du CSV.");
+      setStatus(fr ? "Aucune ligne valide trouvée. Vérifiez le format du CSV." : "No valid rows found. Check the CSV format.");
       setLoading(false);
       return;
     }
@@ -52,17 +54,17 @@ export function BulkFeeForm({ canBulkOps }: Props) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setStatus(data.error || "La mise a jour a echoue.");
+        setStatus(data.error || (fr ? "La mise à jour a échoué." : "The update failed."));
       } else {
         setStatus(
-          `${data.updated} eleve${data.updated !== 1 ? "s" : ""} mis a jour.${
-            data.errors ? ` ${data.errors} ligne(s) sans eleve correspondant.` : ""
-          }`
+          fr
+            ? `${data.updated} élève${data.updated !== 1 ? "s" : ""} mis à jour.${data.errors ? ` ${data.errors} ligne(s) sans élève correspondant.` : ""}`
+            : `${data.updated} student${data.updated !== 1 ? "s" : ""} updated.${data.errors ? ` ${data.errors} row(s) without a matching student.` : ""}`
         );
         if (fileRef.current) fileRef.current.value = "";
       }
     } catch {
-      setStatus("Erreur reseau. Reessayez.");
+      setStatus(fr ? "Erreur réseau. Réessayez." : "Network error. Try again.");
     } finally {
       setLoading(false);
     }
@@ -71,19 +73,19 @@ export function BulkFeeForm({ canBulkOps }: Props) {
   if (!canBulkOps) {
     return (
       <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="font-semibold mb-1">Mise a jour groupee des frais</h2>
+        <h2 className="font-semibold mb-1">{fr ? "Mise à jour groupée des frais" : "Bulk fee update"}</h2>
         <p className="text-sm text-gray-500 mb-4">
-          Importez un CSV avec les colonnes{" "}
+          {fr ? "Importez un CSV avec les colonnes " : "Import a CSV with the columns "}
           <code className="bg-gray-100 px-1 rounded text-xs">
             external_id,amount_due,balance_due_at
           </code>{" "}
-          pour mettre a jour les soldes en masse.
+          {fr ? " pour mettre à jour les soldes en masse." : " to update balances in bulk."}
         </p>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
           <p>
-            Les mises a jour groupees sont disponibles avec le{" "}
+            {fr ? "Les mises à jour groupées sont disponibles avec le " : "Bulk updates are available with the "}
             <LocalizedLink href="/dashboard/billing" className="font-medium text-gray-900 underline">
-              plan Pro
+              {fr ? "plan Pro" : "Pro plan"}
             </LocalizedLink>
             .
           </p>
@@ -94,13 +96,13 @@ export function BulkFeeForm({ canBulkOps }: Props) {
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="font-semibold mb-1">Mise a jour groupee des frais</h2>
+      <h2 className="font-semibold mb-1">{fr ? "Mise à jour groupée des frais" : "Bulk fee update"}</h2>
       <p className="text-sm text-gray-500 mb-4">
-        Importez un CSV avec les colonnes{" "}
+        {fr ? "Importez un CSV avec les colonnes " : "Import a CSV with the columns "}
         <code className="bg-gray-100 px-1 rounded text-xs">
             external_id,amount_due,balance_due_at
         </code>{" "}
-        pour mettre a jour les soldes en masse.
+        {fr ? " pour mettre à jour les soldes en masse." : " to update balances in bulk."}
       </p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
@@ -113,7 +115,7 @@ export function BulkFeeForm({ canBulkOps }: Props) {
         {status && (
           <p
             className={`text-sm ${
-              status.includes("mis a jour")
+              status.includes("mis à jour") || status.includes("updated")
                 ? "text-green-700"
                 : "text-red-600"
             }`}
@@ -126,7 +128,9 @@ export function BulkFeeForm({ canBulkOps }: Props) {
           disabled={loading}
           className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
-          {loading ? "Mise a jour…" : "Importer et mettre a jour"}
+          {loading
+            ? fr ? "Mise à jour…" : "Updating…"
+            : fr ? "Importer et mettre à jour" : "Import and update"}
         </button>
       </form>
     </div>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useLocale } from "@/lib/i18n/client";
 
 interface Props {
   currentLogoUrl: string | null;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
+  const fr = useLocale() === "fr";
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,12 +32,12 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error ?? "L'envoi du logo a echoue");
+        setError(json.error ?? (fr ? "L’envoi du logo a échoué." : "Logo upload failed."));
       } else {
         setLogoUrl(json.logo_url);
       }
     } catch {
-      setError("L'envoi du logo a echoue. Reessayez.");
+      setError(fr ? "L’envoi du logo a échoué. Réessayez." : "Logo upload failed. Try again.");
     } finally {
       setUploading(false);
       // Reset input so the same file can be re-uploaded if needed
@@ -45,12 +47,12 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
 
   return (
       <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="font-semibold text-lg mb-4">Logo de l&apos;ecole</h2>
+      <h2 className="font-semibold text-lg mb-4">{fr ? "Logo de l’établissement" : "School logo"}</h2>
 
       {logoUrl && (
         <Image
           src={logoUrl}
-          alt="Logo de l'ecole"
+          alt={fr ? "Logo de l’établissement" : "School logo"}
           width={256}
           height={64}
           className="h-16 w-auto mb-4 rounded object-contain"
@@ -64,7 +66,11 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
               uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-700"
             }`}
           >
-            {uploading ? "Envoi…" : logoUrl ? "Remplacer le logo" : "Importer le logo"}
+            {uploading
+              ? fr ? "Envoi…" : "Uploading…"
+              : logoUrl
+                ? fr ? "Remplacer le logo" : "Replace logo"
+                : fr ? "Importer le logo" : "Upload logo"}
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif"
@@ -74,7 +80,9 @@ export function LogoUploadForm({ currentLogoUrl, canManage }: Props) {
             />
           </label>
 
-          <p className="text-gray-400 text-xs mt-2">PNG, JPEG, WebP ou GIF - 2 Mo max</p>
+          <p className="text-gray-400 text-xs mt-2">
+            {fr ? "PNG, JPEG, WebP ou GIF — 2 Mo max." : "PNG, JPEG, WebP, or GIF — 2 MB max."}
+          </p>
         </>
       )}
 

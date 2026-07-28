@@ -20,17 +20,17 @@ async function getTargetMembership(memberId: string, schoolId: string) {
 
 export async function changeMemberRole(memberId: string, newRole: string) {
   const parsed = z.enum(["owner", "admin", "finance", "viewer"]).safeParse(newRole);
-  if (!parsed.success) return { error: "Role invalide." };
+  if (!parsed.success) return { error: "Rôle invalide." };
 
   const { user, school, membership } = await getTenantContext();
 
   if (!AUTHORIZED_ROLES.includes(membership.role as typeof AUTHORIZED_ROLES[number])) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const target = await getTargetMembership(memberId, school.id);
   if (!target) return { error: "Introuvable" };
-  if (target.user_id === user.id) return { error: "Impossible de modifier votre propre role." };
+  if (target.user_id === user.id) return { error: "Impossible de modifier votre propre rôle." };
 
   const admin = getAdminClient();
   const { error } = await admin
@@ -38,7 +38,7 @@ export async function changeMemberRole(memberId: string, newRole: string) {
     .update({ role: parsed.data })
     .eq("id", memberId);
 
-  if (error) return { error: "Impossible de mettre a jour le role." };
+  if (error) return { error: "Impossible de mettre à jour le rôle." };
 
   revalidatePath("/dashboard/team");
 }
@@ -47,12 +47,12 @@ export async function deactivateMember(memberId: string) {
   const { user, school, membership } = await getTenantContext();
 
   if (!AUTHORIZED_ROLES.includes(membership.role as typeof AUTHORIZED_ROLES[number])) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const target = await getTargetMembership(memberId, school.id);
   if (!target) return { error: "Introuvable" };
-  if (target.user_id === user.id) return { error: "Impossible de desactiver votre propre acces." };
+  if (target.user_id === user.id) return { error: "Impossible de désactiver votre propre accès." };
 
   const admin = getAdminClient();
   const { error } = await admin
@@ -60,7 +60,7 @@ export async function deactivateMember(memberId: string) {
     .update({ status: "inactive" })
     .eq("id", memberId);
 
-  if (error) return { error: "Impossible de desactiver ce membre." };
+  if (error) return { error: "Impossible de désactiver ce membre." };
 
   revalidatePath("/dashboard/team");
 }
@@ -70,7 +70,7 @@ export async function sendInvite(email: string, role: string) {
   const { user, school, membership } = await getTenantContext();
 
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = z
@@ -81,7 +81,7 @@ export async function sendInvite(email: string, role: string) {
     .safeParse({ email, role });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Entree invalide" };
+    return { error: parsed.error.issues[0]?.message ?? "Entrée invalide" };
   }
 
   const admin = getAdminClient();
@@ -100,7 +100,7 @@ export async function sendInvite(email: string, role: string) {
     .single();
 
   if (inviteInsertError || !invite) {
-    return { error: "Impossible de creer l'invitation." };
+    return { error: "Impossible de créer l’invitation." };
   }
 
   const acceptUrl = `${appUrl}/invite/accept?token=${invite.token}`;

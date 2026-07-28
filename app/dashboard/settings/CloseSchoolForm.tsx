@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/lib/i18n/client";
 
 export function CloseSchoolForm({ schoolCode }: { schoolCode: string }) {
+  const locale = useLocale();
+  const fr = locale === "fr";
   const [confirmation, setConfirmation] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -25,12 +28,12 @@ export function CloseSchoolForm({ schoolCode }: { schoolCode: string }) {
           response.status === 409
             ? ` (${result.pending_payments ?? 0} paiement(s), ${result.pending_payouts ?? 0} versement(s))`
             : "";
-        setError(`${result.error ?? "La fermeture a echoue."}${counts}`);
+        setError(`${result.error ?? (fr ? "La fermeture a échoué." : "Closing the school failed.")}${counts}`);
         return;
       }
-      window.location.assign("/fr/");
+      window.location.assign(`/${locale}/`);
     } catch {
-      setError("La fermeture a echoue. Verifiez votre connexion et reessayez.");
+      setError(fr ? "La fermeture a échoué. Vérifiez votre connexion et réessayez." : "Closing the school failed. Check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -38,15 +41,15 @@ export function CloseSchoolForm({ schoolCode }: { schoolCode: string }) {
 
   return (
     <form onSubmit={submit} className="rounded-xl border border-red-200 bg-red-50 p-6">
-      <h2 className="text-sm font-semibold text-red-900">Fermer l&apos;ecole</h2>
+      <h2 className="text-sm font-semibold text-red-900">{fr ? "Fermer l’établissement" : "Close school"}</h2>
       <p className="mt-1 text-xs leading-5 text-red-800">
-        Cette action annule l&apos;abonnement, desactive tous les acces et bloque les nouveaux
-        paiements. Les donnees financieres et d&apos;audit sont conservees. Telechargez votre
-        export avant de continuer.
+        {fr
+          ? "Cette action annule l’abonnement, désactive tous les accès et bloque les nouveaux paiements. Les données financières et d’audit sont conservées. Téléchargez votre export avant de continuer."
+          : "This cancels the subscription, disables all access, and blocks new payments. Financial and audit data are retained. Download your export first."}
       </p>
 
       <label className="mt-4 block text-xs font-medium text-red-900">
-        Motif (facultatif)
+        {fr ? "Motif (facultatif)" : "Reason (optional)"}
         <textarea
           value={reason}
           onChange={(event) => setReason(event.target.value)}
@@ -57,7 +60,7 @@ export function CloseSchoolForm({ schoolCode }: { schoolCode: string }) {
       </label>
 
       <label className="mt-4 block text-xs font-medium text-red-900">
-        Saisissez <span className="font-mono">{schoolCode}</span> pour confirmer
+        {fr ? "Saisissez" : "Enter"} <span className="font-mono">{schoolCode}</span> {fr ? "pour confirmer" : "to confirm"}
         <input
           value={confirmation}
           onChange={(event) => setConfirmation(event.target.value)}
@@ -73,7 +76,9 @@ export function CloseSchoolForm({ schoolCode }: { schoolCode: string }) {
         disabled={submitting || confirmation !== schoolCode}
         className="mt-4 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {submitting ? "Fermeture en cours..." : "Fermer l'ecole"}
+        {submitting
+          ? fr ? "Fermeture en cours…" : "Closing…"
+          : fr ? "Fermer l’établissement" : "Close school"}
       </button>
     </form>
   );

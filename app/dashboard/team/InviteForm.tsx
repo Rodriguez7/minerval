@@ -1,6 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { sendInvite } from "./actions";
+import { useLocale } from "@/lib/i18n/client";
 
 type State = { error?: string; inviteLink?: string } | undefined;
 
@@ -11,12 +12,13 @@ async function inviteAction(_: State, formData: FormData): Promise<State> {
 }
 
 export function InviteForm() {
+  const fr = useLocale() === "fr";
   const [state, action, isPending] = useActionState(inviteAction, undefined);
 
   return (
     <form action={action} className="flex flex-wrap gap-3 items-end">
       <div>
-        <label className="block text-sm font-medium mb-1">Email</label>
+        <label className="block text-sm font-medium mb-1">{fr ? "E-mail" : "Email"}</label>
         <input
           name="email"
           type="email"
@@ -26,11 +28,11 @@ export function InviteForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Role</label>
+        <label className="block text-sm font-medium mb-1">{fr ? "Rôle" : "Role"}</label>
         <select name="role" className="border rounded-lg px-3 py-2 text-sm bg-white">
           <option value="admin">Admin</option>
           <option value="finance">Finance</option>
-          <option value="viewer">Lecture</option>
+          <option value="viewer">{fr ? "Lecture" : "Viewer"}</option>
         </select>
       </div>
       <button
@@ -38,7 +40,7 @@ export function InviteForm() {
         disabled={isPending}
         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
       >
-        {isPending ? "Envoi…" : "Envoyer l’invitation"}
+        {isPending ? fr ? "Envoi…" : "Sending…" : fr ? "Envoyer l’invitation" : "Send invitation"}
       </button>
 
       {state?.error && (
@@ -46,9 +48,9 @@ export function InviteForm() {
       )}
       {state?.inviteLink && (
         <div className="w-full text-sm">
-          <p className="text-green-700 font-medium">Invitation envoyee !</p>
+          <p className="text-green-700 font-medium">{fr ? "Invitation envoyée !" : "Invitation sent!"}</p>
           <p className="text-gray-500 mt-1">
-            Partagez ce lien si l’email n’arrive pas :{" "}
+            {fr ? "Partagez ce lien si l’e-mail n’arrive pas : " : "Share this link if the email does not arrive: "}
             <a href={state.inviteLink} className="text-blue-600 hover:underline break-all">
               {state.inviteLink}
             </a>

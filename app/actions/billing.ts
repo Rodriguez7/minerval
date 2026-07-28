@@ -17,12 +17,12 @@ export async function createCheckoutSession(planCode: string) {
   const { user, school, membership } = await getTenantContext();
 
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const priceId = PLAN_PRICE_IDS[parsed.data];
   if (!priceId) {
-    return { error: "Tarif du plan non configure. Contactez le support." };
+    return { error: "Tarif du plan non configuré. Contactez le support." };
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -42,7 +42,7 @@ export async function createCheckoutSession(planCode: string) {
   });
 
   if (!session.url) {
-    return { error: "Impossible de creer la session de paiement." };
+    return { error: "Impossible de créer la session de paiement." };
   }
 
   redirect(session.url);
@@ -52,11 +52,11 @@ export async function createPortalSession() {
   const { subscription, membership } = await getTenantContext();
 
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   if (!subscription.stripe_customer_id) {
-    return { error: "Aucun compte de facturation trouve. Passez d'abord a un plan payant." };
+    return { error: "Aucun compte de facturation trouvé. Passez d’abord à un plan payant." };
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

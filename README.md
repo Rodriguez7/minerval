@@ -104,6 +104,9 @@ The implementation replaces the unfinished manual WhatsApp reminder experiment w
 - Meta webhooks will record sent, delivered, read, and failed states.
 - A successful SerdiPay callback will cancel remaining reminders immediately.
 - Schools will be able to pause automation globally or for one student, while automatic enrollment remains the default.
+- The dashboard shows a blocking warning with every missing readiness condition, plus an onboarding checklist for legal profile, internal verification, students, guardian consent, due dates, and automation.
+- School owners submit legal details for an internal review; only `SUPER_ADMIN_EMAIL` can approve or reject a school. WhatsApp scheduling remains blocked until the school is verified.
+- Guardian destinations accept normalized international E.164 WhatsApp numbers. The Meta sending number remains a separate server-side configuration value and is never reused as a guardian contact.
 - The WhatsApp channel will use Meta directly. Twilio, SMS, email fallback, and unofficial WhatsApp libraries are outside this phase.
 
 The implementation sequence, schema, security requirements, recovered work assessment, tests, and rollout gates are documented in [`docs/superpowers/plans/2026-07-16-automatic-whatsapp-payment-reminders.md`](docs/superpowers/plans/2026-07-16-automatic-whatsapp-payment-reminders.md).
@@ -143,6 +146,7 @@ student_guardians — primary guardian relationship for each student
 student_payment_links — hashed, expiring and revocable personalized payment-link tokens
 school_whatsapp_settings — automatic reminder switch, local send hour and maximum attempts
 whatsapp_messages — durable Meta outbox, delivery state, errors and audit history
+school_verification_reviews — internal approve/reject audit history; service-role only
 fees            — id, school_id, title, type (recurring/special), amount, active
 
 -- Payments in
@@ -163,7 +167,7 @@ school_pricing_policies — per-school pricing overrides
 billing_events          — Stripe webhook audit log
 ```
 
-Migration `023_automatic_whatsapp_reminders.sql` adds the reminder schema. Existing unpaid students receive a balance-cycle ID but remain ineligible until the school supplies a guardian, consent record, and due date.
+Migration `023_automatic_whatsapp_reminders.sql` adds the reminder schema. Migration `025_school_verification_workflow.sql` adds the internal verification audit and international E.164 guardian support. Existing unpaid students receive a balance-cycle ID but remain ineligible until the school supplies a guardian, consent record, and due date.
 
 Dashboard queries run through `getAdminClient()` (service key, bypasses RLS) and are scoped in application code by the `school_id` from `getTenantContext()`. RLS migrations 007, 023, and 024 separately protect direct Data API access.
 

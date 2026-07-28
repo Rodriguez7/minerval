@@ -7,6 +7,7 @@ import {
   updateEducationLevels,
   updatePricingPolicy,
   updateWhatsAppSettings,
+  submitSchoolVerification,
 } from "@/app/actions/settings";
 import { LogoUploadForm } from "./LogoUploadForm";
 import { CloseSchoolForm } from "./CloseSchoolForm";
@@ -15,8 +16,17 @@ import {
   EDUCATION_LEVELS,
   EDUCATION_LEVEL_LABELS,
 } from "@/lib/congo-education";
+import { getRequestLocale } from "@/lib/i18n/server";
+import {
+  getSchoolReadinessItems,
+  getVerificationLabel,
+  getWhatsAppBlockers,
+} from "@/lib/school-readiness";
+import { OnboardingChecklist } from "../OnboardingChecklist";
 
 export default async function SettingsPage() {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
   const { school, membership, plan } = await getTenantContext();
   const canManage = ["owner", "admin"].includes(membership.role);
   const admin = getAdminClient();
@@ -41,7 +51,13 @@ export default async function SettingsPage() {
   ]);
   const currentLogoUrl = (logoRow as { logo_url?: string | null } | null)?.logo_url ?? null;
   const whatsappStatuses = ["queued", "accepted", "sent", "delivered", "read", "failed", "cancelled"] as const;
-  const [statusCountResults, optedOutResult] = await Promise.all([
+  const [
+    statusCountResults,
+    optedOutResult,
+    studentCountResult,
+    guardianCountResult,
+    balanceCountResult,
+  ] = await Promise.all([
     Promise.all(
       whatsappStatuses.map((status) =>
         admin
@@ -56,29 +72,70 @@ export default async function SettingsPage() {
       .select("id", { count: "exact", head: true })
       .eq("school_id", school.id)
       .not("whatsapp_opted_out_at", "is", null),
+    admin.from("students").select("id", { count: "exact", head: true }).eq("school_id", school.id),
+    admin
+      .from("guardians")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .not("whatsapp_opt_in_at", "is", null)
+      .is("whatsapp_opted_out_at", null),
+    admin
+      .from("students")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", school.id)
+      .gt("amount_due", 0)
+      .not("balance_due_at", "is", null),
   ]);
   const whatsappCounts = Object.fromEntries(
     whatsappStatuses.map((status, index) => [status, statusCountResults[index].count ?? 0])
   ) as Record<(typeof whatsappStatuses)[number], number>;
+  const readinessCounts = {
+    students: studentCountResult.count ?? 0,
+    guardians: guardianCountResult.count ?? 0,
+    balancesWithDueDate: balanceCountResult.count ?? 0,
+  };
+  const readinessSettings = {
+    automaticRemindersEnabled: whatsappSettings?.automatic_reminders_enabled ?? true,
+  };
+  const readinessItems = getSchoolReadinessItems(
+    school,
+    readinessCounts,
+    readinessSettings,
+    locale
+  );
+  const whatsappBlockers = getWhatsAppBlockers(
+    school,
+    readinessCounts,
+    readinessSettings,
+    locale
+  );
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Parametres</h1>
-        <p className="text-sm text-zinc-500 mt-1">Gerez la configuration de votre ecole</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
+          {fr ? "Paramètres" : "Settings"}
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {fr ? "Gérez la configuration de votre établissement" : "Manage your school configuration"}
+        </p>
       </div>
+
+      <OnboardingChecklist locale={locale} items={readinessItems} />
 
       {/* School info */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-sm font-semibold text-zinc-900">Informations de l&apos;ecole</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">
+            {fr ? "Informations de l’établissement" : "School information"}
+          </h2>
         </div>
         <div className="px-6 py-5 divide-y divide-zinc-50">
           {[
-            { label: "Nom", value: school.name, mono: false },
+            { label: fr ? "Nom" : "Name", value: school.name, mono: false },
             { label: "Code", value: school.code, mono: true },
-            { label: "Devise", value: school.currency, mono: false },
-            { label: "Fuseau", value: school.timezone, mono: false },
+            { label: fr ? "Devise" : "Currency", value: school.currency, mono: false },
+            { label: fr ? "Fuseau" : "Timezone", value: school.timezone, mono: false },
           ].map(({ label, value, mono }) => (
             <div key={label} className="flex items-center gap-6 py-3 first:pt-0 last:pb-0">
               <span className="text-sm text-zinc-500 w-24 shrink-0">{label}</span>
@@ -88,13 +145,118 @@ export default async function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-5">
+      <section id="verification" className="scroll-mt-24 rounded-xl border border-zinc-200 bg-white p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              {fr ? "Vérification interne" : "Internal verification"}
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-zinc-500">
+              {fr
+                ? "Ce contrôle protège les familles et doit être approuvé avant l’envoi des rappels WhatsApp."
+                : "This review protects families and must be approved before WhatsApp reminders can be sent."}
+            </p>
+          </div>
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+            school.verification_status === "verified"
+              ? "bg-emerald-100 text-emerald-800"
+              : school.verification_status === "pending"
+                ? "bg-blue-100 text-blue-800"
+                : "bg-amber-100 text-amber-800"
+          }`}>
+            {getVerificationLabel(school.verification_status, locale)}
+          </span>
+        </div>
+        {school.verification_rejection_reason && (
+          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <strong>{fr ? "Correction demandée :" : "Changes requested:"}</strong>{" "}
+            {school.verification_rejection_reason}
+          </p>
+        )}
+        <form
+          action={async (fd: FormData) => { "use server"; await submitSchoolVerification(undefined, fd); }}
+          className="mt-5 grid gap-4 sm:grid-cols-2"
+        >
+          <input type="hidden" name="locale" value={locale} />
+          {[
+            ["legalName", fr ? "Raison sociale" : "Legal name", school.legal_name, true],
+            ["registrationNumber", fr ? "Numéro d’immatriculation" : "Registration number", school.registration_number, false],
+            ["directorName", fr ? "Responsable légal" : "Legal representative", school.director_name, true],
+            ["directorPhone", fr ? "Téléphone du responsable (facultatif)" : "Representative phone (optional)", school.director_phone, false],
+            ["payoutAccountName", fr ? "Titulaire du compte de versement (facultatif)" : "Payout account holder (optional)", school.payout_account_name, false],
+            ["payoutAccountPhone", fr ? "Téléphone mobile money RDC (facultatif)" : "DRC mobile-money phone (optional)", school.payout_account_phone, false],
+          ].map(([name, label, value, required]) => (
+            <label key={String(name)} className="text-xs font-medium text-zinc-600">
+              {label}
+              <input
+                name={String(name)}
+                defaultValue={String(value ?? "")}
+                required={Boolean(required)}
+                disabled={membership.role !== "owner"}
+                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 disabled:bg-zinc-50"
+              />
+            </label>
+          ))}
+          <label className="text-xs font-medium text-zinc-600 sm:col-span-2">
+            {fr ? "Adresse de l’établissement" : "School address"}
+            <textarea
+              name="schoolAddress"
+              rows={2}
+              required
+              defaultValue={school.school_address ?? ""}
+              disabled={membership.role !== "owner"}
+              className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 disabled:bg-zinc-50"
+            />
+          </label>
+          <label className="text-xs font-medium text-zinc-600">
+            {fr ? "Devise des frais scolaires" : "School-fee currency"}
+            <select
+              name="currency"
+              defaultValue={school.currency}
+              disabled={membership.role !== "owner"}
+              className="mt-1 block w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="FC">{fr ? "FC — Franc congolais" : "FC — Congolese franc"}</option>
+              <option value="USD">{fr ? "USD — Dollar américain" : "USD — US dollar"}</option>
+            </select>
+          </label>
+          {membership.role === "owner" && (
+            <div className="flex items-end">
+              <button className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                {school.verification_status === "verified"
+                  ? fr ? "Soumettre les modifications" : "Submit changes"
+                  : fr ? "Soumettre pour vérification" : "Submit for verification"}
+              </button>
+            </div>
+          )}
+        </form>
+      </section>
+
+      <div id="whatsapp" className="scroll-mt-24 bg-white rounded-xl border border-zinc-200 p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-900">Rappels automatiques WhatsApp</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">
+            {fr ? "Rappels automatiques WhatsApp" : "Automatic WhatsApp reminders"}
+          </h2>
           <p className="text-xs text-zinc-500 mt-1">
-            Les soldes impayés admissibles sont inscrits automatiquement. Aucune campagne ni sélection d&apos;élèves n&apos;est nécessaire.
+            {fr
+              ? "Les soldes impayés admissibles sont inscrits automatiquement. Aucune campagne ni sélection d’élèves n’est nécessaire."
+              : "Eligible unpaid balances are enrolled automatically. No campaign or student selection is required."}
           </p>
         </div>
+        {whatsappBlockers.length > 0 ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="font-semibold">
+              {fr ? "Les rappels ne peuvent pas encore être envoyés." : "Reminders cannot be sent yet."}
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {whatsappBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
+            </ul>
+          </div>
+        ) : (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+            {fr ? "WhatsApp est prêt à envoyer les rappels admissibles." : "WhatsApp is ready to send eligible reminders."}
+          </p>
+        )}
         <form
           action={async (fd: FormData) => { "use server"; await updateWhatsAppSettings(undefined, fd); }}
           className="space-y-4"
@@ -108,13 +270,19 @@ export default async function SettingsPage() {
               className="mt-0.5"
             />
             <span>
-              <strong className="block text-zinc-900">Activer les rappels automatiques</strong>
-              Minerval contacte le responsable enregistré selon l&apos;échéance et s&apos;arrête dès que le paiement est confirmé.
+              <strong className="block text-zinc-900">
+                {fr ? "Activer les rappels automatiques" : "Enable automatic reminders"}
+              </strong>
+              {fr
+                ? "Minerval contacte le responsable enregistré selon l’échéance et s’arrête dès que le paiement est confirmé."
+                : "Minerval contacts the registered guardian according to the due date and stops as soon as payment is confirmed."}
             </span>
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Heure locale d&apos;envoi</label>
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                {fr ? "Heure locale d’envoi" : "Local send time"}
+              </label>
               <select
                 name="localSendHour"
                 defaultValue={whatsappSettings?.local_send_hour ?? 9}
@@ -127,7 +295,9 @@ export default async function SettingsPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Nombre maximal</label>
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                {fr ? "Nombre maximal" : "Maximum reminders"}
+              </label>
               <select
                 name="maxReminders"
                 defaultValue={whatsappSettings?.max_reminders ?? 6}
@@ -135,19 +305,23 @@ export default async function SettingsPage() {
                 className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white"
               >
                 {[1, 2, 3, 4, 5, 6].map((count) => (
-                  <option key={count} value={count}>{count} rappel{count > 1 ? "s" : ""}</option>
+                  <option key={count} value={count}>
+                    {count} {fr ? `rappel${count > 1 ? "s" : ""}` : `reminder${count > 1 ? "s" : ""}`}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
           {canManage && (
             <button type="submit" className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800">
-              Enregistrer les rappels
+              {fr ? "Enregistrer les rappels" : "Save reminder settings"}
             </button>
           )}
         </form>
         <div className="border-t border-zinc-100 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Suivi des messages</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            {fr ? "Suivi des messages" : "Message tracking"}
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {whatsappStatuses.map((status) => (
               <span key={status} className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700">
@@ -155,7 +329,7 @@ export default async function SettingsPage() {
               </span>
             ))}
             <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-800">
-              désabonnés: {optedOutResult.count ?? 0}
+              {fr ? "désabonnés" : "opted out"}: {optedOutResult.count ?? 0}
             </span>
           </div>
         </div>
@@ -163,9 +337,13 @@ export default async function SettingsPage() {
 
       <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-900">Système d&apos;enseignement</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">
+            {fr ? "Système d’enseignement" : "Education system"}
+          </h2>
           <p className="text-xs text-zinc-500 mt-1">
-            Adapte les classes et le vocabulaire au contexte congolais de votre établissement.
+            {fr
+              ? "Adaptez les classes et le vocabulaire au contexte congolais de votre établissement."
+              : "Adapt grades and terminology to your school’s Congolese context."}
           </p>
         </div>
         <form
@@ -194,7 +372,7 @@ export default async function SettingsPage() {
               type="submit"
               className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800"
             >
-              Enregistrer les niveaux
+              {fr ? "Enregistrer les niveaux" : "Save education levels"}
             </button>
           )}
         </form>
@@ -203,9 +381,13 @@ export default async function SettingsPage() {
       {/* Pricing policy */}
       <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-900">Politique tarifaire</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">
+            {fr ? "Politique tarifaire" : "Fee policy"}
+          </h2>
           <p className="text-xs text-zinc-500 mt-1">
-            Definit les frais payes par les parents en plus du montant scolaire
+            {fr
+              ? "Définissez les frais payés par les parents en plus du montant scolaire."
+              : "Define the fee paid by parents in addition to the school balance."}
           </p>
         </div>
         <form
@@ -214,9 +396,9 @@ export default async function SettingsPage() {
         >
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Frais parent
+              {fr ? "Frais parent" : "Parent fee"}
               <span className="text-zinc-400 font-normal ml-2 normal-case">
-                (points de base - 300 = 3 %)
+                {fr ? "(points de base — 300 = 3 %)" : "(basis points — 300 = 3%)"}
               </span>
             </label>
             <input
@@ -232,7 +414,7 @@ export default async function SettingsPage() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Mode d&apos;affichage des frais
+              {fr ? "Mode d’affichage des frais" : "Fee display mode"}
             </label>
             <select
               name="feeDisplayMode"
@@ -241,9 +423,13 @@ export default async function SettingsPage() {
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent disabled:bg-zinc-50 disabled:text-zinc-400 transition-shadow"
             >
               <option value="visible_line_item">
-                Ligne visible - affichee separement sur la page de paiement
+                {fr
+                  ? "Ligne visible — affichée séparément sur la page de paiement"
+                  : "Visible line item — shown separately on the payment page"}
               </option>
-              <option value="hidden">Masque - integre au total, non affiche</option>
+              <option value="hidden">
+                {fr ? "Masqué — intégré au total, non affiché" : "Hidden — included in the total"}
+              </option>
             </select>
           </div>
 
@@ -252,7 +438,7 @@ export default async function SettingsPage() {
               type="submit"
               className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 active:scale-[0.98] transition-all"
             >
-              Enregistrer les changements
+              {fr ? "Enregistrer les changements" : "Save changes"}
             </button>
           )}
         </form>
@@ -261,11 +447,15 @@ export default async function SettingsPage() {
       {/* Payout discount */}
       {plan.future_payout_discount_bps > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-blue-900 mb-1">Remise sur les versements</h2>
+          <h2 className="text-sm font-semibold text-blue-900 mb-1">
+            {fr ? "Remise sur les versements" : "Payout discount"}
+          </h2>
           <p className="text-sm text-blue-700">
-            Votre plan inclut une remise de{" "}
+            {fr ? "Votre plan inclut une remise de " : "Your plan includes a "}
             <strong>{(plan.future_payout_discount_bps / 100).toFixed(2)}%</strong>{" "}
-            sur les futurs frais plateforme, appliquee automatiquement aux versements regles.
+            {fr
+              ? "sur les futurs frais de plateforme, appliquée automatiquement aux versements réglés."
+              : "discount on future platform fees, applied automatically to settled payouts."}
           </p>
         </div>
       )}
@@ -274,31 +464,38 @@ export default async function SettingsPage() {
       <LogoUploadForm currentLogoUrl={currentLogoUrl} canManage={canManage} />
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-zinc-900">Compte personnel</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">
+          {fr ? "Compte personnel" : "Personal account"}
+        </h2>
         <p className="mt-1 text-xs leading-5 text-zinc-500">
-          Gerez la suppression de votre connexion personnelle et de vos acces.
+          {fr
+            ? "Gérez la suppression de votre connexion personnelle et de vos accès."
+            : "Manage your personal login and account deletion."}
         </p>
         <LocalizedLink
           href="/account"
           className="mt-4 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
         >
-          Gerer mon compte
+          {fr ? "Gérer mon compte" : "Manage my account"}
         </LocalizedLink>
       </div>
 
       {membership.role === "owner" && (
         <>
           <div className="rounded-xl border border-zinc-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-zinc-900">Export des donnees</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              {fr ? "Export des données" : "Data export"}
+            </h2>
             <p className="mt-1 text-xs leading-5 text-zinc-500">
-              Telecharge une copie JSON des informations de l&apos;ecole, eleves, paiements,
-              versements, membres et journaux d&apos;audit. Les jetons secrets ne sont pas inclus.
+              {fr
+                ? "Téléchargez une copie JSON des informations de l’établissement, des élèves, paiements, versements, membres et journaux d’audit. Les jetons secrets ne sont pas inclus."
+                : "Download a JSON copy of school, student, payment, payout, membership, and audit data. Secret tokens are excluded."}
             </p>
             <a
               href="/api/dashboard/account/export"
               className="mt-4 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
             >
-              Telecharger mes donnees
+              {fr ? "Télécharger mes données" : "Download my data"}
             </a>
           </div>
           <CloseSchoolForm schoolCode={school.code} />

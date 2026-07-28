@@ -42,13 +42,13 @@ describe("changeMemberRole", () => {
   it("returns French unauthorized error for viewer role", async () => {
     mockTenant("viewer");
     const result = await changeMemberRole("mem2", "admin");
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("returns French unauthorized error for finance role", async () => {
     mockTenant("finance");
     const result = await changeMemberRole("mem2", "admin");
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("rejects cross-school membership change with French not found error", async () => {
@@ -90,7 +90,7 @@ describe("deactivateMember", () => {
   it("returns French unauthorized error for viewer role", async () => {
     mockTenant("viewer");
     const result = await deactivateMember("mem2");
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("prevents deactivating own membership", async () => {
@@ -181,7 +181,7 @@ describe("sendInvite", () => {
   it("returns French unauthorized error for viewer role", async () => {
     mockTenant("viewer");
     const result = await sendInvite("new@school.com", "admin");
-    expect(result?.error).toBe("Non autorise");
+    expect(result?.error).toBe("Non autorisé");
   });
 
   it("returns error for invalid role (owner not allowed)", async () => {

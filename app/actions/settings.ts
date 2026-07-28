@@ -2,8 +2,10 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getTenantContext } from "@/lib/tenant";
-import { getAdminClient } from "@/lib/supabase";
+import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { EDUCATION_LEVELS } from "@/lib/congo-education";
+import { normalizeWhatsAppPhone } from "@/lib/phone";
+import { getPreferredLocale } from "@/lib/i18n/config";
 
 const PricingSchema = z.object({
   parentFeeBps: z.coerce.number().int().min(0).max(1000),
@@ -16,11 +18,22 @@ const WhatsAppSettingsSchema = z.object({
   maxReminders: z.coerce.number().int().min(1).max(6),
 });
 
+const VerificationProfileSchema = z.object({
+  legalName: z.string().min(2).max(200),
+  registrationNumber: z.string().max(100).optional(),
+  schoolAddress: z.string().min(5).max(300),
+  directorName: z.string().min(2).max(200),
+  directorPhone: z.string().max(30).optional(),
+  payoutAccountName: z.string().max(200).optional(),
+  payoutAccountPhone: z.string().max(30).optional(),
+  currency: z.enum(["FC", "USD"]),
+});
+
 type State = { error?: string; success?: boolean } | undefined;
 
 const EducationLevelsSchema = z
   .array(z.enum(EDUCATION_LEVELS))
-  .min(1, "Selectionnez au moins un niveau d'enseignement.");
+  .min(1, "Sélectionnez au moins un niveau d’enseignement.");
 
 export async function updateEducationLevels(
   _: State,
@@ -28,7 +41,7 @@ export async function updateEducationLevels(
 ): Promise<State> {
   const { school, membership } = await getTenantContext();
   if (!['owner', 'admin'].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = EducationLevelsSchema.safeParse(
@@ -44,7 +57,7 @@ export async function updateEducationLevels(
     .update({ education_levels: parsed.data })
     .eq("id", school.id);
 
-  if (error) return { error: "Impossible de mettre a jour les niveaux." };
+  if (error) return { error: "Impossible de mettre à jour les niveaux." };
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/students");
@@ -59,7 +72,7 @@ export async function updatePricingPolicy(
   const { school, membership } = await getTenantContext();
 
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = PricingSchema.safeParse({
@@ -83,7 +96,7 @@ export async function updatePricingPolicy(
       { onConflict: "school_id" }
     );
 
-  if (error) return { error: "Impossible de mettre a jour la politique tarifaire." };
+  if (error) return { error: "Impossible de mettre à jour la politique tarifaire." };
 
   revalidatePath("/dashboard/settings");
   return { success: true };
@@ -95,7 +108,7 @@ export async function updateWhatsAppSettings(
 ): Promise<State> {
   const { school, membership } = await getTenantContext();
   if (!["owner", "admin"].includes(membership.role)) {
-    return { error: "Non autorise" };
+    return { error: "Non autorisé" };
   }
 
   const parsed = WhatsAppSettingsSchema.safeParse({
@@ -120,7 +133,125 @@ export async function updateWhatsAppSettings(
       { onConflict: "school_id" }
     );
 
-  if (error) return { error: "Impossible de mettre a jour les rappels WhatsApp." };
+  if (error) return { error: "Impossible de mettre à jour les rappels WhatsApp." };
   revalidatePath("/dashboard/settings");
   return { success: true };
+}
+
+export async function submitSchoolVerification(
+  _: State,
+  formData: FormData
+): Promise<State> {
+  const locale = getPreferredLocale(formData.get("locale")?.toString());
+  const fr = locale === "fr";
+  const { school, membership } = await getTenantContext();
+  if (membership.role !== "owner") {
+    return { error: fr ? "Seul le propriétaire peut soumettre la vérification." : "Only the owner can submit verification." };
+  }
+
+  const parsed = VerificationProfileSchema.safeParse({
+    legalName: formData.get("legalName"),
+    registrationNumber: formData.get("registrationNumber")?.toString() || undefined,
+    schoolAddress: formData.get("schoolAddress"),
+    directorName: formData.get("directorName"),
+    directorPhone: formData.get("directorPhone")?.toString() || undefined,
+    payoutAccountName: formData.get("payoutAccountName")?.toString() || undefined,
+    payoutAccountPhone: formData.get("payoutAccountPhone")?.toString() || undefined,
+    currency: formData.get("currency"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? (fr ? "Profil incomplet." : "Incomplete profile.") };
+  }
+
+  const directorPhone = parsed.data.directorPhone
+    ? normalizeWhatsAppPhone(parsed.data.directorPhone)
+    : null;
+  const payoutPhone = parsed.data.payoutAccountPhone
+    ? normalizeDrcMobilePhoneForPayout(parsed.data.payoutAccountPhone)
+    : null;
+  if (parsed.data.directorPhone && !directorPhone) {
+    return { error: fr ? "Numéro international du responsable invalide." : "Invalid director phone number." };
+  }
+  if (parsed.data.payoutAccountPhone && !payoutPhone) {
+    return { error: fr ? "Le compte de versement doit utiliser un numéro mobile RDC." : "The payout account must use a DRC mobile number." };
+  }
+
+  const { error } = await getAdminClient()
+    .from("schools")
+    .update({
+      legal_name: parsed.data.legalName,
+      registration_number: parsed.data.registrationNumber ?? null,
+      school_address: parsed.data.schoolAddress,
+      director_name: parsed.data.directorName,
+      director_phone: directorPhone,
+      payout_account_name: parsed.data.payoutAccountName ?? null,
+      payout_account_phone: payoutPhone,
+      currency: parsed.data.currency,
+      verification_status: "pending",
+      verification_submitted_at: new Date().toISOString(),
+      verification_reviewed_at: null,
+      verification_rejection_reason: null,
+    })
+    .eq("id", school.id);
+
+  if (error) {
+    return { error: fr ? "Impossible de soumettre la vérification." : "Could not submit verification." };
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function reviewSchoolVerification(formData: FormData) {
+  const ssr = await createSSRClient();
+  const { data: { user } } = await ssr.auth.getUser();
+  if (!user || user.email !== process.env.SUPER_ADMIN_EMAIL) {
+    return { error: "Unauthorized" };
+  }
+
+  const parsed = z.object({
+    schoolId: z.string().uuid(),
+    decision: z.enum(["verified", "rejected"]),
+    note: z.string().max(1000).optional(),
+  }).safeParse({
+    schoolId: formData.get("schoolId"),
+    decision: formData.get("decision"),
+    note: formData.get("note")?.toString() || undefined,
+  });
+  if (!parsed.success) return { error: "Invalid review" };
+  if (parsed.data.decision === "rejected" && !parsed.data.note) {
+    return { error: "A rejection reason is required" };
+  }
+
+  const admin = getAdminClient();
+  const reviewedAt = new Date().toISOString();
+  const { error } = await admin
+    .from("schools")
+    .update({
+      verification_status: parsed.data.decision,
+      verification_reviewed_at: reviewedAt,
+      verification_rejection_reason:
+        parsed.data.decision === "rejected" ? parsed.data.note : null,
+    })
+    .eq("id", parsed.data.schoolId);
+  if (error) return { error: "Could not update verification" };
+
+  const { error: auditError } = await admin.from("school_verification_reviews").insert({
+    school_id: parsed.data.schoolId,
+    reviewer_id: user.id,
+    decision: parsed.data.decision,
+    note: parsed.data.note ?? null,
+  });
+  if (auditError) return { error: "Verification updated, but audit logging failed" };
+
+  revalidatePath("/dashboard/admin/schools");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+function normalizeDrcMobilePhoneForPayout(value: unknown) {
+  if (typeof value !== "string") return null;
+  const normalized = normalizeWhatsAppPhone(value);
+  return normalized?.startsWith("243") && normalized.length === 12 ? normalized : null;
 }

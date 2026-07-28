@@ -49,7 +49,7 @@ export async function beginTotpEnrollment(
 
   const { data: factors, error: listError } = await auth.supabase.auth.mfa.listFactors();
   if (listError) {
-    return { error: message(locale, "Impossible de verifier la securite du compte.", "Could not check account security.") };
+    return { error: message(locale, "Impossible de vérifier la sécurité du compte.", "Could not check account security.") };
   }
   if (factors.totp.some((factor) => factor.status === "verified")) {
     return { alreadyEnabled: true };
@@ -150,7 +150,7 @@ export async function disableTotp(
   if (!auth.supabase) return { error: auth.error ?? undefined };
   const { data: assurance } = await auth.supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (assurance?.currentLevel !== "aal2") {
-    return { error: message(locale, "Verifiez d'abord votre code MFA.", "Verify your MFA code first.") };
+    return { error: message(locale, "Vérifiez d’abord votre code MFA.", "Verify your MFA code first.") };
   }
 
   const { data: factors } = await auth.supabase.auth.mfa.listFactors();
@@ -160,7 +160,7 @@ export async function disableTotp(
 
   const { error } = await auth.supabase.auth.mfa.unenroll({ factorId: factorId.data });
   if (error) {
-    return { error: message(locale, "Impossible de desactiver le MFA.", "Could not disable MFA.") };
+    return { error: message(locale, "Impossible de désactiver le MFA.", "Could not disable MFA.") };
   }
   return { success: true };
 }

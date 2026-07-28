@@ -12,6 +12,7 @@ type DashboardShellCopy = {
     team: string;
     billing: string;
     settings: string;
+    verification: string;
   };
   logout: string;
   openMenu: string;
@@ -22,17 +23,18 @@ export const DASHBOARD_SHELL_COPY: Record<AppLocale, DashboardShellCopy> = {
   fr: {
     nav: {
       overview: "Vue d'ensemble",
-      students: "Eleves",
+      students: "Élèves",
       fees: "Frais",
       reconciliation: "Rapprochement",
       reports: "Rapports",
       payouts: "Versements",
       analytics: "Analytique",
-      team: "Equipe",
+      team: "Équipe",
       billing: "Facturation",
-      settings: "Parametres",
+      settings: "Paramètres",
+      verification: "Vérifications",
     },
-    logout: "Se deconnecter",
+    logout: "Se déconnecter",
     openMenu: "Ouvrir le menu",
     closeMenu: "Fermer le menu",
   },
@@ -48,6 +50,7 @@ export const DASHBOARD_SHELL_COPY: Record<AppLocale, DashboardShellCopy> = {
       team: "Team",
       billing: "Billing",
       settings: "Settings",
+      verification: "School verification",
     },
     logout: "Log out",
     openMenu: "Open menu",

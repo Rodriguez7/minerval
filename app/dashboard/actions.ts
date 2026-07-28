@@ -32,7 +32,7 @@ async function applyReconciliationUpdate(options: {
   const reconciliationNote =
     options.note?.trim() ||
     (options.nextStatus === "manual_override"
-      ? "Resolution manuelle depuis le tableau de bord de rapprochement."
+      ? "Résolution manuelle depuis le tableau de bord de rapprochement."
       : null);
 
   const update: {
@@ -88,7 +88,7 @@ export async function markPaymentFailed(paymentId: string) {
   await applyReconciliationUpdate({
     paymentId,
     nextStatus: "manual_override",
-    note: "Marque en echec depuis la vue d'ensemble apres un delai d'attente trop long.",
+    note: "Marqué en échec depuis la vue d’ensemble après un délai d’attente trop long.",
     actor: school.admin_email,
   });
 

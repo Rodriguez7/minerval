@@ -6,8 +6,11 @@ import { takeJoined } from "@/lib/supabase-joins";
 import { TELECOM_LABELS } from "@/lib/types";
 import type { Telecom } from "@/lib/types";
 import { WithdrawForm } from "./WithdrawForm";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export default async function PayoutsPage() {
+  const locale = await getRequestLocale();
+  const fr = locale === "fr";
   const { school, membership } = await getTenantContext();
   const admin = getAdminClient();
 
@@ -62,13 +65,13 @@ export default async function PayoutsPage() {
         }`}
       >
         {status === "completed"
-          ? "termine"
+          ? fr ? "terminé" : "completed"
           : status === "pending"
-            ? "en attente"
+            ? fr ? "en attente" : "pending"
             : status === "processing"
-              ? "en cours"
+              ? fr ? "en cours" : "processing"
               : status === "failed"
-                ? "echec"
+                ? fr ? "échec" : "failed"
                 : status}
       </span>
     );
@@ -77,28 +80,30 @@ export default async function PayoutsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Versements</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
+          {fr ? "Versements" : "Payouts"}
+        </h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Paiements regles et montant net verse apres frais de plateforme
+          {fr ? "Paiements réglés et montant net versé après frais de plateforme" : "Settled payments and net payout after platform fees"}
         </p>
       </div>
 
       {/* Financials */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Montant brut encaisse</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Montant brut encaissé" : "Gross collected"}</p>
           <p className="text-2xl font-bold font-mono text-zinc-950 mt-2">
             {gross.toLocaleString("fr-FR")} {currency}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Frais plateforme</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Frais de plateforme" : "Platform fees"}</p>
           <p className="text-2xl font-bold font-mono text-red-600 mt-2">
             − {fees.toLocaleString("fr-FR")} {currency}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Net pour l&apos;ecole</p>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Net pour l’école" : "Net to school"}</p>
           <p className="text-2xl font-bold font-mono text-emerald-700 mt-2">
             {net.toLocaleString("fr-FR")} {currency}
           </p>
@@ -109,20 +114,22 @@ export default async function PayoutsPage() {
       <div className="bg-white rounded-xl border border-zinc-200 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Solde disponible</p>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{fr ? "Solde disponible" : "Available balance"}</p>
             <p className="text-3xl font-bold font-mono text-zinc-950 mt-1">
               {availableBalance.toLocaleString("fr-FR")} {currency}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">Apres deduction de tous les retraits non echoues</p>
+            <p className="text-xs text-zinc-400 mt-1">{fr ? "Après déduction de tous les retraits non échoués" : "After all active withdrawal requests"}</p>
           </div>
           {canWithdraw && (
             <WithdrawForm availableBalance={availableBalance} currency={currency} />
           )}
           {needsVerification && (
             <div className="max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              <p className="font-semibold">Verification requise</p>
+              <p className="font-semibold">{fr ? "Vérification requise" : "Verification required"}</p>
               <p className="mt-1">
-                Votre dossier ecole est {school.verification_status === "pending" ? "en cours de verification" : "a completer"}. Les versements seront actives apres validation.
+                {fr
+                  ? `Votre dossier école est ${school.verification_status === "pending" ? "en cours de vérification" : "à compléter"}. Les versements seront activés après validation.`
+                  : `Your school profile is ${school.verification_status === "pending" ? "under review" : "incomplete"}. Payouts will be enabled after approval.`}
               </p>
             </div>
           )}
@@ -133,12 +140,15 @@ export default async function PayoutsPage() {
       {(payoutHistory ?? []).length > 0 && (
         <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100">
-            <h2 className="text-sm font-semibold text-zinc-900">Demandes de retrait</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">{fr ? "Demandes de retrait" : "Withdrawal requests"}</h2>
           </div>
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Demande", "Commission", "Verse a l'ecole", "Telephone", "Operateur", "Statut", "Demande le"].map((h) => (
+                {(fr
+                  ? ["Demande", "Commission", "Versé à l’école", "Téléphone", "Opérateur", "Statut", "Demandé le"]
+                  : ["Requested", "Fee", "Paid to school", "Phone", "Operator", "Status", "Requested on"]
+                ).map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -173,19 +183,22 @@ export default async function PayoutsPage() {
       {/* Settled payments */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-sm font-semibold text-zinc-900">Paiements regles</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">Les 200 paiements reussis les plus recents</p>
+          <h2 className="text-sm font-semibold text-zinc-900">{fr ? "Paiements réglés" : "Settled payments"}</h2>
+          <p className="text-xs text-zinc-500 mt-0.5">{fr ? "Les 200 paiements réussis les plus récents" : "The 200 most recent successful payments"}</p>
         </div>
 
         {payments.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-zinc-400">Aucun paiement regle pour le moment.</p>
+            <p className="text-sm text-zinc-400">{fr ? "Aucun paiement réglé pour le moment." : "No settled payments yet."}</p>
           </div>
         ) : (
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Eleve", "Brut", "Frais", "Montant ecole", "Operateur", "Regle le"].map((h) => (
+                {(fr
+                  ? ["Élève", "Brut", "Frais", "Montant école", "Opérateur", "Réglé le"]
+                  : ["Student", "Gross", "Fees", "School amount", "Operator", "Settled on"]
+                ).map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>

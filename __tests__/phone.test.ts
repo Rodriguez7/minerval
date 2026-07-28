@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeDrcMobilePhone } from "@/lib/phone";
+import { normalizeDrcMobilePhone, normalizeWhatsAppPhone } from "@/lib/phone";
 
 describe("normalizeDrcMobilePhone", () => {
   it.each([
@@ -24,4 +24,22 @@ describe("normalizeDrcMobilePhone", () => {
   ])("rejects %s", (input) => {
     expect(normalizeDrcMobilePhone(input)).toBeNull();
   });
+});
+
+describe("normalizeWhatsAppPhone", () => {
+  it.each([
+    ["+43 660 000 0000", "436600000000"],
+    ["0043 660 000 0000", "436600000000"],
+    ["+243 999 000 001", "243999000001"],
+    ["0812345678", "243812345678"],
+  ])("normalizes international WhatsApp number %s", (input, expected) => {
+    expect(normalizeWhatsAppPhone(input)).toBe(expected);
+  });
+
+  it.each(["", "+012345678", "123", "+43+6606628661", "phone"])(
+    "rejects invalid international number %s",
+    (input) => {
+      expect(normalizeWhatsAppPhone(input)).toBeNull();
+    }
+  );
 });

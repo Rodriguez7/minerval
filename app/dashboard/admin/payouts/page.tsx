@@ -5,14 +5,10 @@ import { localizePathname } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { ResolvePayoutForm } from "./ResolvePayoutForm";
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "En attente",
-  processing: "En cours",
-  completed: "Termine",
-  failed: "Echec",
-};
-
-const statusBadge = (status: string) => {
+const statusBadge = (status: string, fr: boolean) => {
+  const labels: Record<string, string> = fr
+    ? { pending: "En attente", processing: "En cours", completed: "Terminé", failed: "Échec" }
+    : { pending: "Pending", processing: "Processing", completed: "Completed", failed: "Failed" };
   const styles: Record<string, string> = {
     completed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     pending: "bg-amber-50 text-amber-700 border border-amber-200",
@@ -25,7 +21,7 @@ const statusBadge = (status: string) => {
         styles[status] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200"
       }`}
     >
-      {STATUS_LABELS[status] ?? status}
+      {labels[status] ?? status}
     </span>
   );
 };
@@ -53,31 +49,41 @@ export default async function AdminPayoutsPage() {
 
   const pending = (payouts ?? []).filter((p) => p.status === "pending");
   const history = (payouts ?? []).filter((p) => p.status !== "pending");
+  const fr = locale === "fr";
 
   return (
     <div className="space-y-8 p-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-950">Demandes de versement</h1>
-        <p className="text-sm text-zinc-500 mt-1">Admin - verifier et approuver les demandes de retrait</p>
+        <h1 className="text-xl font-semibold tracking-tight text-zinc-950">
+          {fr ? "Demandes de versement" : "Payout requests"}
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {fr ? "Administration — vérifier et approuver les demandes de retrait" : "Administration — review and approve withdrawal requests"}
+        </p>
       </div>
 
       {/* Pending */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            En attente d&apos;approbation
+            {fr ? "En attente d’approbation" : "Awaiting approval"}
             <span className="ml-2 text-xs font-normal text-zinc-400">{pending.length}</span>
           </h2>
         </div>
         {pending.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-zinc-400">Aucune demande en attente.</p>
+            <p className="text-sm text-zinc-400">
+              {fr ? "Aucune demande en attente." : "No pending requests."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Ecole", "Demande", "Commission", "A envoyer", "Telephone", "Operateur", "Demande le", ""].map((h) => (
+                {(fr
+                  ? ["École", "Demande", "Commission", "À envoyer", "Téléphone", "Opérateur", "Demandé le", ""]
+                  : ["School", "Request", "Commission", "To send", "Phone", "Provider", "Requested", ""]
+                ).map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -91,21 +97,21 @@ export default async function AdminPayoutsPage() {
                     {(p.schools as { name?: string } | null)?.name ?? p.school_id}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-zinc-900">
-                    {p.amount.toLocaleString("fr-FR")}
+                    {p.amount.toLocaleString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-red-600">
-                    − {p.fee_amount.toLocaleString("fr-FR")}
+                    − {p.fee_amount.toLocaleString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono font-semibold text-emerald-700">
-                    {p.net_amount.toLocaleString("fr-FR")}
+                    {p.net_amount.toLocaleString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.telecom}</td>
                   <td className="px-4 py-3 text-sm text-zinc-400">
-                    {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                    {new Date(p.created_at).toLocaleDateString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3">
-                    <ApproveButton payoutId={p.id} />
+                    <ApproveButton payoutId={p.id} locale={locale} />
                   </td>
                 </tr>
               ))}
@@ -118,19 +124,24 @@ export default async function AdminPayoutsPage() {
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100">
           <h2 className="text-sm font-semibold text-zinc-900">
-            Historique
+            {fr ? "Historique" : "History"}
             <span className="ml-2 text-xs font-normal text-zinc-400">{history.length}</span>
           </h2>
         </div>
         {history.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-zinc-400">Aucun historique pour le moment.</p>
+            <p className="text-sm text-zinc-400">
+              {fr ? "Aucun historique pour le moment." : "No payout history yet."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto"><table>
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Ecole", "Demande", "Commission", "Verse", "Telephone", "Statut", "Date", "Suivi"].map((h) => (
+                {(fr
+                  ? ["École", "Demande", "Commission", "Versé", "Téléphone", "Statut", "Date", "Suivi"]
+                  : ["School", "Request", "Commission", "Paid", "Phone", "Status", "Date", "Follow-up"]
+                ).map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -144,25 +155,25 @@ export default async function AdminPayoutsPage() {
                     {(p.schools as { name?: string } | null)?.name ?? p.school_id}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-zinc-900">
-                    {p.amount.toLocaleString("fr-FR")}
+                    {p.amount.toLocaleString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-red-600">
-                    − {p.fee_amount.toLocaleString("fr-FR")}
+                    − {p.fee_amount.toLocaleString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3 text-sm font-mono font-semibold text-emerald-700">
-                    {p.net_amount.toLocaleString("fr-FR")}
+                    {p.net_amount.toLocaleString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{p.phone}</td>
-                  <td className="px-4 py-3">{statusBadge(p.status)}</td>
+                  <td className="px-4 py-3">{statusBadge(p.status, fr)}</td>
                   <td className="px-4 py-3 text-sm text-zinc-400">
-                    {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                    {new Date(p.created_at).toLocaleDateString(fr ? "fr-FR" : "en-US")}
                   </td>
                   <td className="px-4 py-3">
                     {p.status === "processing" ? (
-                      <ResolvePayoutForm payoutId={p.id} />
+                      <ResolvePayoutForm payoutId={p.id} locale={locale} />
                     ) : (
                       <div className="max-w-64 text-xs text-zinc-400">
-                        {p.serdipay_transaction_id && <p>Transaction : {p.serdipay_transaction_id}</p>}
+                        {p.serdipay_transaction_id && <p>{fr ? "Transaction" : "Transaction"}: {p.serdipay_transaction_id}</p>}
                         {p.failure_reason && <p className="mt-1">{p.failure_reason}</p>}
                       </div>
                     )}

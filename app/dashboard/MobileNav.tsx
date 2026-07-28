@@ -6,8 +6,15 @@ import { useLocale } from "@/lib/i18n/client";
 import { getDashboardShellCopy } from "@/lib/i18n/copy/dashboard";
 import { stripLocaleFromPathname } from "@/lib/i18n/config";
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 
-export function MobileNav({ schoolName }: { schoolName: string }) {
+export function MobileNav({
+  schoolName,
+  showAdmin = false,
+}: {
+  schoolName: string;
+  showAdmin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const locale = useLocale();
   const copy = getDashboardShellCopy(locale);
@@ -23,6 +30,9 @@ export function MobileNav({ schoolName }: { schoolName: string }) {
     { href: "/dashboard/team", label: copy.nav.team },
     { href: "/dashboard/billing", label: copy.nav.billing },
     { href: "/dashboard/settings", label: copy.nav.settings },
+    ...(showAdmin
+      ? [{ href: "/dashboard/admin/schools", label: copy.nav.verification }]
+      : []),
   ];
 
   // Prevent body scroll when drawer is open
@@ -104,6 +114,9 @@ export function MobileNav({ schoolName }: { schoolName: string }) {
             );
           })}
         </nav>
+        <div className="border-t border-zinc-100 p-4">
+          <LanguageSwitcher className="w-full justify-center" />
+        </div>
       </div>
     </>
   );

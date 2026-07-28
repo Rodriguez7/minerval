@@ -1,9 +1,11 @@
-import { getAuthenticatedSchool } from "@/lib/auth";
 import { logout } from "@/app/actions/auth";
 import { getDashboardShellCopy } from "@/lib/i18n/copy/dashboard";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { getTenantContext } from "@/lib/tenant";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
 import { NavLinks } from "./NavLinks";
 import { MobileNav } from "./MobileNav";
+import { ReadinessBanner } from "./ReadinessBanner";
 
 export default async function DashboardLayout({
   children,
@@ -12,7 +14,8 @@ export default async function DashboardLayout({
 }) {
   const locale = await getRequestLocale();
   const copy = getDashboardShellCopy(locale);
-  const school = await getAuthenticatedSchool();
+  const { school, user } = await getTenantContext();
+  const showAdmin = Boolean(process.env.SUPER_ADMIN_EMAIL && user.email === process.env.SUPER_ADMIN_EMAIL);
 
   return (
     <div className="flex min-h-[100dvh] bg-zinc-50">
@@ -28,11 +31,12 @@ export default async function DashboardLayout({
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto">
-          <NavLinks />
+          <NavLinks showAdmin={showAdmin} />
         </div>
 
         {/* Logout */}
         <div className="px-3 pb-4 border-t border-zinc-100 pt-3">
+          <LanguageSwitcher className="mb-2 w-full justify-center" />
           <form action={logout}>
             <button
               type="submit"
@@ -47,7 +51,8 @@ export default async function DashboardLayout({
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar + drawer */}
-        <MobileNav schoolName={school.name} />
+        <MobileNav schoolName={school.name} showAdmin={showAdmin} />
+        <ReadinessBanner locale={locale} verificationStatus={school.verification_status} />
 
         {/* Page content */}
         <main className="flex-1">

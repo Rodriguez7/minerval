@@ -1,7 +1,8 @@
 import { LocalizedLink } from "@/lib/i18n/LocalizedLink";
 import { buildPageHref, getTotalPages } from "@/lib/pagination";
+import { getRequestLocale } from "@/lib/i18n/server";
 
-export function Pagination({
+export async function Pagination({
   basePath,
   page,
   pageSize,
@@ -14,6 +15,7 @@ export function Pagination({
   searchParams: Record<string, string | string[] | undefined>;
   totalItems: number;
 }) {
+  const fr = (await getRequestLocale()) === "fr";
   const totalPages = getTotalPages(totalItems, pageSize);
   if (totalPages <= 1) return null;
 
@@ -31,10 +33,10 @@ export function Pagination({
             : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
         }`}
       >
-        Précédent
+        {fr ? "Précédent" : "Previous"}
       </LocalizedLink>
       <span className="text-zinc-500">
-        Page {page} sur {totalPages}
+        {fr ? `Page ${page} sur ${totalPages}` : `Page ${page} of ${totalPages}`}
       </span>
       <LocalizedLink
         href={buildPageHref(basePath, searchParams, page + 1)}
@@ -45,7 +47,7 @@ export function Pagination({
             : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
         }`}
       >
-        Suivant
+        {fr ? "Suivant" : "Next"}
       </LocalizedLink>
     </nav>
   );

@@ -8,6 +8,7 @@ import {
   PAYOUT_FEE_BPS,
 } from "@/lib/payout-fee";
 import { normalizeDrcMobilePhone } from "@/lib/phone";
+import { useLocale } from "@/lib/i18n/client";
 
 const TELECOM_OPTIONS = [
   { value: "AM", label: "Airtel Money" },
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function WithdrawForm({ availableBalance, currency }: Props) {
+  const fr = useLocale() === "fr";
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
@@ -54,7 +56,7 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "La demande de retrait a echoue");
+        setError(data.error ?? (fr ? "La demande de retrait a échoué." : "Withdrawal request failed."));
         return;
       }
 
@@ -68,17 +70,17 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
   if (success) {
     return (
       <div className="rounded-lg border p-4 text-sm text-green-700 bg-green-50">
-        Demande de retrait envoyee. Vous recevrez un email une fois traitee.
+        {fr ? "Demande de retrait envoyée. Vous recevrez un e-mail une fois traitée." : "Withdrawal request sent. You will receive an email when it is processed."}
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border p-4">
-      <h2 className="font-semibold text-sm">Demander un retrait</h2>
+      <h2 className="font-semibold text-sm">{fr ? "Demander un retrait" : "Request withdrawal"}</h2>
 
       <p className="text-xs text-gray-500">
-        Solde disponible : {availableBalance.toLocaleString("fr-FR")} {currency}
+        {fr ? "Solde disponible" : "Available balance"} : {availableBalance.toLocaleString(fr ? "fr-FR" : "en-US")} {currency}
       </p>
 
       <div className="rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600 space-y-1">
@@ -87,13 +89,13 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
           <span>− {feeAmount.toLocaleString("fr-FR")} {currency}</span>
         </div>
         <div className="flex justify-between font-semibold text-zinc-900">
-          <span>Montant envoye a l&apos;ecole</span>
+          <span>{fr ? "Montant envoyé à l’école" : "Amount sent to school"}</span>
           <span>{netAmount.toLocaleString("fr-FR")} {currency}</span>
         </div>
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium">Montant ({currency})</label>
+        <label className="text-xs font-medium">{fr ? "Montant" : "Amount"} ({currency})</label>
         <input
           type="number"
           min={MIN_PAYOUT_REQUEST_AMOUNT}
@@ -101,13 +103,13 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="w-full rounded border px-3 py-2 text-sm"
-          placeholder={`Minimum ${MIN_PAYOUT_REQUEST_AMOUNT.toLocaleString("fr-FR")}`}
+          placeholder={`${fr ? "Minimum" : "Minimum"} ${MIN_PAYOUT_REQUEST_AMOUNT.toLocaleString(fr ? "fr-FR" : "en-US")}`}
           required
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium">Telephone Mobile Money</label>
+        <label className="text-xs font-medium">{fr ? "Téléphone Mobile Money" : "Mobile Money phone"}</label>
         <input
           type="tel"
           inputMode="tel"
@@ -125,14 +127,14 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium">Operateur</label>
+        <label className="text-xs font-medium">{fr ? "Opérateur" : "Operator"}</label>
         <select
           value={telecom}
           onChange={(e) => setTelecom(e.target.value)}
           className="w-full rounded border px-3 py-2 text-sm"
           required
         >
-          <option value="">Choisir un operateur</option>
+          <option value="">{fr ? "Choisir un opérateur" : "Choose an operator"}</option>
           {TELECOM_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -150,7 +152,7 @@ export function WithdrawForm({ availableBalance, currency }: Props) {
         disabled={isInvalid || loading}
         className="w-full rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
       >
-        {loading ? "Envoi…" : "Demander un retrait"}
+        {loading ? fr ? "Envoi…" : "Sending…" : fr ? "Demander un retrait" : "Request withdrawal"}
       </button>
     </form>
   );
