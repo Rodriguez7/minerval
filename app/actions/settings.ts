@@ -6,6 +6,7 @@ import { createSSRClient, getAdminClient } from "@/lib/supabase";
 import { EDUCATION_LEVELS } from "@/lib/congo-education";
 import { normalizeWhatsAppPhone } from "@/lib/phone";
 import { getPreferredLocale } from "@/lib/i18n/config";
+import { sendSchoolVerificationDecisionEmail } from "@/lib/email";
 
 const PricingSchema = z.object({
   parentFeeBps: z.coerce.number().int().min(0).max(1000),
@@ -29,7 +30,7 @@ const VerificationProfileSchema = z.object({
   currency: z.enum(["FC", "USD"]),
 });
 
-type State = { error?: string; success?: boolean } | undefined;
+type State = { error?: string; success?: boolean; message?: string } | undefined;
 
 const EducationLevelsSchema = z
   .array(z.enum(EDUCATION_LEVELS))
@@ -202,7 +203,10 @@ export async function submitSchoolVerification(
   return { success: true };
 }
 
-export async function reviewSchoolVerification(formData: FormData) {
+export async function reviewSchoolVerification(
+  _: State,
+  formData: FormData
+): Promise<State> {
   const ssr = await createSSRClient();
   const { data: { user } } = await ssr.auth.getUser();
   if (!user || user.email !== process.env.SUPER_ADMIN_EMAIL) {
@@ -216,14 +220,21 @@ export async function reviewSchoolVerification(formData: FormData) {
   }).safeParse({
     schoolId: formData.get("schoolId"),
     decision: formData.get("decision"),
-    note: formData.get("note")?.toString() || undefined,
+    note: formData.get("note")?.toString().trim() || undefined,
   });
-  if (!parsed.success) return { error: "Invalid review" };
+  if (!parsed.success) return { error: "Dossier ou décision invalide." };
   if (parsed.data.decision === "rejected" && !parsed.data.note) {
-    return { error: "A rejection reason is required" };
+    return { error: "Indiquez les corrections demandées avant de continuer." };
   }
 
   const admin = getAdminClient();
+  const { data: school, error: schoolError } = await admin
+    .from("schools")
+    .select("id,name,admin_email")
+    .eq("id", parsed.data.schoolId)
+    .maybeSingle();
+  if (schoolError || !school) return { error: "Établissement introuvable." };
+
   const reviewedAt = new Date().toISOString();
   const { error } = await admin
     .from("schools")
@@ -234,7 +245,7 @@ export async function reviewSchoolVerification(formData: FormData) {
         parsed.data.decision === "rejected" ? parsed.data.note : null,
     })
     .eq("id", parsed.data.schoolId);
-  if (error) return { error: "Could not update verification" };
+  if (error) return { error: "Impossible de mettre à jour la vérification." };
 
   const { error: auditError } = await admin.from("school_verification_reviews").insert({
     school_id: parsed.data.schoolId,
@@ -242,12 +253,34 @@ export async function reviewSchoolVerification(formData: FormData) {
     decision: parsed.data.decision,
     note: parsed.data.note ?? null,
   });
-  if (auditError) return { error: "Verification updated, but audit logging failed" };
+  if (auditError) {
+    return {
+      error:
+        "La décision a été enregistrée, mais le journal d’audit n’a pas pu être mis à jour.",
+    };
+  }
+
+  try {
+    await sendSchoolVerificationDecisionEmail({
+      to: school.admin_email,
+      schoolName: school.name,
+      decision: parsed.data.decision,
+      note: parsed.data.note,
+    });
+  } catch (emailError) {
+    console.error("School verification notification failed", emailError);
+  }
 
   revalidatePath("/admin/schools");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
-  return { success: true };
+  return {
+    success: true,
+    message:
+      parsed.data.decision === "verified"
+        ? "Établissement approuvé. L’école peut voir la décision dans ses paramètres."
+        : "Corrections demandées. Le motif est maintenant visible par l’école.",
+  };
 }
 
 function normalizeDrcMobilePhoneForPayout(value: unknown) {

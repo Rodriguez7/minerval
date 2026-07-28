@@ -165,11 +165,15 @@ school_subscriptions    — school_id, plan_code, status, trial_ends_at, current
                         — billing_exempt, stripe_customer_id
 school_pricing_policies — per-school pricing overrides
 billing_events          — Stripe webhook audit log
+
+-- School verification
+school_verification_documents — private supporting-file metadata, scoped to one school
+school_verification_reviews   — immutable platform-admin decision history
 ```
 
 Currency is school-scoped. Each school independently selects `FC` or `USD`; balances, payment links, reports, and reminders retain that school currency without conversion or cross-school aggregation.
 
-Migration `023_automatic_whatsapp_reminders.sql` adds the reminder schema. Migration `025_school_verification_workflow.sql` adds the internal verification audit and international E.164 guardian support. Existing unpaid students receive a balance-cycle ID but remain ineligible until the school supplies a guardian, consent record, and due date.
+Migration `023_automatic_whatsapp_reminders.sql` adds the reminder schema. Migration `025_school_verification_workflow.sql` adds the internal verification audit and international E.164 guardian support. Migration `026_school_verification_documents.sql` adds the private evidence bucket and metadata table. Verification files are never public: server-authorized school and platform-admin views receive five-minute signed URLs. Existing unpaid students receive a balance-cycle ID but remain ineligible until the school supplies a guardian, consent record, and due date.
 
 Dashboard queries run through `getAdminClient()` (service key, bypasses RLS) and are scoped in application code by the `school_id` from `getTenantContext()`. RLS migrations 007, 023, and 024 separately protect direct Data API access.
 
@@ -181,6 +185,9 @@ Dashboard queries run through `getAdminClient()` (service key, bypasses RLS) and
 - Payout approval is restricted to `SUPER_ADMIN_EMAIL` and is re-entrancy guarded: the status
   transition only succeeds while the payout is still `pending`. An ambiguous response from
   SerdiPay leaves the balance reserved for manual verification rather than assuming failure.
+- School verification decisions are restricted to `SUPER_ADMIN_EMAIL`. The admin can inspect
+  private supporting documents, approve a dossier, or provide a mandatory correction reason.
+  The result is shown immediately in the school settings and emailed to the school owner.
 
 ## Running Tests
 

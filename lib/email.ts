@@ -104,3 +104,47 @@ export async function sendOperationalAlert(opts: {
     }),
   });
 }
+
+export async function sendSchoolVerificationDecisionEmail(opts: {
+  to: string;
+  schoolName: string;
+  decision: "verified" | "rejected";
+  note?: string | null;
+}) {
+  const resend = getResend();
+  const approved = opts.decision === "verified";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.minerval.org";
+  const settingsUrl = `${appUrl.replace(/\/$/, "")}/fr/dashboard/settings#verification`;
+  const subject = approved
+    ? `Vérification approuvée — ${opts.schoolName}`
+    : `Corrections demandées — ${opts.schoolName}`;
+  const message = approved
+    ? "Le dossier de votre établissement a été approuvé. Les fonctionnalités soumises à vérification peuvent maintenant être activées."
+    : "Le dossier de votre établissement nécessite des corrections avant son approbation.";
+
+  await resend.emails.send({
+    from: getEmailSender(),
+    to: opts.to,
+    subject,
+    text: `${message}${opts.note ? `\n\nCorrection demandée : ${opts.note}` : ""}\n\n${settingsUrl}`,
+    html: renderBrandedEmail({
+      preview: subject,
+      eyebrow: approved ? "Dossier approuvé" : "Action requise",
+      title: approved ? "Votre établissement est vérifié" : "Votre dossier doit être corrigé",
+      message,
+      tone: approved ? "success" : "warning",
+      details: [
+        { label: "Établissement", value: opts.schoolName },
+        {
+          label: "Décision",
+          value: approved ? "Approuvé" : "Corrections demandées",
+        },
+      ],
+      action: {
+        label: "Voir le dossier",
+        url: settingsUrl,
+      },
+      note: opts.note ? `Correction demandée : ${opts.note}` : undefined,
+    }),
+  });
+}

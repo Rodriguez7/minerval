@@ -1,12 +1,14 @@
-import { reviewSchoolVerification } from "@/app/actions/settings";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { getAdminClient } from "@/lib/supabase";
+import type { SchoolVerificationStatus } from "@/lib/types";
+import { VerificationReviewForm } from "./VerificationReviewForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSchoolsPage() {
   const locale = await getRequestLocale();
-  const { data: schools } = await getAdminClient()
+  const admin = getAdminClient();
+  const { data: schools } = await admin
     .from("schools")
     .select(
       "id,name,code,currency,verification_status,legal_name,registration_number,school_address,director_name,director_phone,payout_account_name,payout_account_phone,verification_submitted_at,verification_rejection_reason"
@@ -14,8 +16,39 @@ export default async function AdminSchoolsPage() {
     .in("verification_status", ["pending", "rejected", "verified"])
     .order("verification_submitted_at", { ascending: false, nullsFirst: false })
     .limit(100);
+  const schoolIds = (schools ?? []).map((school) => school.id);
+  const { data: documentRows } = schoolIds.length
+    ? await admin
+        .from("school_verification_documents")
+        .select("id,school_id,document_type,file_name,storage_path,mime_type,size_bytes,created_at")
+        .in("school_id", schoolIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+  const documents = await Promise.all(
+    (documentRows ?? []).map(async (document) => {
+      const { data } = await admin.storage
+        .from("school-verification-documents")
+        .createSignedUrl(document.storage_path, 300);
+      return { ...document, url: data?.signedUrl ?? null };
+    })
+  );
 
   const fr = locale === "fr";
+  const documentLabels: Record<string, string> = fr
+    ? {
+        registration_certificate: "Registre de commerce ou immatriculation",
+        tax_certificate: "Attestation fiscale",
+        authorization: "Agrément ou autorisation",
+        representative_id: "Pièce d’identité du responsable",
+        other: "Autre justificatif",
+      }
+    : {
+        registration_certificate: "Business register or registration",
+        tax_certificate: "Tax certificate",
+        authorization: "Licence or authorization",
+        representative_id: "Representative’s identity document",
+        other: "Other supporting document",
+      };
   return (
     <div className="space-y-6">
       <div>
@@ -66,40 +99,46 @@ export default async function AdminSchoolsPage() {
               ))}
             </dl>
 
-            <form
-              action={async (formData: FormData) => {
-                "use server";
-                await reviewSchoolVerification(formData);
-              }}
-              className="mt-5 space-y-3 border-t border-zinc-100 pt-4"
-            >
-              <input type="hidden" name="schoolId" value={school.id} />
-              <label className="block text-xs font-medium text-zinc-600">
-                {fr ? "Note de vérification" : "Review note"}
-                <textarea
-                  name="note"
-                  rows={2}
-                  defaultValue={school.verification_rejection_reason ?? ""}
-                  className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-                />
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  name="decision"
-                  value="verified"
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
-                  {fr ? "Approuver" : "Approve"}
-                </button>
-                <button
-                  name="decision"
-                  value="rejected"
-                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
-                >
-                  {fr ? "Demander des corrections" : "Request changes"}
-                </button>
+            <section className="mt-5 border-t border-zinc-100 pt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                {fr ? "Documents justificatifs" : "Supporting documents"}
+              </h3>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {documents
+                  .filter((document) => document.school_id === school.id)
+                  .map((document) => (
+                    <a
+                      key={document.id}
+                      href={document.url ?? "#"}
+                      target={document.url ? "_blank" : undefined}
+                      rel={document.url ? "noreferrer" : undefined}
+                      aria-disabled={!document.url}
+                      className="rounded-lg border border-zinc-200 p-3 text-sm no-underline hover:bg-zinc-50"
+                    >
+                      <span className="block font-medium text-zinc-900">
+                        {documentLabels[document.document_type] ?? document.document_type}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-zinc-500">
+                        {document.file_name} · {(document.size_bytes / 1024 / 1024).toFixed(1)} Mo
+                      </span>
+                    </a>
+                  ))}
               </div>
-            </form>
+              {documents.filter((document) => document.school_id === school.id).length === 0 && (
+                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  {fr
+                    ? "Aucun document justificatif n’a été envoyé."
+                    : "No supporting documents have been uploaded."}
+                </p>
+              )}
+            </section>
+
+            <VerificationReviewForm
+              schoolId={school.id}
+              status={school.verification_status as SchoolVerificationStatus}
+              rejectionReason={school.verification_rejection_reason}
+              locale={locale}
+            />
           </article>
         ))}
         {(schools ?? []).length === 0 && (
