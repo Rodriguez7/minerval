@@ -161,9 +161,9 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
       skip: "Passer, j'ajouterai les apprenants plus tard →",
     },
     done: {
-      title: "Tout est pret !",
+      title: "Configuration terminée",
       description:
-        "Votre établissement est configuré. Partagez votre QR code ou lien de paiement pour commencer à collecter les frais.",
+        "Votre établissement est configuré. Vous pouvez maintenant accéder au tableau de bord et ajouter vos élèves.",
       cta: "Ouvrir le tableau de bord",
     },
     csvImport: {

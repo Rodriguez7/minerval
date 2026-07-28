@@ -203,9 +203,13 @@ export default async function AdminSchoolsPage({
                   </div>
                 ) : (
                   <p className="mt-2 rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500">
-                    {fr
-                      ? "Aucun document envoyé. L’approbation reste indisponible."
-                      : "No documents uploaded. Approval remains unavailable."}
+                    {school.verification_status === "verified"
+                      ? fr
+                        ? "Aucun document n’est archivé pour cet ancien dossier."
+                        : "No document is archived for this legacy application."
+                      : fr
+                        ? "Aucun document envoyé. L’approbation reste indisponible."
+                        : "No documents uploaded. Approval remains unavailable."}
                   </p>
                 )}
               </section>
