@@ -166,6 +166,44 @@ describe("getTenantContext", () => {
     expect(eqCalls).toContainEqual(["user_id", "user-1"]);
     expect(eqCalls).toContainEqual(["status", "active"]);
   });
+
+  it("preserves verification and operating status when the legacy schema lacks logo_url", async () => {
+    const verifiedMembership = {
+      ...mockMembershipRow,
+      schools: {
+        ...mockMembershipRow.schools,
+        verification_status: "verified",
+        status: "active",
+        closed_at: null,
+        closed_by: null,
+        closure_reason: null,
+      },
+    };
+    const single = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: "column schools_1.logo_url does not exist" },
+      })
+      .mockResolvedValueOnce({ data: verifiedMembership, error: null });
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single,
+    };
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+      },
+      from: vi.fn().mockReturnValue(query),
+    } as never);
+
+    const context = await getTenantContext();
+
+    expect(context.school.verification_status).toBe("verified");
+    expect(context.school.status).toBe("active");
+    expect(context.school.logo_url).toBeNull();
+  });
 });
 
 describe("getAuthenticatedSchool (shim)", () => {

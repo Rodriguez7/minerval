@@ -25,6 +25,20 @@ const TENANT_SCHOOL_SELECT = `
   school_address, director_name, director_phone, payout_account_name,
   payout_account_phone, verification_submitted_at, verification_reviewed_at,
   verification_rejection_reason,
+  status, closed_at, closed_by, closure_reason,
+  school_subscriptions (${TENANT_SUBSCRIPTION_SELECT})
+`;
+
+const TENANT_SCHOOL_WITHOUT_LOGO_SELECT = `
+  id, name, code, admin_email, payment_access_token,
+  student_id_prefix, student_id_seq, currency, created_at,
+  education_levels,
+  billing_email, billing_contact, timezone, support_tier,
+  verification_status, legal_name, registration_number,
+  school_address, director_name, director_phone, payout_account_name,
+  payout_account_phone, verification_submitted_at, verification_reviewed_at,
+  verification_rejection_reason,
+  status, closed_at, closed_by, closure_reason,
   school_subscriptions (${TENANT_SUBSCRIPTION_SELECT})
 `;
 
@@ -68,42 +82,75 @@ export async function getTenantContext(): Promise<TenantContext> {
   } | null;
 
   if (primaryResult.error && isMissingColumnError(primaryResult.error.message)) {
-    const fallbackResult = await supabase
+    const withoutLogoResult = await supabase
+      .from("school_memberships")
+      .select(`id, role, status, schools (${TENANT_SCHOOL_WITHOUT_LOGO_SELECT})`)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .single();
+
+    if (!withoutLogoResult.error) {
+      const row = withoutLogoResult.data as {
+        id: string;
+        role: string;
+        status: string;
+        schools: MaybeJoined<SchoolRow>;
+      } | null;
+      const schoolWithoutLogo = takeJoined(row?.schools ?? null);
+      membershipData =
+        row && schoolWithoutLogo
+          ? {
+              ...row,
+              schools: {
+                ...schoolWithoutLogo,
+                logo_url: null,
+              },
+            }
+          : null;
+    } else if (isMissingColumnError(withoutLogoResult.error.message)) {
+      const fallbackResult = await supabase
       .from("school_memberships")
       .select(`id, role, status, schools (${TENANT_SCHOOL_FALLBACK_SELECT})`)
       .eq("user_id", user.id)
       .eq("status", "active")
       .single();
 
-    membershipData = fallbackResult.data
-      ? ({
-          ...fallbackResult.data,
-          schools: takeJoined(fallbackResult.data.schools as MaybeJoined<Record<string, unknown>>)
-            ? ({
-                support_tier: "standard",
-                education_levels: ["preschool", "primary", "secondary"],
-                logo_url: null,
-                verification_status: "unverified",
-                legal_name: null,
-                registration_number: null,
-                school_address: null,
-                director_name: null,
-                director_phone: null,
-                payout_account_name: null,
-                payout_account_phone: null,
-                verification_submitted_at: null,
-                verification_reviewed_at: null,
-                verification_rejection_reason: null,
-                ...takeJoined(fallbackResult.data.schools as MaybeJoined<Record<string, unknown>>),
-              } as SchoolRow)
-            : null,
-        } as {
-          id: string;
-          role: string;
-          status: string;
-          schools: MaybeJoined<SchoolRow>;
-        })
-      : null;
+      membershipData = fallbackResult.data
+        ? ({
+            ...fallbackResult.data,
+            schools: takeJoined(fallbackResult.data.schools as MaybeJoined<Record<string, unknown>>)
+              ? ({
+                  support_tier: "standard",
+                  education_levels: ["preschool", "primary", "secondary"],
+                  logo_url: null,
+                  verification_status: "unverified",
+                  legal_name: null,
+                  registration_number: null,
+                  school_address: null,
+                  director_name: null,
+                  director_phone: null,
+                  payout_account_name: null,
+                  payout_account_phone: null,
+                  verification_submitted_at: null,
+                  verification_reviewed_at: null,
+                  verification_rejection_reason: null,
+                  status: "active",
+                  closed_at: null,
+                  closed_by: null,
+                  closure_reason: null,
+                  ...takeJoined(fallbackResult.data.schools as MaybeJoined<Record<string, unknown>>),
+                } as SchoolRow)
+              : null,
+          } as {
+            id: string;
+            role: string;
+            status: string;
+            schools: MaybeJoined<SchoolRow>;
+          })
+        : null;
+    } else {
+      membershipData = null;
+    }
   }
 
   type SubscriptionRow = {
