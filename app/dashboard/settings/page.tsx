@@ -219,6 +219,11 @@ export default async function SettingsPage() {
               <option value="FC">{fr ? "FC — Franc congolais" : "FC — Congolese franc"}</option>
               <option value="USD">{fr ? "USD — Dollar américain" : "USD — US dollar"}</option>
             </select>
+            <span className="mt-1 block text-xs font-normal leading-5 text-zinc-400">
+              {fr
+                ? "La devise reste propre à cet établissement : aucun solde FC ou USD n’est fusionné ou converti."
+                : "Currency remains school-specific: FC and USD balances are never merged or converted."}
+            </span>
           </label>
           {membership.role === "owner" && (
             <div className="flex items-end">

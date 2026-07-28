@@ -37,6 +37,7 @@ type OnboardingCopy = {
     currencyLabel: string;
     currencyFc: string;
     currencyUsd: string;
+    currencyHint: string;
     submitPending: string;
     submit: string;
   };
@@ -134,7 +135,9 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
         "2 a 6 lettres majuscules ou chiffres. Exemple : ESM-0001.",
       currencyLabel: "Devise",
       currencyFc: "FC — Franc congolais",
-      currencyUsd: "USD — Dollar americain",
+      currencyUsd: "USD — Dollar américain",
+      currencyHint:
+        "Cette devise s’applique uniquement à cet établissement. Les soldes FC et USD ne sont ni fusionnés ni convertis.",
       submitPending: "Creation…",
       submit: "Continuer",
     },
@@ -236,6 +239,8 @@ export const ONBOARDING_COPY: Record<AppLocale, OnboardingCopy> = {
       currencyLabel: "Currency",
       currencyFc: "FC — Congolese franc",
       currencyUsd: "USD — US dollar",
+      currencyHint:
+        "This currency applies only to this school. FC and USD balances are never merged or converted.",
       submitPending: "Creating…",
       submit: "Continue",
     },

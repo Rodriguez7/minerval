@@ -167,6 +167,8 @@ school_pricing_policies — per-school pricing overrides
 billing_events          — Stripe webhook audit log
 ```
 
+Currency is school-scoped. Each school independently selects `FC` or `USD`; balances, payment links, reports, and reminders retain that school currency without conversion or cross-school aggregation.
+
 Migration `023_automatic_whatsapp_reminders.sql` adds the reminder schema. Migration `025_school_verification_workflow.sql` adds the internal verification audit and international E.164 guardian support. Existing unpaid students receive a balance-cycle ID but remain ineligible until the school supplies a guardian, consent record, and due date.
 
 Dashboard queries run through `getAdminClient()` (service key, bypasses RLS) and are scoped in application code by the `school_id` from `getTenantContext()`. RLS migrations 007, 023, and 024 separately protect direct Data API access.

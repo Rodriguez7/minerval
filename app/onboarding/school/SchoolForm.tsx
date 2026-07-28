@@ -170,6 +170,9 @@ export function SchoolForm() {
             <option value="FC">{copy.school.currencyFc}</option>
             <option value="USD">{copy.school.currencyUsd}</option>
           </select>
+          <p className="mt-1 text-xs leading-5 text-gray-400">
+            {copy.school.currencyHint}
+          </p>
         </div>
         {state?.error && (
           <p className="text-sm text-red-600">{state.error}</p>
