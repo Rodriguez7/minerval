@@ -12,7 +12,7 @@ type DashboardShellCopy = {
     team: string;
     billing: string;
     settings: string;
-    verification: string;
+    administration: string;
   };
   logout: string;
   openMenu: string;
@@ -32,7 +32,7 @@ export const DASHBOARD_SHELL_COPY: Record<AppLocale, DashboardShellCopy> = {
       team: "Équipe",
       billing: "Facturation",
       settings: "Paramètres",
-      verification: "Vérifications",
+      administration: "Administration",
     },
     logout: "Se déconnecter",
     openMenu: "Ouvrir le menu",
@@ -50,7 +50,7 @@ export const DASHBOARD_SHELL_COPY: Record<AppLocale, DashboardShellCopy> = {
       team: "Team",
       billing: "Billing",
       settings: "Settings",
-      verification: "School verification",
+      administration: "Administration",
     },
     logout: "Log out",
     openMenu: "Open menu",

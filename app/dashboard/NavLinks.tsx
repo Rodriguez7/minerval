@@ -22,7 +22,7 @@ export function NavLinks({ showAdmin = false }: { showAdmin?: boolean }) {
     { href: "/dashboard/billing", label: copy.nav.billing },
     { href: "/dashboard/settings", label: copy.nav.settings },
     ...(showAdmin
-      ? [{ href: "/dashboard/admin/schools", label: copy.nav.verification }]
+      ? [{ href: "/dashboard/admin", label: copy.nav.administration }]
       : []),
   ];
 
