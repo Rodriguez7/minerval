@@ -58,12 +58,24 @@ export async function login(_: unknown, formData: FormData) {
   }
 
   if (requiresMfa) {
-    const next = localizePathname(locale, "/dashboard");
+    const next = localizePathname(
+      locale,
+      parsed.data.email === process.env.SUPER_ADMIN_EMAIL
+        ? "/admin"
+        : "/dashboard"
+    );
     redirect(
       `${localizePathname(locale, "/mfa/verify")}?next=${encodeURIComponent(next)}`
     );
   }
-  redirect(localizePathname(locale, "/dashboard"));
+  redirect(
+    localizePathname(
+      locale,
+      parsed.data.email === process.env.SUPER_ADMIN_EMAIL
+        ? "/admin"
+        : "/dashboard"
+    )
+  );
 }
 
 export async function resetPassword(_: unknown, formData: FormData) {

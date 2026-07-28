@@ -244,7 +244,7 @@ export async function reviewSchoolVerification(formData: FormData) {
   });
   if (auditError) return { error: "Verification updated, but audit logging failed" };
 
-  revalidatePath("/dashboard/admin/schools");
+  revalidatePath("/admin/schools");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
   return { success: true };

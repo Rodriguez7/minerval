@@ -7,12 +7,20 @@ import { GET } from "@/app/auth/callback/route";
 import { createSSRClient } from "@/lib/supabase";
 
 describe("GET /auth/callback", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.SUPER_ADMIN_EMAIL = "platform-admin@minerval.org";
+  });
 
   it("exchanges the PKCE code and redirects to safe onboarding", async () => {
     const exchangeCodeForSession = vi.fn().mockResolvedValue({ error: null });
     vi.mocked(createSSRClient).mockResolvedValue({
-      auth: { exchangeCodeForSession },
+      auth: {
+        exchangeCodeForSession,
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { email: "owner@school.org" } },
+        }),
+      },
     } as never);
     const request = new NextRequest(
       "https://0.0.0.0:8080/fr/auth/callback?code=auth-code&next=%2Ffr%2Fonboarding%2Fschool"
@@ -29,7 +37,12 @@ describe("GET /auth/callback", () => {
   it("rejects external redirect destinations", async () => {
     const exchangeCodeForSession = vi.fn().mockResolvedValue({ error: null });
     vi.mocked(createSSRClient).mockResolvedValue({
-      auth: { exchangeCodeForSession },
+      auth: {
+        exchangeCodeForSession,
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { email: "owner@school.org" } },
+        }),
+      },
     } as never);
     const request = new NextRequest(
       "https://www.minerval.org/en/auth/callback?code=auth-code&next=https%3A%2F%2Fevil.example%2Fsteal"
@@ -39,6 +52,27 @@ describe("GET /auth/callback", () => {
 
     expect(response.headers.get("location")).toBe(
       "https://www.minerval.org/en/dashboard"
+    );
+  });
+
+  it("routes the super administrator to the dedicated admin console", async () => {
+    const exchangeCodeForSession = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: {
+        exchangeCodeForSession,
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { email: "platform-admin@minerval.org" } },
+        }),
+      },
+    } as never);
+    const request = new NextRequest(
+      "https://www.minerval.org/fr/auth/callback?code=auth-code&next=%2Ffr%2Fdashboard"
+    );
+
+    const response = await GET(request);
+
+    expect(response.headers.get("location")).toBe(
+      "https://www.minerval.org/fr/admin"
     );
   });
 

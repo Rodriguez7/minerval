@@ -16,7 +16,10 @@ function makeFormData(data: Record<string, string>) {
 }
 
 describe("auth actions", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.SUPER_ADMIN_EMAIL = "platform-admin@minerval.org";
+  });
 
   it("returns invalid credentials when sign-in fails", async () => {
     vi.mocked(createSSRClient).mockResolvedValue({
@@ -96,6 +99,33 @@ describe("auth actions", () => {
         makeFormData({ email: "admin@school.com", password: "password123", locale: "fr" })
       )
     ).rejects.toThrow("REDIRECT:/fr/mfa/verify?next=%2Ffr%2Fdashboard");
+  });
+
+  it("redirects the super administrator to the separate admin console", async () => {
+    vi.mocked(createSSRClient).mockResolvedValue({
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+        mfa: {
+          getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({
+            data: { currentLevel: "aal1", nextLevel: "aal1" },
+          }),
+        },
+      },
+    } as never);
+    vi.mocked(redirect).mockImplementation((path) => {
+      throw new Error(`REDIRECT:${path}`);
+    });
+
+    await expect(
+      login(
+        null,
+        makeFormData({
+          email: "platform-admin@minerval.org",
+          password: "password123",
+          locale: "fr",
+        })
+      )
+    ).rejects.toThrow("REDIRECT:/fr/admin");
   });
 
   it("returns a controlled error when reset password throws", async () => {

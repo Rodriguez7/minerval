@@ -31,7 +31,7 @@ export function MobileNav({
     { href: "/dashboard/billing", label: copy.nav.billing },
     { href: "/dashboard/settings", label: copy.nav.settings },
     ...(showAdmin
-      ? [{ href: "/dashboard/admin", label: copy.nav.administration }]
+      ? [{ href: "/admin", label: copy.nav.administration }]
       : []),
   ];
 

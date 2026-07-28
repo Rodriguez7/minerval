@@ -20,7 +20,16 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createSSRClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, appOrigin));
+    if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const destination =
+        user?.email === process.env.SUPER_ADMIN_EMAIL
+          ? `/${locale}/admin`
+          : next;
+      return NextResponse.redirect(new URL(destination, appOrigin));
+    }
   }
 
   const errorUrl = new URL(`/${locale}/login`, appOrigin);

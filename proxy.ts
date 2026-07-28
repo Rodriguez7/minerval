@@ -66,6 +66,7 @@ export async function proxy(request: NextRequest) {
 
   const pathname = stripLocaleFromPathname(request.nextUrl.pathname);
   const isProtectedPath =
+    pathname.startsWith("/admin") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/account");

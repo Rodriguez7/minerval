@@ -1,6 +1,6 @@
 import { localizePathname, type AppLocale } from "@/lib/i18n/config";
 
-const PROTECTED_DESTINATION = /^\/(fr|en)\/(dashboard|onboarding|account)(?:\/|$)/;
+const PROTECTED_DESTINATION = /^\/(fr|en)\/(admin|dashboard|onboarding|account)(?:\/|$)/;
 
 export function getSafeAuthNext(
   rawNext: string | null | undefined,
