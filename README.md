@@ -1,6 +1,12 @@
 # Minerval
 
-School fee payment platform for Congo. Parents pay school fees via mobile money (Airtel, Orange, Vodacom-Mpesa, Afrimoney) using SerdiPay.
+**Live: [minerval.org](https://minerval.org)** · School fee payments for Congo
+
+![Minerval landing page](docs/screenshot.jpg)
+
+Minerval helps schools in Congo collect school fees. It finds unpaid balances, sends parents an automatic WhatsApp reminder in French with a secure payment link, takes payment by mobile money (Airtel, Orange, Vodacom M-Pesa, Afrimoney) through [SerdiPay](https://serdipay.com), and matches each payment to the right student.
+
+**Stack:** Next.js 16 · React 19 · TypeScript · Supabase (PostgreSQL, Auth) · Railway · Node.js payment proxy on Hetzner · Meta WhatsApp Cloud API · Resend · Cloudflare Turnstile · Vitest · Playwright · GitHub Actions
 
 ## Architecture
 
@@ -57,13 +63,13 @@ npm run dev
 
 Get keys from: **Supabase Dashboard → Settings → API**
 
-An example app env file now exists in [`.env.local.example`](/Users/rod/20%20Apps/Minerval/minerval/.env.local.example).
+An example app env file now exists in [`.env.local.example`](.env.local.example).
 
 ## Deployment
 
 Push to `main` → Railway auto-deploys via GitHub integration.
 
-Railway config is checked in via [`railway.toml`](/Users/rod/20%20Apps/Minerval/minerval/railway.toml). The configured liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
+Railway config is checked in via [`railway.toml`](railway.toml). The configured liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
 
 The scheduled GitHub Actions monitor calls that deep endpoint every ten minutes. Keep Railway's `HEALTHCHECK_SECRET` and the repository secret `MINERVAL_HEALTHCHECK_SECRET` identical. A non-200 response or any degraded dependency fails the monitor and triggers the repository's configured Actions failure notifications.
 
@@ -77,11 +83,11 @@ Before enabling production email, verify `EMAIL_DOMAIN` in Resend (including its
 
 ### Fixed-IP Proxy
 
-The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](/Users/rod/20%20Apps/Minerval/minerval/serdipay-proxy). It includes:
+The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](serdipay-proxy). It includes:
 
 - a deployable Express service
 - PM2 config for Hetzner
-- a dedicated env example in [`serdipay-proxy/.env.example`](/Users/rod/20%20Apps/Minerval/minerval/serdipay-proxy/.env.example)
+- a dedicated env example in [`serdipay-proxy/.env.example`](serdipay-proxy/.env.example)
 
 ## How Payments Work
 
@@ -204,17 +210,17 @@ npm run test:e2e:production # browser suite against deployed production
 
 The local Playwright suite seeds its own school, student, and payment rows through Supabase service-role access, then verifies login, dashboard, reconciliation, reports, CSV export, and the public payment lookup flow.
 
-`test:e2e:production` is separate ([`playwright.production.mjs`](/Users/rod/20%20Apps/Minerval/minerval/playwright.production.mjs)) and targets a deployed URL, defaulting to production and overridable with `PRODUCTION_URL`. It starts no server and reads no `.env.local`. See [Monitoring](#monitoring).
+`test:e2e:production` is separate ([`playwright.production.mjs`](playwright.production.mjs)) and targets a deployed URL, defaulting to production and overridable with `PRODUCTION_URL`. It starts no server and reads no `.env.local`. See [Monitoring](#monitoring).
 
 ## Captcha
 
 Cloudflare Turnstile guards `/login`, `/signup`, and `/forgot-password`. Three things must agree, and if any one of them is wrong the failure is **silent**:
 
 1. **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** (Railway) — when set, the forms disable their submit button until Turnstile issues a token.
-2. **The CSP** in [`next.config.ts`](/Users/rod/20%20Apps/Minerval/minerval/next.config.ts) — must permit `https://challenges.cloudflare.com` in `script-src`, `frame-src`, **and** `connect-src`. The widget loads a script, renders an iframe, and calls home; each is blocked by a different directive.
+2. **The CSP** in [`next.config.ts`](next.config.ts) — must permit `https://challenges.cloudflare.com` in `script-src`, `frame-src`, **and** `connect-src`. The widget loads a script, renders an iframe, and calls home; each is blocked by a different directive.
 3. **Supabase** — Authentication → Attack Protection → CAPTCHA enabled, provider Turnstile, secret key from the *Minerval* widget (the account has more than one).
 
-Verification is Supabase's job, not ours: [`app/actions/auth.ts`](/Users/rod/20%20Apps/Minerval/minerval/app/actions/auth.ts) forwards `captchaToken` to Supabase Auth, which checks it against the secret. There is no verification endpoint in this app.
+Verification is Supabase's job, not ours: [`app/actions/auth.ts`](app/actions/auth.ts) forwards `captchaToken` to Supabase Auth, which checks it against the secret. There is no verification endpoint in this app.
 
 ### Why order matters
 
@@ -232,7 +238,7 @@ This exact ordering was learned the hard way — a site key deployed against a C
 
 ## Monitoring
 
-Two independent scheduled checks run every ten minutes ([`.github/workflows/production-health.yml`](/Users/rod/20%20Apps/Minerval/minerval/.github/workflows/production-health.yml)):
+Two independent scheduled checks run every ten minutes ([`.github/workflows/production-health.yml`](.github/workflows/production-health.yml)):
 
 - **Deep health** — `GET /api/health?deep=1` verifies Supabase, the SerdiPay proxy, and production configuration.
 - **Browser availability** — `npm run test:e2e:production` loads the real auth pages and asserts they present a usable submit path.
