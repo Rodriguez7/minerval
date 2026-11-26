@@ -23,6 +23,8 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for the VPS Docker image (see Dockerfile).
+  output: "standalone",
   async headers() {
     return [
       {
