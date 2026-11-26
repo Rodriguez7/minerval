@@ -123,12 +123,12 @@ Soak 24–48h before Phase 2.
 
 **Done 2026-07-15.** Inert while grey-clouded, which is exactly why it goes in first.
 
-Cloudflare → Security → Security rules → Create rule → Custom rules. One rule covers all four paths, which leaves headroom in the Free plan's five:
+Cloudflare → Security → Security rules → Create rule → Custom rules. One rule covers all six paths, which leaves headroom in the Free plan's five:
 
 - **Name:** `Skip security for authenticated server-to-server callbacks`
 - **Expression:**
   ```
-  (http.request.uri.path in {"/api/serdipay/callback" "/api/serdipay/payout-callback" "/api/webhooks/stripe" "/api/health"})
+  (http.request.uri.path in {"/api/serdipay/callback" "/api/serdipay/payout-callback" "/api/webhooks/stripe" "/api/health" "/api/whatsapp/webhook" "/api/internal/whatsapp-reminders"})
   ```
 - **Action:** `Skip`
 - **Components:** check **every** box, including the ones hidden behind *More components to skip*.
@@ -150,21 +150,16 @@ for p in /api/health /api/serdipay/callback /api/webhooks/stripe; do
 done
 ```
 
-### Outstanding before the WhatsApp reminder rollout
-
-The live bypass rule above still reflects the four paths configured on 2026-07-15. Before enabling automatic WhatsApp reminders, expand that same rule to include the Meta webhook and authenticated scheduler:
-
-```
-(http.request.uri.path in {"/api/serdipay/callback" "/api/serdipay/payout-callback" "/api/webhooks/stripe" "/api/whatsapp/webhook" "/api/internal/whatsapp-reminders" "/api/health"})
-```
-
-`/api/whatsapp/webhook` verifies Meta's `X-Hub-Signature-256`; `/api/internal/whatsapp-reminders` requires `WHATSAPP_REMINDER_CRON_SECRET`. Verify both return an application response rather than a Cloudflare challenge before configuring Meta or enabling the scheduled workflow.
+The live rule was expanded to include `/api/whatsapp/webhook` and
+`/api/internal/whatsapp-reminders`. The Meta endpoint verifies
+`X-Hub-Signature-256`; the scheduler requires
+`WHATSAPP_REMINDER_CRON_SECRET`.
 
 ### Free plan limits (confirmed in-dashboard)
 
 | | Free |
 |---|---|
-| Custom rules | **5** (this uses 1) |
+| Custom rules | **5** (2 currently used) |
 | Rate limiting rules | 1 |
 | Managed rules | Pro only — the dashboard shows "Upgrade to Pro" |
 | `Skip` action | Available |
@@ -209,6 +204,40 @@ Everything above proves the callback endpoint is *reachable and un-challenged* t
 ## Phase 4 — Tighten incrementally
 
 Enable rate limiting or bot fight mode one setting at a time. Re-run a real payment after each. Do not stack changes.
+
+## Geo-restriction — school workspace
+
+**Done 2026-07-29.** Cloudflare blocks access to the authenticated school
+workspace from IP addresses outside the Democratic Republic of the Congo.
+The Cloudflare country code is `CD` (not `CG`).
+
+- **Name:** `Restrict school workspace to DRC`
+- **Status:** Active
+- **Action:** Block
+- **Order:** 2, after the server-to-server callback skip rule
+- **Expression:**
+
+  ```
+  (ip.src.country ne "CD" and (http.request.uri.path in {"/fr/dashboard" "/en/dashboard" "/fr/admin" "/en/admin" "/fr/onboarding" "/en/onboarding" "/fr/account" "/en/account"} or starts_with(http.request.uri.path, "/fr/dashboard/") or starts_with(http.request.uri.path, "/en/dashboard/") or starts_with(http.request.uri.path, "/fr/admin/") or starts_with(http.request.uri.path, "/en/admin/") or starts_with(http.request.uri.path, "/fr/onboarding/") or starts_with(http.request.uri.path, "/en/onboarding/") or starts_with(http.request.uri.path, "/fr/account/") or starts_with(http.request.uri.path, "/en/account/")))
+  ```
+
+The exact-path checks plus slash-delimited prefixes cover each workspace root
+and its descendants without accidentally matching lookalike public paths.
+Public pages, parent payment pages, APIs, health checks, and payment/webhook
+callbacks remain unrestricted.
+
+Production verification from Vienna:
+
+```text
+/fr                         200
+/fr/dashboard               403 (Cloudflare block)
+/api/health                 200
+/api/serdipay/callback      405 (application response; endpoint is POST-only)
+```
+
+This is an IP-geolocation control, not an identity control. Staff travelling
+outside the DRC will be blocked, while a VPN exit node in the DRC can satisfy
+the country check. Keep application authentication and authorization enabled.
 
 ## Known traps
 

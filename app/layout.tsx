@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getRequestLocale, getRequestMessages } from "@/lib/i18n/server";
+import { getCanonicalSiteUrl } from "@/lib/site-url";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
   const messages = await getRequestMessages();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.minerval.org";
+  const appUrl = getCanonicalSiteUrl();
 
   return {
     metadataBase: new URL(appUrl),
@@ -14,6 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
     description: messages.meta.description,
     applicationName: "Minerval",
     category: "education",
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        fr: "/fr",
+        en: "/en",
+      },
+    },
     openGraph: {
       type: "website",
       siteName: "Minerval",

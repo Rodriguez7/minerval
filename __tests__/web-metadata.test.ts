@@ -3,6 +3,7 @@ import nextConfig from "@/next.config";
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
+import { getCanonicalSiteUrl } from "@/lib/site-url";
 
 describe("public web hardening and metadata", () => {
   it("sets a restrictive baseline CSP and browser security headers", async () => {
@@ -31,6 +32,19 @@ describe("public web hardening and metadata", () => {
     expect(entries).toHaveLength(8);
     expect(entries.some((entry) => entry.url.endsWith("/fr/privacy"))).toBe(true);
     expect(entries.some((entry) => entry.url.includes("/dashboard"))).toBe(false);
+  });
+
+  it("normalizes the production apex to the www canonical origin", () => {
+    const previous = process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NEXT_PUBLIC_APP_URL = "https://minerval.org/";
+
+    try {
+      expect(getCanonicalSiteUrl()).toBe("https://www.minerval.org");
+      expect(sitemap().every((entry) => entry.url.startsWith("https://www.minerval.org/"))).toBe(true);
+      expect(robots().host).toBe("https://www.minerval.org");
+    } finally {
+      process.env.NEXT_PUBLIC_APP_URL = previous;
+    }
   });
 
   it("provides an installable application manifest", () => {

@@ -40,6 +40,21 @@ function setLocaleCookie(response: NextResponse, locale: AppLocale) {
 }
 
 export async function proxy(request: NextRequest) {
+  const forwardedHost = request.headers
+    .get("x-forwarded-host")
+    ?.split(",")[0]
+    ?.trim();
+  const requestHost =
+    forwardedHost ?? request.headers.get("host") ?? request.nextUrl.hostname;
+
+  if (requestHost.split(":")[0] === "minerval.org") {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.protocol = "https";
+    canonicalUrl.hostname = "www.minerval.org";
+    canonicalUrl.port = "";
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
+
   const localeFromHeader = request.headers.get(LOCALE_HEADER_NAME);
   const localeFromPath = getLocaleFromPathname(request.nextUrl.pathname);
   const locale = getPreferredLocale(

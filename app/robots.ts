@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.minerval.org";
+import { getCanonicalSiteUrl } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
+  const appUrl = getCanonicalSiteUrl();
+
   return {
     rules: {
       userAgent: "*",
@@ -25,7 +26,7 @@ export default function robots(): MetadataRoute.Robots {
         "/en/pay/",
       ],
     },
-    sitemap: `${APP_URL}/sitemap.xml`,
-    host: APP_URL,
+    sitemap: `${appUrl}/sitemap.xml`,
+    host: appUrl,
   };
 }
