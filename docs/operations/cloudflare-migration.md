@@ -207,18 +207,19 @@ Enable rate limiting or bot fight mode one setting at a time. Re-run a real paym
 
 ## Geo-restriction — school workspace
 
-**Done 2026-07-29.** Cloudflare blocks access to the authenticated school
-workspace from IP addresses outside the Democratic Republic of the Congo.
-The Cloudflare country code is `CD` (not `CG`).
+**Done 2026-07-29; Austria added 2026-11-26.** Cloudflare blocks access to the
+authenticated school workspace from IP addresses outside the Democratic Republic
+of the Congo and Austria. Austria was added so the owner can use the dashboard
+from there. The Cloudflare country codes are `CD` (not `CG`) and `AT`.
 
-- **Name:** `Restrict school workspace to DRC`
+- **Name:** `Restrict school workspace to DRC and Austria`
 - **Status:** Active
 - **Action:** Block
 - **Order:** 2, after the server-to-server callback skip rule
 - **Expression:**
 
   ```
-  (ip.src.country ne "CD" and (http.request.uri.path in {"/fr/dashboard" "/en/dashboard" "/fr/admin" "/en/admin" "/fr/onboarding" "/en/onboarding" "/fr/account" "/en/account"} or starts_with(http.request.uri.path, "/fr/dashboard/") or starts_with(http.request.uri.path, "/en/dashboard/") or starts_with(http.request.uri.path, "/fr/admin/") or starts_with(http.request.uri.path, "/en/admin/") or starts_with(http.request.uri.path, "/fr/onboarding/") or starts_with(http.request.uri.path, "/en/onboarding/") or starts_with(http.request.uri.path, "/fr/account/") or starts_with(http.request.uri.path, "/en/account/")))
+  (not ip.src.country in {"CD" "AT"} and (http.request.uri.path in {"/fr/dashboard" "/en/dashboard" "/fr/admin" "/en/admin" "/fr/onboarding" "/en/onboarding" "/fr/account" "/en/account"} or starts_with(http.request.uri.path, "/fr/dashboard/") or starts_with(http.request.uri.path, "/en/dashboard/") or starts_with(http.request.uri.path, "/fr/admin/") or starts_with(http.request.uri.path, "/en/admin/") or starts_with(http.request.uri.path, "/fr/onboarding/") or starts_with(http.request.uri.path, "/en/onboarding/") or starts_with(http.request.uri.path, "/fr/account/") or starts_with(http.request.uri.path, "/en/account/")))
   ```
 
 The exact-path checks plus slash-delimited prefixes cover each workspace root
@@ -226,7 +227,7 @@ and its descendants without accidentally matching lookalike public paths.
 Public pages, parent payment pages, APIs, health checks, and payment/webhook
 callbacks remain unrestricted.
 
-Production verification from Vienna:
+Production verification from Vienna, before Austria was allowed:
 
 ```text
 /fr                         200
@@ -235,8 +236,12 @@ Production verification from Vienna:
 /api/serdipay/callback      405 (application response; endpoint is POST-only)
 ```
 
+After Austria was added (2026-11-26), `/fr/dashboard` from Vienna returns the
+application's 307 to `/fr/login` when signed out.
+
 This is an IP-geolocation control, not an identity control. Staff travelling
-outside the DRC will be blocked, while a VPN exit node in the DRC can satisfy
+outside the allowed countries will be blocked; add a country to the `in {...}`
+set to allow it, while a VPN exit node in the DRC can satisfy
 the country check. Keep application authentication and authorization enabled.
 
 ## Known traps
