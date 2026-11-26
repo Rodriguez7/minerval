@@ -25,6 +25,8 @@ const contentSecurityPolicy = [
 const nextConfig: NextConfig = {
   // Self-contained server bundle for the VPS Docker image (see Dockerfile).
   output: "standalone",
+  // Don't advertise the framework (X-Powered-By: Next.js) to scanners.
+  poweredByHeader: false,
   async headers() {
     return [
       {
