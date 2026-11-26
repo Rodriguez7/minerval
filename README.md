@@ -212,7 +212,17 @@ npm run test:e2e            # browser suite against a local dev server
 npm run test:e2e:production # browser suite against deployed production
 ```
 
-The local Playwright suite seeds its own school, student, and payment rows through Supabase service-role access, then verifies login, dashboard, reconciliation, reports, CSV export, and the public payment lookup flow.
+The Playwright suite (`e2e/smoke.spec.ts`, `e2e/legal.spec.ts`) seeds its own school, user, student, and payment rows through Supabase service-role access and deletes them afterwards. It covers the landing and legal pages, the dashboard (overview, reconciliation, reports with CSV export, payouts, analytics, settings), the public payment lookup and receipt, and, when `SERDIPAY_CALLBACK_SECRET` is set, a simulated SerdiPay confirmation: settled once, replay ignored, forged secret refused. No money moves.
+
+The seeded user gets its session from an admin-generated magic link (nothing is emailed), because production Supabase requires a captcha for password sign-in.
+
+To run the same suite against a deployed environment, export that environment's Supabase and callback variables and set `PLAYWRIGHT_BASE_URL` (no dev server is started and exported values win over `.env.local`):
+
+```bash
+PLAYWRIGHT_BASE_URL=https://www.minerval.org npx playwright test e2e/smoke.spec.ts e2e/legal.spec.ts
+```
+
+The dashboard is geo-restricted to the DRC at Cloudflare, so from elsewhere add `E2E_ORIGIN_URL` pointing at the server's reverse proxy (for example an SSH tunnel). The browser then reaches the app directly, as a DRC visitor would after Cloudflare lets them through.
 
 `test:e2e:production` is separate ([`playwright.production.mjs`](playwright.production.mjs)) and targets a deployed URL, defaulting to production and overridable with `PRODUCTION_URL`. It starts no server and reads no `.env.local`. See [Monitoring](#monitoring).
 

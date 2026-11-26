@@ -48,48 +48,80 @@ function getSupabaseProjectRef() {
   return url.hostname.split(".")[0] ?? "";
 }
 
-async function waitForAuthReadiness(email: string, password: string) {
-  const auth = getAnonClient();
+/**
+ * Matches French UI copy regardless of accents and apostrophe style, so
+ * typographic polish ("l'ecole" -> "l’école") does not break the suite while
+ * the wording itself is still checked.
+ */
+function fr(text: string) {
+  const variants: Record<string, string> = {
+    a: "[aàâä]",
+    c: "[cç]",
+    e: "[eéèêë]",
+    i: "[iîï]",
+    o: "[oôö]",
+    u: "[uùûü]",
+    "'": "['’]",
+  };
+  const pattern = [...text]
+    .map((char) => variants[char.toLowerCase()] ?? char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("");
+  return new RegExp(pattern, "i");
+}
+
+function getTargetUrl() {
+  const baseURL = test.info().project.use.baseURL;
+  if (!baseURL) throw new Error("Playwright baseURL is not configured");
+  return new URL(baseURL);
+}
+
+/**
+ * Production Supabase requires a captcha for password sign-in, so the seeded
+ * user's session comes from an admin-generated magic link instead. Nothing is
+ * emailed, and this works whether or not captcha protection is enabled.
+ */
+async function createSession(email: string) {
+  const admin = getAdminClient();
+  const anon = getAnonClient();
+  let lastError = "unknown error";
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const { error } = await auth.auth.signInWithPassword({ email, password });
-    if (!error) return;
+    const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+    const tokenHash = link?.properties?.hashed_token;
+
+    if (!linkError && tokenHash) {
+      const { data, error } = await anon.auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
+      if (!error && data.session) return data.session;
+      lastError = error?.message ?? "no session returned";
+    } else {
+      lastError = linkError?.message ?? "no token returned";
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  throw new Error(`Seeded auth user ${email} was not ready for sign-in`);
+  throw new Error(`Seeded auth user ${email} could not get a session: ${lastError}`);
 }
 
-async function authenticatePage(page: Page, email: string, password: string) {
-  const auth = getAnonClient();
-  const { data, error } = await auth.auth.signInWithPassword({ email, password });
-
-  if (error || !data.session) {
-    throw new Error(error?.message ?? `Failed to sign in seeded user ${email}`);
-  }
-
-  const cookieValue = `base64-${Buffer.from(JSON.stringify(data.session)).toString("base64")}`;
+async function authenticatePage(page: Page, email: string) {
+  const session = await createSession(email);
+  const cookieValue = `base64-${Buffer.from(JSON.stringify(session)).toString("base64")}`;
   const projectRef = getSupabaseProjectRef();
+  const target = getTargetUrl();
+  const cookieDefaults = {
+    domain: target.hostname,
+    path: "/",
+    httpOnly: false,
+    secure: target.protocol === "https:",
+    sameSite: "Lax" as const,
+  };
 
   await page.context().addCookies([
-    {
-      name: "minerval-locale",
-      value: "fr",
-      domain: "127.0.0.1",
-      path: "/",
-      httpOnly: false,
-      secure: false,
-      sameSite: "Lax",
-    },
-    {
-      name: `sb-${projectRef}-auth-token`,
-      value: cookieValue,
-      domain: "127.0.0.1",
-      path: "/",
-      httpOnly: false,
-      secure: false,
-      sameSite: "Lax",
-    },
+    { name: "minerval-locale", value: "fr", ...cookieDefaults },
+    { name: `sb-${projectRef}-auth-token`, value: cookieValue, ...cookieDefaults },
   ]);
 }
 
@@ -110,7 +142,12 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
   }
 
   const user = authResult.data.user as User;
-  await waitForAuthReadiness(email, password);
+  try {
+    await createSession(email);
+  } catch (error) {
+    await admin.auth.admin.deleteUser(user.id);
+    throw error;
+  }
 
   const { data: school, error: schoolError } = await admin
     .from("schools")
@@ -241,6 +278,14 @@ async function createSeedContext(admin: SupabaseClient): Promise<SeedContext> {
 }
 
 async function cleanupSeedContext(admin: SupabaseClient, seed: SeedContext) {
+  const { data: payments } = await admin
+    .from("payment_requests")
+    .select("id")
+    .eq("school_id", seed.schoolId);
+  const paymentIds = (payments ?? []).map((payment) => payment.id);
+  if (paymentIds.length > 0) {
+    await admin.from("payment_events").delete().in("payment_request_id", paymentIds);
+  }
   await admin.from("payment_requests").delete().eq("school_id", seed.schoolId);
   await admin.from("students").delete().eq("school_id", seed.schoolId);
   await admin.from("schools").delete().eq("id", seed.schoolId);
@@ -250,6 +295,37 @@ async function cleanupSeedContext(admin: SupabaseClient, seed: SeedContext) {
 test.describe.serial("Minerval smoke", () => {
   const admin = getAdminClient();
   let seed: SeedContext;
+
+  // Optional: E2E_ORIGIN_URL (e.g. an SSH tunnel to the server's reverse proxy)
+  // answers every browser request for the target host directly, bypassing the
+  // CDN. Needed to test the geo-restricted dashboard from outside the DRC.
+  const originUrl = process.env.E2E_ORIGIN_URL;
+
+  test.beforeEach(async ({ context }) => {
+    if (!originUrl) return;
+    const target = getTargetUrl();
+
+    await context.route(
+      (url) => url.hostname === target.hostname,
+      async (route) => {
+        const request = route.request();
+        const url = new URL(request.url());
+        const response = await route.fetch({
+          url: `${originUrl.replace(/\/$/, "")}${url.pathname}${url.search}`,
+          headers: { ...(await request.allHeaders()), host: url.host, "x-forwarded-proto": "https" },
+          maxRedirects: 0,
+        });
+        const headers = { ...response.headers() };
+        // Otherwise the browser upgrades later requests to HTTPS and leaves the origin.
+        delete headers["strict-transport-security"];
+        await route.fulfill({ response, headers });
+      }
+    );
+  });
+
+  test.afterEach(async ({ context }) => {
+    if (originUrl) await context.unrouteAll({ behavior: "ignoreErrors" });
+  });
 
   test.beforeAll(async () => {
     seed = await createSeedContext(admin);
@@ -265,10 +341,10 @@ test.describe.serial("Minerval smoke", () => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.goto("/fr");
 
-    await expect(page.getByRole("heading", { name: /Arretez de courir/i })).toBeVisible();
-    await expect(page.getByRole("navigation").getByText("Comment ca marche")).toBeHidden();
-    await expect(page.getByRole("link", { name: "Creer votre ecole — gratuit" }).first()).toBeVisible();
-    await expect(page.getByText("Trois etapes entre l'inscription")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: fr("Automatisez le recouvrement des frais scolaires") })
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: fr("Creer mon ecole gratuitement") }).first()).toBeVisible();
 
     const metrics = await page.evaluate(() => ({
       innerWidth: window.innerWidth,
@@ -288,57 +364,124 @@ test.describe.serial("Minerval smoke", () => {
   test("loads dashboard, reconciliation, reports, export, and public payment lookup", async ({
     page,
   }) => {
-    await authenticatePage(page, seed.email, seed.password);
+    await authenticatePage(page, seed.email);
 
     await page.goto("/fr/dashboard");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: "Vue d'ensemble" })).toBeVisible();
-    await expect(page.getByText("QR de paiement de l'ecole")).toBeVisible();
+    await expect(page.getByRole("heading", { name: fr("Vue d'ensemble") })).toBeVisible();
+    await expect(page.getByText(fr("QR de paiement de l'etablissement"))).toBeVisible();
 
     await page.goto("/fr/dashboard/reconciliation");
-    await expect(page.getByRole("heading", { name: "Rapprochement" })).toBeVisible();
-    await expect(page.getByText("File d'exceptions")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Rapprochement", exact: true })).toBeVisible();
+    await expect(page.getByText(fr("File d'exceptions"))).toBeVisible();
     await expect(page.getByText(seed.studentExternalId)).toBeVisible();
 
     await page.goto("/fr/dashboard/reports");
     await expect(page.getByRole("heading", { name: "Rapports" })).toBeVisible();
-    await expect(page.getByText("Synthese journaliere")).toBeVisible();
+    await expect(page.getByText(fr("Synthese journaliere"))).toBeVisible();
 
-    const exportResponse = await page.context().request.get("/fr/dashboard/reports/export");
-    expect(exportResponse.ok()).toBeTruthy();
-    expect(exportResponse.headers()["content-type"]).toContain("text/csv");
-    expect(await exportResponse.text()).toContain(seed.studentExternalId);
+    // Fetched from inside the page, like an admin's download, so it shares the
+    // browser's cookies and routing (including E2E_ORIGIN_URL).
+    const exportResponse = await page.evaluate(async () => {
+      const response = await fetch("/fr/dashboard/reports/export", { credentials: "include" });
+      return {
+        ok: response.ok,
+        contentType: response.headers.get("content-type") ?? "",
+        body: await response.text(),
+      };
+    });
+    expect(exportResponse.ok).toBeTruthy();
+    expect(exportResponse.contentType).toContain("text/csv");
+    expect(exportResponse.body).toContain(seed.studentExternalId);
 
     // Payouts page
     await page.goto("/fr/dashboard/payouts");
     await expect(page.getByRole("heading", { name: "Versements" })).toBeVisible();
-    await expect(page.getByText("Net pour l'ecole")).toBeVisible();
+    await expect(page.getByText(fr("Net pour l'ecole"))).toBeVisible();
 
     // Analytics page (pro_monthly has can_advanced_analytics)
     await page.goto("/fr/dashboard/analytics");
     await expect(page.getByRole("heading", { name: "Analytique" })).toBeVisible();
-    await expect(page.getByText("Taux de succes")).toBeVisible();
+    await expect(page.getByText(fr("Taux de succes"))).toBeVisible();
 
     // Settings page — payout discount (pro_monthly has 50 bps = 0.50% discount)
     await page.goto("/fr/dashboard/settings");
     await expect(page.getByText("Remise sur les versements")).toBeVisible();
     await expect(page.getByText("0.50%")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Logo de l'ecole" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: fr("Logo de l'etablissement") })).toBeVisible();
 
     await page.goto(`/fr/pay/access/${seed.paymentToken}?student=${seed.studentExternalId}`);
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("button", { name: /Payer .*1.*500 FC/ })).toBeVisible();
 
     await page.goto(`/fr/pay/access/${seed.paymentToken}?student=UNKNOWN-STUDENT`);
-    await expect(page.getByText("Eleve introuvable")).toBeVisible();
-    await expect(page.getByLabel("Entrez votre ID eleve")).toHaveValue("UNKNOWN-STUDENT");
+    await expect(page.getByText(fr("Eleve introuvable"))).toBeVisible();
+    await expect(page.getByLabel(fr("Entrez votre ID eleve"))).toHaveValue("UNKNOWN-STUDENT");
     await expect(page.getByRole("button", { name: "Rechercher" })).toBeVisible();
 
     // Receipt page — publicly accessible, branded (pro_monthly has can_branded_receipts)
     await page.context().clearCookies();
     await page.goto(`/fr/pay/receipt?token=${seed.receiptAccessToken}`);
-    await expect(page.getByText("Paiement confirme")).toBeVisible();
+    await expect(page.getByText(fr("Paiement confirme"))).toBeVisible();
     await expect(page.getByText("Playwright Student")).toBeVisible();
     await expect(page.getByRole("heading", { name: seed.schoolName })).toBeVisible();
+  });
+
+  test("SerdiPay callback settles a pending payment once and refuses forgeries", async ({ request }) => {
+    const secret = process.env.SERDIPAY_CALLBACK_SECRET;
+    test.skip(!secret, "SERDIPAY_CALLBACK_SECRET is not set for this environment");
+
+    // Simulates SerdiPay's server-to-server confirmation; no money moves.
+    const { data: pending } = await admin
+      .from("payment_requests")
+      .select("id")
+      .eq("school_id", seed.schoolId)
+      .eq("status", "pending")
+      .single();
+    expect(pending, "the seed includes one pending payment").toBeTruthy();
+
+    const callbackUrl = `/api/serdipay/callback?secret=${encodeURIComponent(secret!)}`;
+    const payload = {
+      message: pending!.id,
+      status: 200,
+      payment: { status: "success", transactionId: `E2E-CB-${pending!.id.slice(0, 8)}` },
+    };
+
+    const forged = await request.post("/api/serdipay/callback?secret=wrong", { data: payload });
+    expect(forged.status()).toBe(401);
+
+    const first = await request.post(callbackUrl, { data: payload });
+    expect(first.status()).toBe(200);
+    expect(await first.json()).toEqual({ message: "OK" });
+
+    const { data: settled } = await admin
+      .from("payment_requests")
+      .select("status, reconciliation_status, settled_at, serdipay_transaction_id")
+      .eq("id", pending!.id)
+      .single();
+    expect(settled).toMatchObject({
+      status: "success",
+      reconciliation_status: "reconciled",
+      serdipay_transaction_id: payload.payment.transactionId,
+    });
+    expect(settled?.settled_at).toBeTruthy();
+
+    const { data: student } = await admin
+      .from("students")
+      .select("amount_due")
+      .eq("id", seed.studentId)
+      .single();
+    expect(Number(student?.amount_due)).toBe(0);
+
+    // SerdiPay retries callbacks: a replay must not settle the payment twice.
+    const replay = await request.post(callbackUrl, { data: payload });
+    expect(await replay.json()).toEqual({ message: "Deja traite" });
+
+    const { count } = await admin
+      .from("payment_events")
+      .select("id", { count: "exact", head: true })
+      .eq("payment_request_id", pending!.id)
+      .eq("event_type", "callback_success");
+    expect(count).toBe(1);
   });
 });
