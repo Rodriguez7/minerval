@@ -6,26 +6,26 @@
 
 Minerval helps schools in Congo collect school fees. It finds unpaid balances, sends parents an automatic WhatsApp reminder in French with a secure payment link, takes payment by mobile money (Airtel, Orange, Vodacom M-Pesa, Afrimoney) through [SerdiPay](https://serdipay.com), and matches each payment to the right student.
 
-**Stack:** Next.js 16 · React 19 · TypeScript · Supabase (PostgreSQL, Auth) · Railway · Node.js payment proxy on Hetzner · Meta WhatsApp Cloud API · Resend · Cloudflare Turnstile · Vitest · Playwright · GitHub Actions
+**Stack:** Next.js 16 · React 19 · TypeScript · Supabase (PostgreSQL, Auth) · Docker on a Hetzner VPS (Coolify, Cloudflare Tunnel) · Node.js payment proxy · Meta WhatsApp Cloud API · Resend · Cloudflare Turnstile · Vitest · Playwright · GitHub Actions
 
 ## Architecture
 
 ```
-Browser → Railway (Next.js) → Hetzner proxy (proxy.minerval.org) → SerdiPay
-                    ↕
-              Supabase (Postgres)
+Browser → Cloudflare → Tunnel → Hetzner VPS: Next.js (Coolify) → SerdiPay proxy (same VPS) → SerdiPay
+                                                    ↕
+                                              Supabase (Postgres)
 ```
 
 Automatic reminders use an independent notification path:
 
 ```
-GitHub scheduler → Railway reminder worker → Meta WhatsApp Cloud API
+GitHub scheduler → reminder endpoint (VPS) → Meta WhatsApp Cloud API
                               ↕
                         Supabase outbox
 ```
 
-- **Main app**: Next.js 16 on Railway (`www.minerval.org`)
-- **Proxy**: Node.js on Hetzner with a fixed IP whitelisted by SerdiPay. Handles token auth and forwards payment requests.
+- **Main app**: Next.js 16 standalone Docker image, run by Coolify on a Hetzner VPS (`www.minerval.org`). The app is reachable only through Cloudflare Tunnel: Coolify's proxy listens on localhost, not on a public port.
+- **Proxy**: Node.js on the same VPS, whose fixed IP is whitelisted by SerdiPay. Handles token auth and forwards payment requests.
 - **Database**: Supabase Postgres (server-side only, service key)
 - **Auth**: Supabase Auth with cookie-based sessions (`@supabase/ssr`)
 
@@ -67,26 +67,30 @@ An example app env file now exists in [`.env.local.example`](.env.local.example)
 
 ## Deployment
 
-Push to `main` → Railway auto-deploys via GitHub integration.
+Production runs on a Hetzner VPS as a Coolify application behind Cloudflare Tunnel (migrated from Railway in November 2026, see [`docs/operations/vps-migration.md`](docs/operations/vps-migration.md)). A push to `main` runs CI but **does not deploy**: images are built on a workstation and shipped to the VPS's private registry, because the VPS has too little memory to build Next.js.
 
-Railway config is checked in via [`railway.toml`](railway.toml). The configured liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
+```bash
+# NEXT_PUBLIC_* values are baked in at build time and passed as a BuildKit secret
+docker buildx build --platform linux/amd64 --load \
+  --secret id=buildenv,src=<build.env with NEXT_PUBLIC_* values> \
+  -t 127.0.0.1:5000/minerval:<tag> .
+# then ship the image and queue the Coolify deployment (operator's deploy script)
+```
 
-The scheduled GitHub Actions monitor calls that deep endpoint every ten minutes. Keep Railway's `HEALTHCHECK_SECRET` and the repository secret `MINERVAL_HEALTHCHECK_SECRET` identical. A non-200 response or any degraded dependency fails the monitor and triggers the repository's configured Actions failure notifications.
+Runtime environment variables live in Coolify, never in the image. The container's liveness check is `GET /api/health`. External monitoring should call `GET /api/health?deep=1` with `Authorization: Bearer $HEALTHCHECK_SECRET` to verify Supabase, the SerdiPay proxy, and production configuration.
+
+The scheduled GitHub Actions monitor calls that deep endpoint every ten minutes. Keep the app's `HEALTHCHECK_SECRET` and the repository secret `MINERVAL_HEALTHCHECK_SECRET` identical. A non-200 response or any degraded dependency fails the monitor and triggers the repository's configured Actions failure notifications. GitHub disables scheduled workflows after 60 days without repository activity, so re-enable them if the monitor goes quiet.
 
 The public legal pages are `/privacy`, `/terms`, and `/refunds` (with `/fr` and `/en` locale prefixes). Production must set `LEGAL_ENTITY_NAME`, `LEGAL_CONTACT_EMAIL`, and `PRIVACY_CONTACT_EMAIL`. `LEGAL_ENTITY_ADDRESS` is optional and is displayed only when configured. The deep health check reports a degraded state when a required legal value is missing. Account creation records the accepted legal version in the user's authentication metadata.
 
 Before enabling production email, verify `EMAIL_DOMAIN` in Resend (including its DNS records), set `EMAIL_FROM` to a mailbox on that domain, and create or route the public support and privacy addresses. The deep health check rejects malformed or split-domain sender/contact configuration, but DNS verification and inbox delivery still require a real delivery test.
-
-**Railway env vars to set:**
-- All variables listed above that apply to the deployed service
-- `NIXPACKS_NODE_VERSION=22`
 
 ### Fixed-IP Proxy
 
 The fixed-IP SerdiPay proxy now lives in [`serdipay-proxy/`](serdipay-proxy). It includes:
 
 - a deployable Express service
-- PM2 config for Hetzner
+- PM2 config for the VPS
 - a dedicated env example in [`serdipay-proxy/.env.example`](serdipay-proxy/.env.example)
 
 ## How Payments Work
@@ -216,7 +220,7 @@ The local Playwright suite seeds its own school, student, and payment rows throu
 
 Cloudflare Turnstile guards `/login`, `/signup`, and `/forgot-password`. Three things must agree, and if any one of them is wrong the failure is **silent**:
 
-1. **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** (Railway) — when set, the forms disable their submit button until Turnstile issues a token.
+1. **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** (build-time value) — when set, the forms disable their submit button until Turnstile issues a token.
 2. **The CSP** in [`next.config.ts`](next.config.ts) — must permit `https://challenges.cloudflare.com` in `script-src`, `frame-src`, **and** `connect-src`. The widget loads a script, renders an iframe, and calls home; each is blocked by a different directive.
 3. **Supabase** — Authentication → Attack Protection → CAPTCHA enabled, provider Turnstile, secret key from the *Minerval* widget (the account has more than one).
 
@@ -229,7 +233,7 @@ Verification is Supabase's job, not ours: [`app/actions/auth.ts`](app/actions/au
 When changing any of the three, go in this order:
 
 1. Deploy the CSP change first.
-2. Set the site key in Railway, **rebuild**, and confirm the widget actually renders in a browser.
+2. Set the site key in the build env, **rebuild**, and confirm the widget actually renders in a browser.
 3. Only then enable CAPTCHA in Supabase.
 
 To disable captcha, reverse it: turn it off in Supabase first, then clear the site key.
